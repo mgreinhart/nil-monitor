@@ -385,7 +385,7 @@ const formatDate = (dateStr) => {
 };
 
 const MonitorPage = () => {
-  const [timeFilt, setTimeFilt] = useState("24h");
+  const [timeFilt, setTimeFilt] = useState("3d");
   const [catFilt, setCatFilt] = useState("All");
   const [selState, setSelState] = useState(null);
   const [expCase, setExpCase] = useState(null);
@@ -451,20 +451,12 @@ const MonitorPage = () => {
   })) : MOCK.timeline;
 
   // Time filter: compute cutoff in ms
-  const timeFilterMs = { "Today": 0, "24h": 86400000, "3d": 3*86400000, "7d": 7*86400000, "30d": 30*86400000 };
+  const timeFilterMs = { "24h": 86400000, "3d": 3*86400000, "7d": 7*86400000, "30d": 30*86400000, "All": Infinity };
   const filtered = evSource.filter(e => {
     if (catFilt !== "All" && e.cat !== catFilt) return false;
-    if (!e.rawTime) return true; // mock data passes through
-    const ms = timeFilterMs[timeFilt];
-    if (ms === 0) {
-      // "Today" = same calendar day
-      const now = new Date();
-      const normalized = e.rawTime.includes("T") ? e.rawTime : e.rawTime.replace(" ", "T") + "Z";
-      const eventDate = new Date(normalized);
-      return eventDate.toDateString() === now.toDateString();
-    }
+    if (!e.rawTime || timeFilt === "All") return true;
     const normalized = e.rawTime.includes("T") ? e.rawTime : e.rawTime.replace(" ", "T") + "Z";
-    return (Date.now() - new Date(normalized).getTime()) <= ms;
+    return (Date.now() - new Date(normalized).getTime()) <= timeFilterMs[timeFilt];
   });
 
   // Normalize API CSC or use mock
@@ -496,7 +488,7 @@ const MonitorPage = () => {
     return days;
   })();
 
-  const times = ["Today", "24h", "3d", "7d", "30d"];
+  const times = ["24h", "3d", "7d", "30d", "All"];
   const cats = ["All", ...Object.keys(CAT_COLORS).slice(0, 7)];
 
   return (
