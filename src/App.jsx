@@ -447,9 +447,25 @@ const MonitorPage = () => {
 
   // Normalize API events or use mock
   const evSource = events ? events.map(e => ({
-    time: timeAgo(e.event_time), cat: e.category, src: e.source, text: e.text, sev: e.severity,
+    time: timeAgo(e.event_time), rawTime: e.event_time, cat: e.category, src: e.source, text: e.text, sev: e.severity,
   })) : MOCK.timeline;
-  const filtered = evSource.filter(e => catFilt === "All" || e.cat === catFilt);
+
+  // Time filter: compute cutoff in ms
+  const timeFilterMs = { "Today": 0, "24h": 86400000, "3d": 3*86400000, "7d": 7*86400000, "30d": 30*86400000 };
+  const filtered = evSource.filter(e => {
+    if (catFilt !== "All" && e.cat !== catFilt) return false;
+    if (!e.rawTime) return true; // mock data passes through
+    const ms = timeFilterMs[timeFilt];
+    if (ms === 0) {
+      // "Today" = same calendar day
+      const now = new Date();
+      const normalized = e.rawTime.includes("T") ? e.rawTime : e.rawTime.replace(" ", "T") + "Z";
+      const eventDate = new Date(normalized);
+      return eventDate.toDateString() === now.toDateString();
+    }
+    const normalized = e.rawTime.includes("T") ? e.rawTime : e.rawTime.replace(" ", "T") + "Z";
+    return (Date.now() - new Date(normalized).getTime()) <= ms;
+  });
 
   // Normalize API CSC or use mock
   const cscSource = cscFeed ? cscFeed.map(c => ({
