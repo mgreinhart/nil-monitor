@@ -141,6 +141,11 @@ const MOCK = {
   ],
 };
 
+// ── Embed Configuration ────────────────────────────────────────────
+const X_LIST_URL = "https://twitter.com/i/lists/2024655891015119249";
+const SPOTIFY_SHOW_ID = "1Pju07vvKyIqEZOGDNaMMD"; // Highway to NIL
+const RSS2JSON = "https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.nilrevolution.com%2Ffeed%2F";
+
 // ── State Grid Cartogram ───────────────────────────────────────────
 const SG = {
   ME:[0,10],WI:[1,5],VT:[1,9],NH:[1,10],WA:[2,0],ID:[2,1],MT:[2,2],ND:[2,3],MN:[2,4],IL:[2,5],MI:[2,6],NY:[2,7],MA:[2,9],CT:[2,10],OR:[3,0],NV:[3,1],WY:[3,2],SD:[3,3],IA:[3,4],IN:[3,5],OH:[3,6],PA:[3,7],NJ:[3,8],RI:[3,10],CA:[4,0],UT:[4,1],CO:[4,2],NE:[4,3],MO:[4,4],KY:[4,5],WV:[4,6],VA:[4,7],MD:[4,8],DE:[4,9],AZ:[5,1],NM:[5,2],KS:[5,3],AR:[5,4],TN:[5,5],NC:[5,6],SC:[5,7],DC:[5,8],AK:[6,0],HI:[6,1],OK:[6,2],LA:[6,3],MS:[6,4],AL:[6,5],GA:[6,6],TX:[7,2],FL:[7,5]
@@ -241,21 +246,214 @@ const MiniBarChart = () => {
   );
 };
 
+// ── Live Embed Components ─────────────────────────────────────────
+
+const X_LIST_ACCOUNTS = [
+  { handle: "@PeteThamel", org: "ESPN" },
+  { handle: "@RossDellenger", org: "Yahoo" },
+  { handle: "@NicoleAuerbach", org: "Athletic" },
+  { handle: "@D1ticker", org: "College Sports" },
+  { handle: "@DarrenHeitner", org: "NIL Legal" },
+  { handle: "@achristovichh", org: "FOS" },
+  { handle: "@Sportico", org: "Sports Business" },
+  { handle: "@NCAA", org: "Official" },
+];
+
+const XListEmbed = () => (
+  <Panel title="Live Feed" accent={T.green} right={<LiveBadge />}>
+    <a href={X_LIST_URL} target="_blank" rel="noopener noreferrer"
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+        padding: "8px 12px", background: T.navy, borderRadius: 4,
+        textDecoration: "none", marginBottom: 10,
+      }}>
+      <span style={{ fontFamily: T.sans, fontSize: 11, fontWeight: 600, color: "#fff" }}>Open Live Feed on X</span>
+      <Mono style={{ fontSize: 11, color: "rgba(255,255,255,.5)" }}>→</Mono>
+    </a>
+    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+      {X_LIST_ACCOUNTS.map((a, i) => (
+        <div key={i} style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "4px 0", borderBottom: i < X_LIST_ACCOUNTS.length - 1 ? `1px solid ${T.borderLight}` : "none",
+        }}>
+          <Mono style={{ fontSize: 10, fontWeight: 600, color: T.accent }}>{a.handle}</Mono>
+          <Mono style={{ fontSize: 8, color: T.textDim }}>{a.org}</Mono>
+        </div>
+      ))}
+    </div>
+    <Mono style={{ display: "block", textAlign: "center", marginTop: 8, fontSize: 8, color: T.textDim }}>
+      39 accounts curated for NIL &amp; college sports regulatory news
+    </Mono>
+  </Panel>
+);
+
+const NILRevFeed = () => {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(RSS2JSON)
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === "ok") setPosts(data.items.slice(0, 5));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <Panel title="NIL Revolution" accent={T.purple}>
+      {loading ? (
+        <Mono style={{ fontSize: 9, color: T.textDim }}>Loading feed...</Mono>
+      ) : posts.length === 0 ? (
+        <Mono style={{ fontSize: 9, color: T.textDim }}>Unable to load feed</Mono>
+      ) : (
+        posts.map((p, i) => (
+          <div key={i} style={{ padding: "5px 0", borderBottom: i < posts.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
+            <a href={p.link} target="_blank" rel="noopener noreferrer" style={{ fontFamily: T.sans, fontSize: 10.5, color: T.accent, lineHeight: 1.3, textDecoration: "none", display: "block" }}>
+              {p.title}
+            </a>
+            <Mono style={{ fontSize: 8, color: T.textDim }}>
+              Troutman Pepper · {new Date(p.pubDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            </Mono>
+          </div>
+        ))
+      )}
+    </Panel>
+  );
+};
+
+const SpotifyEmbed = () => (
+  <Panel title="Highway to NIL" accent={T.purple} noPad>
+    <iframe
+      src={`https://open.spotify.com/embed/show/${SPOTIFY_SHOW_ID}?theme=0`}
+      width="100%"
+      height="152"
+      frameBorder="0"
+      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+      loading="lazy"
+      style={{ borderRadius: 0, display: "block" }}
+    />
+  </Panel>
+);
+
+const KalshiSection = () => (
+  <div style={{ marginTop: 10 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+      <Mono style={{ fontSize: 8, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
+        Prediction Markets · Kalshi
+      </Mono>
+      <a href="https://kalshi.com/sports" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+        <Mono style={{ fontSize: 8, color: T.accent }}>All markets →</Mono>
+      </a>
+    </div>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+      {[
+        { label: "College Football", href: "https://kalshi.com/markets/kxncaaf/ncaaf-championship", desc: "CFB championship & game markets" },
+        { label: "March Madness", href: "https://kalshi.com/sports/ncaab", desc: "NCAA tournament & basketball" },
+        { label: "All Sports", href: "https://kalshi.com/sports", desc: "All event contracts" },
+      ].map((link, i) => (
+        <a key={i} href={link.href} target="_blank" rel="noopener noreferrer"
+          style={{ padding: "8px 10px", background: T.surfaceAlt, borderRadius: 3, textDecoration: "none", border: `1px solid ${T.borderLight}` }}>
+          <div style={{ fontFamily: T.sans, fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 2 }}>{link.label}</div>
+          <Mono style={{ fontSize: 8, color: T.textDim }}>{link.desc}</Mono>
+        </a>
+      ))}
+    </div>
+  </div>
+);
+
 // ── Pages ──────────────────────────────────────────────────────────
 const PAGES = ["Monitor", "States", "Cases", "Headlines", "About"];
 
 // ╔═══════════════════════════════════════════════════════════════════
-//  MONITOR PAGE — The Dashboard
+//  MONITOR PAGE — The Dashboard (live from D1, falls back to mock)
 // ╚═══════════════════════════════════════════════════════════════════
+const daysUntil = (dateStr) => {
+  if (!dateStr) return 999;
+  const diff = new Date(dateStr) - new Date();
+  return Math.max(0, Math.ceil(diff / 86400000));
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
 const MonitorPage = () => {
   const [timeFilt, setTimeFilt] = useState("24h");
   const [catFilt, setCatFilt] = useState("All");
   const [selState, setSelState] = useState(null);
   const [expCase, setExpCase] = useState(null);
 
+  // Live data state
+  const [briefing, setBriefing] = useState(null);
+  const [deadlines, setDeadlines] = useState(null);
+  const [house, setHouse] = useState(null);
+  const [events, setEvents] = useState(null);
+  const [cscFeed, setCscFeed] = useState(null);
+  const [cases, setCases] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/briefing").then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.content) setBriefing(JSON.parse(d.content));
+    }).catch(() => {});
+    fetch("/api/deadlines").then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.length) setDeadlines(d);
+    }).catch(() => {});
+    fetch("/api/house").then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.phase) setHouse(d);
+    }).catch(() => {});
+    fetch("/api/events?limit=20").then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.length) setEvents(d);
+    }).catch(() => {});
+    fetch("/api/csc").then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.length) setCscFeed(d);
+    }).catch(() => {});
+    fetch("/api/cases").then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.length) setCases(d);
+    }).catch(() => {});
+  }, []);
+
+  // Normalize API deadlines or use mock
+  const dlSource = deadlines ? deadlines.map(d => ({
+    date: formatDate(d.date), days: daysUntil(d.date), cat: d.category, text: d.text, sev: d.severity,
+  })) : MOCK.deadlines;
+
+  // Normalize API house or use mock
+  const h = house || MOCK.house;
+  const houseData = house ? {
+    phase: h.phase, hearing: formatDate(h.hearing_date),
+    cap: h.rev_share_cap, capAdj: formatDate(h.cap_adjustment_date),
+    damages: h.back_damages_total, distributed: h.back_damages_distributed,
+    optedIn: h.opted_in, cscActions: "—",
+  } : MOCK.house;
+
+  // Normalize API events or use mock
+  const evSource = events ? events.map(e => ({
+    time: timeAgo(e.event_time), cat: e.category, src: e.source, text: e.text, sev: e.severity,
+  })) : MOCK.timeline;
+  const filtered = evSource.filter(e => catFilt === "All" || e.cat === catFilt);
+
+  // Normalize API CSC or use mock
+  const cscSource = cscFeed ? cscFeed.map(c => ({
+    time: timeAgo(c.activity_time), tag: c.tag, text: c.text,
+  })) : MOCK.cscFeed;
+
+  // Normalize API cases or use mock
+  const caseSource = cases ? cases.map(c => ({
+    name: c.name, court: c.court, judge: c.judge, status: c.status,
+    cat: c.category, lastFiling: c.last_filing_date, filings: c.filing_count,
+    next: c.next_action_date ? `${formatDate(c.next_action_date)} — ${c.next_action || ""}` : null,
+    desc: c.description,
+  })) : MOCK.cases;
+
+  // Briefing: API or mock
+  const briefingSource = briefing || MOCK.briefing.map(([headline, body]) => ({ headline, body }));
+  const briefingDate = briefing ? new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Feb 19";
+
   const times = ["Today", "24h", "3d", "7d", "30d"];
   const cats = ["All", ...Object.keys(CAT_COLORS).slice(0, 7)];
-  const filtered = MOCK.timeline.filter(e => catFilt === "All" || e.cat === catFilt);
 
   return (
     <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
@@ -269,22 +467,24 @@ const MonitorPage = () => {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
 
           {/* ── BRIEFING (tall left) ── */}
-          <Panel title="Daily Briefing · Feb 19" accent={T.red} style={{ gridRow: "1 / 3" }}>
+          <Panel title={`Daily Briefing · ${briefingDate}`} accent={T.red} style={{ gridRow: "1 / 3" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {MOCK.briefing.map(([head, body], i) => (
+              {briefingSource.map((s, i) => (
                 <div key={i} style={{ fontFamily: T.sans, fontSize: 11.5, lineHeight: 1.55, color: T.text }}>
-                  <strong style={{ color: T.text }}>{head}</strong>{" "}
-                  <span style={{ color: T.textMid }}>{body}</span>
+                  <strong style={{ color: T.text }}>{s.headline}</strong>{" "}
+                  <span style={{ color: T.textMid }}>{s.body}</span>
                 </div>
               ))}
             </div>
-            <Mono style={{ display: "block", marginTop: 8, fontSize: 8, color: T.textDim }}>AI-generated · 6:14 AM EST · Sources: CourtListener, CSC.gov, LegiScan, ESPN</Mono>
+            <Mono style={{ display: "block", marginTop: 8, fontSize: 8, color: T.textDim }}>
+              {briefing ? "AI-generated" : "Sample briefing"} · Sources: CourtListener, CSC.gov, LegiScan, ESPN
+            </Mono>
           </Panel>
 
           {/* ── DEADLINES (top right) ── */}
           <Panel title="Deadlines" accent={T.red}>
             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-              {MOCK.deadlines.slice(0, 4).map((d, i) => (
+              {dlSource.slice(0, 4).map((d, i) => (
                 <div key={i} style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: i < 3 ? `1px solid ${T.borderLight}` : "none", alignItems: "flex-start" }}>
                   <div style={{
                     fontFamily: T.mono, fontSize: 16, fontWeight: 700, lineHeight: 1, minWidth: 32, textAlign: "right",
@@ -307,20 +507,20 @@ const MonitorPage = () => {
           {/* ── HOUSE SETTLEMENT (bottom right) ── */}
           <Panel title="House v. NCAA" accent={T.green}>
             <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 7 }}>
-              <Badge color={T.amber}>{MOCK.house.phase}</Badge>
-              <Mono style={{ fontSize: 8, color: T.textDim }}>Hearing: {MOCK.house.hearing}</Mono>
+              <Badge color={T.amber}>{houseData.phase}</Badge>
+              <Mono style={{ fontSize: 8, color: T.textDim }}>Hearing: {houseData.hearing}</Mono>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
               {[
-                ["REV-SHARE CAP", MOCK.house.cap, `Adj: ${MOCK.house.capAdj}`],
-                ["BACK DAMAGES", MOCK.house.damages, `Paid: ${MOCK.house.distributed}`],
-                ["OPTED IN", MOCK.house.optedIn, "Power 4"],
-                ["CSC ACTIONS", MOCK.house.cscActions, "2 new this mo."],
+                ["REV-SHARE CAP", houseData.cap, `Adj: ${houseData.capAdj}`],
+                ["BACK DAMAGES", houseData.damages, `Paid: ${houseData.distributed}`],
+                ["OPTED IN", houseData.optedIn, "Power 4"],
+                ["CSC ACTIONS", houseData.cscActions, ""],
               ].map(([l, v, s], i) => (
                 <div key={i} style={{ padding: "5px 7px", background: T.surfaceAlt, borderRadius: 3 }}>
                   <Mono style={{ fontSize: 7, fontWeight: 700, letterSpacing: "1px", color: T.textDim }}>{l}</Mono>
                   <div style={{ fontFamily: T.mono, fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.2 }}>{v}</div>
-                  <Mono style={{ fontSize: 8, color: T.textDim }}>{s}</Mono>
+                  {s && <Mono style={{ fontSize: 8, color: T.textDim }}>{s}</Mono>}
                 </div>
               ))}
             </div>
@@ -340,7 +540,11 @@ const MonitorPage = () => {
           <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginBottom: 8 }}>
             {cats.map(c => <Pill key={c} active={catFilt === c} onClick={() => setCatFilt(c)}>{c}</Pill>)}
           </div>
-          {filtered.map((e, i) => (
+          {filtered.length === 0 ? (
+            <Mono style={{ fontSize: 10, color: T.textDim, padding: "12px 0" }}>
+              {events ? "No events in this category" : "Events timeline populates when AI pipeline runs"}
+            </Mono>
+          ) : filtered.map((e, i) => (
             <div key={i} style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: `1px solid ${T.borderLight}`, alignItems: "flex-start" }}>
               <SevDot s={e.sev} />
               <Mono style={{ fontSize: 9, color: T.textDim, minWidth: 24, flexShrink: 0 }}>{e.time}</Mono>
@@ -353,8 +557,12 @@ const MonitorPage = () => {
 
         {/* ── CSC Activity Feed ── */}
         <Panel title="CSC Activity Feed" accent={T.red}>
-          {MOCK.cscFeed.map((item, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: i < MOCK.cscFeed.length - 1 ? `1px solid ${T.borderLight}` : "none", alignItems: "flex-start" }}>
+          {cscSource.length === 0 ? (
+            <Mono style={{ fontSize: 10, color: T.textDim, padding: "12px 0" }}>
+              CSC activity populates when AI pipeline detects College Sports Commission news
+            </Mono>
+          ) : cscSource.map((item, i) => (
+            <div key={i} style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: i < cscSource.length - 1 ? `1px solid ${T.borderLight}` : "none", alignItems: "flex-start" }}>
               <Mono style={{ fontSize: 9, color: T.textDim, minWidth: 22, flexShrink: 0 }}>{item.time}</Mono>
               <Badge color={CSC_TAG_COLORS[item.tag]} small>{item.tag}</Badge>
               <span style={{ fontFamily: T.sans, fontSize: 11.5, color: T.text, flex: 1, lineHeight: 1.35 }}>{item.text}</span>
@@ -416,7 +624,7 @@ const MonitorPage = () => {
         {/* ── Litigation ── */}
         <Panel title="The Courtroom" accent={T.accent}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {MOCK.cases.map((c, i) => (
+            {caseSource.map((c, i) => (
               <div key={i} onClick={() => setExpCase(expCase === i ? null : i)} style={{
                 border: `1px solid ${T.borderLight}`, borderRadius: 4, padding: "8px 10px",
                 cursor: "pointer", background: expCase === i ? T.surfaceAlt : "transparent", transition: "background .1s",
@@ -442,83 +650,23 @@ const MonitorPage = () => {
 
         {/* ── Outside View ── */}
         <Panel title="The Outside View" accent="#64748b">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div>
-              <Mono style={{ fontSize: 8, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 6, display: "block" }}>News Volume · 30 Days</Mono>
-              <MiniBarChart />
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
-                <Mono style={{ fontSize: 7, color: T.textDim }}>30d ago</Mono>
-                <Mono style={{ fontSize: 7, color: T.textDim }}>Today</Mono>
-              </div>
-            </div>
-            <div>
-              <Mono style={{ fontSize: 8, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 6, display: "block" }}>Google Trends</Mono>
-              <div style={{ background: T.surfaceAlt, borderRadius: 3, padding: 12, textAlign: "center", height: 58, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Mono style={{ fontSize: 9, color: T.textDim }}>Live embed — NIL, transfer portal, House settlement</Mono>
-              </div>
-            </div>
+          <Mono style={{ fontSize: 8, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 6, display: "block" }}>News Volume · 30 Days</Mono>
+          <div style={{ height: 72 }}>
+            <MiniBarChart />
           </div>
-          <div style={{ marginTop: 10 }}>
-            <Mono style={{ fontSize: 8, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 6, display: "block" }}>Prediction Markets · Polymarket</Mono>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-              {[
-                ["Federal NIL legislation by 2026", "18%", "↓3%", false],
-                ["House settlement approved", "89%", "↑2%", true],
-                ["NCAA restructured by 2027", "42%", "↑7%", true],
-              ].map(([q, pct, chg, up], i) => (
-                <div key={i} style={{ padding: "8px", background: T.surfaceAlt, borderRadius: 3 }}>
-                  <div style={{ fontFamily: T.sans, fontSize: 10, color: T.textMid, lineHeight: 1.3, marginBottom: 4 }}>{q}</div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                    <Mono style={{ fontSize: 18, fontWeight: 700, color: T.text }}>{pct}</Mono>
-                    <Mono style={{ fontSize: 9, color: up ? T.green : T.red }}>{chg}</Mono>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
+            <Mono style={{ fontSize: 7, color: T.textDim }}>30d ago</Mono>
+            <Mono style={{ fontSize: 7, color: T.textDim }}>Today</Mono>
           </div>
+          <KalshiSection />
         </Panel>
       </div>
 
       {/* ══ SIDEBAR ══ */}
       <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 10, position: "sticky", top: 56 }}>
-
-        {/* X Feed */}
-        <Panel title="Live Feed" accent={T.green} style={{ maxHeight: 420 }} right={<LiveBadge />}>
-          <div style={{ overflow: "auto", maxHeight: 360 }}>
-            {MOCK.xFeed.map((t, i) => (
-              <div key={i} style={{ padding: "6px 0", borderBottom: `1px solid ${T.borderLight}` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                  <Mono style={{ fontSize: 10, fontWeight: 700, color: T.accent }}>{t.handle}</Mono>
-                  <Mono style={{ fontSize: 8, color: T.textDim }}>{t.time}</Mono>
-                </div>
-                <div style={{ fontFamily: T.sans, fontSize: 10.5, lineHeight: 1.4, color: T.text }}>{t.text}</div>
-              </div>
-            ))}
-          </div>
-          <Mono style={{ display: "block", textAlign: "center", marginTop: 4, fontSize: 8, color: T.textDim }}>Curated X List · 47 accounts</Mono>
-        </Panel>
-
-        {/* NIL Revolution */}
-        <Panel title="NIL Revolution" accent={T.purple}>
-          {MOCK.nilRevPosts.map((p, i) => (
-            <div key={i} style={{ padding: "5px 0", borderBottom: i < MOCK.nilRevPosts.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
-              <div style={{ fontFamily: T.sans, fontSize: 10.5, color: T.accent, lineHeight: 1.3, cursor: "pointer" }}>{p.title}</div>
-              <Mono style={{ fontSize: 8, color: T.textDim }}>Troutman Pepper · {p.date}</Mono>
-            </div>
-          ))}
-        </Panel>
-
-        {/* Podcast */}
-        <Panel title="Highway to NIL" accent={T.purple}>
-          <div style={{ textAlign: "center", padding: "4px 0" }}>
-            <div style={{ fontFamily: T.sans, fontSize: 11, color: T.text, lineHeight: 1.35, marginBottom: 4 }}>"Desk Drawer Tour: NIL Disputes, Eligibility, and the CSC Agreement"</div>
-            <Mono style={{ fontSize: 8, color: T.textDim, marginBottom: 6, display: "block" }}>Feb 4, 2026 · 48 min</Mono>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 12px", background: "#1DB954", borderRadius: 14, cursor: "pointer" }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21" /></svg>
-              <span style={{ fontFamily: T.sans, fontSize: 10, fontWeight: 600, color: "white" }}>Spotify</span>
-            </div>
-          </div>
-        </Panel>
+        <XListEmbed />
+        <NILRevFeed />
+        <SpotifyEmbed />
       </div>
     </div>
   );
@@ -596,21 +744,42 @@ const StatesPage = () => {
 };
 
 // ╔═══════════════════════════════════════════════════════════════════
-//  CASES PAGE
+//  CASES PAGE — Live from D1, falls back to mock
 // ╚═══════════════════════════════════════════════════════════════════
 const CasesPage = () => {
   const [filt, setFilt] = useState("All");
   const [exp, setExp] = useState(0);
+  const [cases, setCases] = useState(null);
+  const [error, setError] = useState(false);
   const caseCats = ["All", "Settlement Implementation", "Contract Enforcement", "Antitrust", "Employment Classification", "Governance"];
-  const filtered = MOCK.cases.filter(c => filt === "All" || c.cat === filt);
+
+  useEffect(() => {
+    fetch("/api/cases")
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setCases(data))
+      .catch(() => setError(true));
+  }, []);
+
+  // Normalize API data to match component expectations
+  const normalize = (c) => ({
+    name: c.name, court: c.court, judge: c.judge, status: c.status,
+    cat: c.category, lastFiling: c.last_filing_date, filings: c.filing_count,
+    next: c.next_action_date ? `${c.next_action_date} — ${c.next_action || ""}` : null,
+    desc: c.description, clUrl: c.courtlistener_url, pacerUrl: c.pacer_url, id: c.id,
+  });
+
+  const source = cases ? cases.map(normalize) : MOCK.cases;
+  const filtered = source.filter(c => filt === "All" || c.cat === filt);
+
   return (
     <div>
+      {error && <Mono style={{ fontSize: 9, color: T.amber, display: "block", marginBottom: 8 }}>Using cached data — API unavailable</Mono>}
       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 12 }}>
         {caseCats.map(c => <Pill key={c} active={filt === c} onClick={() => setFilt(c)}>{c}</Pill>)}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {filtered.map((c, i) => (
-          <Panel key={i} noPad>
+          <Panel key={c.id || i} noPad>
             <div onClick={() => setExp(exp === i ? null : i)} style={{ padding: "12px 14px", cursor: "pointer" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
                 <span style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 700, color: T.text }}>{c.name}</span>
@@ -625,8 +794,8 @@ const CasesPage = () => {
                 <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
                   <div style={{ fontFamily: T.sans, fontSize: 12.5, color: T.textMid, lineHeight: 1.6, marginBottom: 10 }}>{c.desc}</div>
                   <div style={{ display: "flex", gap: 10 }}>
-                    <Mono style={{ fontSize: 10, color: T.accent, cursor: "pointer" }}>CourtListener →</Mono>
-                    <Mono style={{ fontSize: 10, color: T.accent, cursor: "pointer" }}>PACER Docket →</Mono>
+                    {c.clUrl && <a href={c.clUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}><Mono style={{ fontSize: 10, color: T.accent }}>CourtListener →</Mono></a>}
+                    {c.pacerUrl && <a href={c.pacerUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}><Mono style={{ fontSize: 10, color: T.accent }}>PACER Docket →</Mono></a>}
                   </div>
                 </div>
               )}
@@ -639,20 +808,54 @@ const CasesPage = () => {
 };
 
 // ╔═══════════════════════════════════════════════════════════════════
-//  HEADLINES PAGE
+//  HEADLINES PAGE — Live from D1, falls back to mock
 // ╚═══════════════════════════════════════════════════════════════════
+const timeAgo = (dateStr) => {
+  if (!dateStr) return "";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d`;
+};
+
 const HeadlinesPage = () => {
   const [cat, setCat] = useState("All");
+  const [headlines, setHeadlines] = useState(null);
+  const [error, setError] = useState(false);
   const allCats = ["All", ...Object.keys(CAT_COLORS).slice(0, 7)];
-  const filtered = MOCK.headlines.filter(h => cat === "All" || h.cat === cat);
+
+  useEffect(() => {
+    fetch("/api/headlines?limit=100")
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setHeadlines(data))
+      .catch(() => setError(true));
+  }, []);
+
+  const normalize = (h) => ({
+    src: h.source, title: h.title, cat: h.category,
+    time: timeAgo(h.published_at), url: h.url,
+  });
+
+  const source = headlines ? headlines.map(normalize) : MOCK.headlines;
+  const filtered = source.filter(h => cat === "All" || h.cat === cat);
+
   return (
     <div>
+      {error && <Mono style={{ fontSize: 9, color: T.amber, display: "block", marginBottom: 8 }}>Using cached data — API unavailable</Mono>}
       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 12 }}>
         {allCats.map(c => <Pill key={c} active={cat === c} onClick={() => setCat(c)}>{c}</Pill>)}
       </div>
       <Panel noPad>
-        {filtered.map((h, i) => (
-          <div key={i} style={{ display: "flex", gap: 10, padding: "10px 14px", borderBottom: `1px solid ${T.borderLight}`, alignItems: "center", cursor: "pointer" }}>
+        {filtered.length === 0 ? (
+          <div style={{ padding: "20px 14px", textAlign: "center" }}>
+            <Mono style={{ fontSize: 10, color: T.textDim }}>No headlines in this category</Mono>
+          </div>
+        ) : filtered.map((h, i) => (
+          <a key={i} href={h.url} target="_blank" rel="noopener noreferrer"
+            style={{ display: "flex", gap: 10, padding: "10px 14px", borderBottom: `1px solid ${T.borderLight}`, alignItems: "center", textDecoration: "none", cursor: "pointer" }}>
             <div style={{ flex: "0 0 56px" }}>
               <Mono style={{ fontSize: 10, fontWeight: 700, color: T.accent, display: "block" }}>{h.src}</Mono>
               <Mono style={{ fontSize: 8, color: T.textDim }}>{h.time}</Mono>
@@ -660,7 +863,7 @@ const HeadlinesPage = () => {
             <Badge color={CAT_COLORS[h.cat]} small>{h.cat}</Badge>
             <div style={{ flex: 1, fontFamily: T.sans, fontSize: 12.5, color: T.text, lineHeight: 1.35 }}>{h.title}</div>
             <Mono style={{ fontSize: 10, color: T.accent }}>→</Mono>
-          </div>
+          </a>
         ))}
       </Panel>
     </div>
