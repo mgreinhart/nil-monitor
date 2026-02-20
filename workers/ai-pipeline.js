@@ -558,7 +558,12 @@ export async function runAIPipeline(env, options = {}) {
     const briefingSections = await generateBriefing(env, db, isAfternoon);
     // If afternoon returns empty sections, keep the morning briefing
     if (isAfternoon && (!briefingSections || briefingSections.length === 0)) {
-      console.log('AI Pipeline: afternoon briefing empty, keeping morning briefing');
+      // Nothing new — keep morning content but stamp the time so title shows PM
+      const today = new Date().toISOString().split('T')[0];
+      await db.prepare(
+        `UPDATE briefings SET generated_at = datetime('now') WHERE date = ?`
+      ).bind(today).run();
+      console.log('AI Pipeline: afternoon briefing empty, kept morning content, updated timestamp');
     } else {
       briefingWritten = await writeBriefing(db, briefingSections);
       console.log(`AI Pipeline: briefing ${briefingWritten ? 'generated' : 'skipped'}`);
