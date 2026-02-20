@@ -76,8 +76,13 @@ async function getUnsummarizedCases(db) {
 }
 
 // ── Task 1: Event Extraction ─────────────────────────────────────
-async function extractEvents(env, headlines, caseUpdates) {
+async function extractEvents(env, headlines, caseUpdates, db) {
   if (headlines.length === 0 && caseUpdates.length === 0) return [];
+
+  // Fetch existing events to avoid duplicates
+  const { results: existingEvents } = await db.prepare(
+    'SELECT text, source_url FROM events ORDER BY event_time DESC LIMIT 50'
+  ).all();
 
   const system = `You are extracting discrete events for a college athletics regulatory dashboard called NIL Monitor.
 An event is something that HAPPENED — a bill moved, a filing was made, a rule changed, guidance was issued, an enforcement action was taken, a settlement progressed. Not general commentary or opinion articles.
@@ -96,6 +101,8 @@ For severity:
 - important: Significant development that affects strategy (new bills, major filings, policy changes)
 - routine: Noteworthy but no immediate action needed (commentary, minor updates, general news)
 
+CRITICAL DEDUPLICATION RULE: If multiple headlines cover the SAME real-world event, create only ONE event entry. Also, you will be given a list of already-tracked events — do NOT create duplicates of those. Only return genuinely new events.
+
 Return ONLY valid JSON, no other text.`;
 
   // Limit to 40 headlines to keep prompt size manageable
@@ -108,6 +115,10 @@ Return ONLY valid JSON, no other text.`;
     `[Case Update] ${c.name} (${c.court}) — Status: ${c.status}, Last filing: ${c.last_filing_date}, Filings: ${c.filing_count}, Updated: ${c.updated_at}`
   ).join('\n');
 
+  const existingList = existingEvents.length > 0
+    ? existingEvents.map(e => `- ${e.text}`).join('\n')
+    : 'None';
+
   const userContent = `Extract discrete events from these items. Only include items where something concrete happened — skip opinion pieces and general commentary.
 
 Each item has a "Published" or "Updated" timestamp — return that timestamp as "event_time" so events are ordered by when they actually happened, not when we processed them.
@@ -117,6 +128,9 @@ ${headlineList || 'None'}
 
 CASE UPDATES (${caseUpdates.length}):
 ${caseList || 'None'}
+
+ALREADY TRACKED EVENTS (do NOT create duplicates of these):
+${existingList}
 
 Return JSON:
 {
@@ -354,6 +368,20 @@ async function writeEvents(db, events) {
   let count = 0;
   for (const e of events) {
     try {
+      // Skip if an event with the same source_url already exists
+      if (e.source_url) {
+        const existing = await db.prepare(
+          'SELECT id FROM events WHERE source_url = ?'
+        ).bind(e.source_url).first();
+        if (existing) continue;
+      }
+      // Also skip if very similar text already exists (first 40 chars match)
+      const textPrefix = e.text.substring(0, 40);
+      const similar = await db.prepare(
+        "SELECT id FROM events WHERE text LIKE ? || '%'"
+      ).bind(textPrefix).first();
+      if (similar) continue;
+
       const eventTime = e.event_time || new Date().toISOString();
       await db.prepare(
         `INSERT INTO events (source, source_url, category, text, severity, event_time)
@@ -361,7 +389,7 @@ async function writeEvents(db, events) {
       ).bind(e.source, e.source_url || null, e.category, e.text, e.severity, eventTime).run();
       count++;
     } catch (err) {
-      // Skip duplicates or errors
+      // Skip errors
     }
   }
   return count;
@@ -451,7 +479,7 @@ export async function runAIPipeline(env, options = {}) {
   console.log(`AI Pipeline: ${headlines.length} new headlines, ${caseUpdates.length} case updates`);
 
   // 3. Extract events
-  const events = await extractEvents(env, headlines, caseUpdates);
+  const events = await extractEvents(env, headlines, caseUpdates, db);
   const eventsWritten = await writeEvents(db, events);
   console.log(`AI Pipeline: extracted ${events.length} events, wrote ${eventsWritten}`);
 
