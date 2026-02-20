@@ -4,7 +4,7 @@
 //  Requires: wrangler secret put ANTHROPIC_KEY
 // ═══════════════════════════════════════════════════════════════════
 
-const MODEL = 'claude-sonnet-4-5-20250929';
+const MODEL = 'claude-sonnet-4-5-20241022';
 
 async function callClaude(env, systemPrompt, userContent) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -46,8 +46,10 @@ async function getLastRunTime(db) {
   const row = await db.prepare(
     'SELECT ran_at FROM pipeline_runs ORDER BY id DESC LIMIT 1'
   ).first();
-  // Default to 24 hours ago if never run
-  return row?.ran_at || new Date(Date.now() - 86400000).toISOString();
+  if (row?.ran_at) return row.ran_at;
+  // Default to 24 hours ago in D1 datetime format (YYYY-MM-DD HH:MM:SS)
+  const d = new Date(Date.now() - 86400000);
+  return d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
 }
 
 // ── Fetch new data since last run ────────────────────────────────

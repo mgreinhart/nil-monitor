@@ -115,20 +115,27 @@ export async function handleApi(request, env) {
 
       const phase = url.searchParams.get('phase') || 'all';
 
-      if (phase === 'fetch' || phase === 'all') {
-        await Promise.all([
-          fetchGoogleNews(env),
-          fetchNCAANews(env),
-          fetchNewsData(env),
-          fetchCongress(env),
-          fetchCourtListener(env),
-        ]);
-      }
-      if (phase === 'ai' || phase === 'all') {
-        await runAIPipeline(env);
+      const log = [];
+      try {
+        if (phase === 'fetch' || phase === 'all') {
+          await Promise.all([
+            fetchGoogleNews(env).then(() => log.push('google-news: ok')).catch(e => log.push(`google-news: ${e.message}`)),
+            fetchNCAANews(env).then(() => log.push('ncaa-rss: ok')).catch(e => log.push(`ncaa-rss: ${e.message}`)),
+            fetchNewsData(env).then(() => log.push('newsdata: ok')).catch(e => log.push(`newsdata: ${e.message}`)),
+            fetchCongress(env).then(() => log.push('congress: ok')).catch(e => log.push(`congress: ${e.message}`)),
+            fetchCourtListener(env).then(() => log.push('courtlistener: ok')).catch(e => log.push(`courtlistener: ${e.message}`)),
+          ]);
+        }
+        if (phase === 'ai' || phase === 'all') {
+          log.push(`anthropic-key: ${env.ANTHROPIC_KEY ? 'set' : 'missing'}`);
+          await runAIPipeline(env);
+          log.push('ai-pipeline: ok');
+        }
+      } catch (e) {
+        log.push(`error: ${e.message}`);
       }
 
-      return json({ ok: true, phase });
+      return json({ ok: true, phase, log });
     }
 
     return json({ error: 'Not found' }, 404);
