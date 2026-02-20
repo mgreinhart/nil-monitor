@@ -364,7 +364,7 @@ const KalshiSection = () => (
 );
 
 // ── Pages ──────────────────────────────────────────────────────────
-const PAGES = ["Monitor", "States", "Cases", "Headlines", "About"];
+const PAGES = ["Monitor", "States", "Headlines", "About"];
 
 // ╔═══════════════════════════════════════════════════════════════════
 //  MONITOR PAGE — The Dashboard (live from D1, falls back to mock)
@@ -445,7 +445,7 @@ const MonitorPage = () => {
     name: c.name, court: c.court, judge: c.judge, status: c.status,
     cat: c.category, lastFiling: c.last_filing_date, filings: c.filing_count,
     next: c.next_action_date ? `${formatDate(c.next_action_date)} — ${c.next_action || ""}` : null,
-    desc: c.description,
+    desc: c.description, clUrl: c.courtlistener_url, pacerUrl: c.pacer_url,
   })) : MOCK.cases;
 
   // Briefing: API or mock
@@ -462,30 +462,15 @@ const MonitorPage = () => {
 
         {/* ══════════════════════════════════════════════════════════
             ABOVE THE FOLD — Dense grid. The actual dashboard.
-            Briefing + Deadlines + House numbers = one screen.
+            Row 1: Deadlines + House (side by side, compact)
+            Row 2: Briefing (full width, two-column text)
            ══════════════════════════════════════════════════════════ */}
+        {/* ── ROW 1: Deadlines + House ── */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-
-          {/* ── BRIEFING (tall left) ── */}
-          <Panel title={`Daily Briefing · ${briefingDate}`} accent={T.red} style={{ gridRow: "1 / 3" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {briefingSource.map((s, i) => (
-                <div key={i} style={{ fontFamily: T.sans, fontSize: 11.5, lineHeight: 1.55, color: T.text }}>
-                  <strong style={{ color: T.text }}>{s.headline}</strong>{" "}
-                  <span style={{ color: T.textMid }}>{s.body}</span>
-                </div>
-              ))}
-            </div>
-            <Mono style={{ display: "block", marginTop: 8, fontSize: 8, color: T.textDim }}>
-              {briefing ? "AI-generated" : "Sample briefing"} · Sources: CourtListener, CSC.gov, LegiScan, ESPN
-            </Mono>
-          </Panel>
-
-          {/* ── DEADLINES (top right) ── */}
           <Panel title="Deadlines" accent={T.red}>
             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-              {dlSource.slice(0, 4).map((d, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: i < 3 ? `1px solid ${T.borderLight}` : "none", alignItems: "flex-start" }}>
+              {dlSource.slice(0, 3).map((d, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: i < 2 ? `1px solid ${T.borderLight}` : "none", alignItems: "flex-start" }}>
                   <div style={{
                     fontFamily: T.mono, fontSize: 16, fontWeight: 700, lineHeight: 1, minWidth: 32, textAlign: "right",
                     color: d.sev === "critical" && d.days <= 7 ? T.red : d.days <= 14 ? T.amber : T.text,
@@ -504,7 +489,6 @@ const MonitorPage = () => {
             </div>
           </Panel>
 
-          {/* ── HOUSE SETTLEMENT (bottom right) ── */}
           <Panel title="House v. NCAA" accent={T.green}>
             <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 7 }}>
               <Badge color={T.amber}>{houseData.phase}</Badge>
@@ -526,6 +510,21 @@ const MonitorPage = () => {
             </div>
           </Panel>
         </div>
+
+        {/* ── ROW 2: Daily Briefing (full width, two-column text) ── */}
+        <Panel title={`Daily Briefing · ${briefingDate}`} accent={T.red}>
+          <div style={{ columnCount: 2, columnGap: 20, columnRule: `1px solid ${T.borderLight}` }}>
+            {briefingSource.map((s, i) => (
+              <div key={i} style={{ fontFamily: T.sans, fontSize: 11.5, lineHeight: 1.55, color: T.text, marginBottom: 8, breakInside: "avoid" }}>
+                <strong style={{ color: T.text }}>{s.headline}</strong>{" "}
+                <span style={{ color: T.textMid }}>{s.body}</span>
+              </div>
+            ))}
+          </div>
+          <Mono style={{ display: "block", marginTop: 4, fontSize: 8, color: T.textDim }}>
+            {briefing ? "AI-generated" : "Sample briefing"} · Sources: CourtListener, CSC.gov, LegiScan, ESPN
+          </Mono>
+        </Panel>
 
         {/* ══════════════════════════════════════════════════════════
             BELOW THE FOLD — Detail Sections
@@ -635,13 +634,20 @@ const MonitorPage = () => {
                   <Badge color={CAT_COLORS[c.cat]} small>{c.cat}</Badge>
                 </div>
                 <div style={{ display: "flex", gap: 12, marginTop: 3, fontFamily: T.mono, fontSize: 9, color: T.textDim, flexWrap: "wrap" }}>
-                  <span>{c.court} · {c.judge}</span>
+                  <span>Court: {c.court}</span>
+                  <span>Judge: {c.judge}</span>
+                  <span>Filings: {c.filings}</span>
                   <span>Last: {c.lastFiling}</span>
-                  <span>{c.filings} filings</span>
                 </div>
                 {c.next && <div style={{ marginTop: 3, fontFamily: T.sans, fontSize: 10.5, color: T.red, fontWeight: 600 }}>→ {c.next}</div>}
                 {expCase === i && (
-                  <div style={{ marginTop: 7, paddingTop: 7, borderTop: `1px solid ${T.border}`, fontFamily: T.sans, fontSize: 11.5, color: T.textMid, lineHeight: 1.5 }}>{c.desc}</div>
+                  <div style={{ marginTop: 7, paddingTop: 7, borderTop: `1px solid ${T.border}` }}>
+                    <div style={{ fontFamily: T.sans, fontSize: 11.5, color: T.textMid, lineHeight: 1.55, marginBottom: 8 }}>{c.desc}</div>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      {c.clUrl && <a href={c.clUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}><Mono style={{ fontSize: 10, color: T.accent }}>CourtListener →</Mono></a>}
+                      {c.pacerUrl && <a href={c.pacerUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}><Mono style={{ fontSize: 10, color: T.accent }}>PACER Docket →</Mono></a>}
+                    </div>
+                  </div>
                 )}
               </div>
             ))}
@@ -739,70 +745,6 @@ const StatesPage = () => {
           </table>
         </Panel>
       )}
-    </div>
-  );
-};
-
-// ╔═══════════════════════════════════════════════════════════════════
-//  CASES PAGE — Live from D1, falls back to mock
-// ╚═══════════════════════════════════════════════════════════════════
-const CasesPage = () => {
-  const [filt, setFilt] = useState("All");
-  const [exp, setExp] = useState(0);
-  const [cases, setCases] = useState(null);
-  const [error, setError] = useState(false);
-  const caseCats = ["All", "Settlement Implementation", "Contract Enforcement", "Antitrust", "Employment Classification", "Governance"];
-
-  useEffect(() => {
-    fetch("/api/cases")
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => setCases(data))
-      .catch(() => setError(true));
-  }, []);
-
-  // Normalize API data to match component expectations
-  const normalize = (c) => ({
-    name: c.name, court: c.court, judge: c.judge, status: c.status,
-    cat: c.category, lastFiling: c.last_filing_date, filings: c.filing_count,
-    next: c.next_action_date ? `${c.next_action_date} — ${c.next_action || ""}` : null,
-    desc: c.description, clUrl: c.courtlistener_url, pacerUrl: c.pacer_url, id: c.id,
-  });
-
-  const source = cases ? cases.map(normalize) : MOCK.cases;
-  const filtered = source.filter(c => filt === "All" || c.cat === filt);
-
-  return (
-    <div>
-      {error && <Mono style={{ fontSize: 9, color: T.amber, display: "block", marginBottom: 8 }}>Using cached data — API unavailable</Mono>}
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 12 }}>
-        {caseCats.map(c => <Pill key={c} active={filt === c} onClick={() => setFilt(c)}>{c}</Pill>)}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {filtered.map((c, i) => (
-          <Panel key={c.id || i} noPad>
-            <div onClick={() => setExp(exp === i ? null : i)} style={{ padding: "12px 14px", cursor: "pointer" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
-                <span style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 700, color: T.text }}>{c.name}</span>
-                <Badge color={T.amber}>{c.status}</Badge>
-                <Badge color={CAT_COLORS[c.cat]}>{c.cat}</Badge>
-              </div>
-              <div style={{ display: "flex", gap: 16, fontFamily: T.mono, fontSize: 9, color: T.textDim, flexWrap: "wrap" }}>
-                <span>Court: {c.court}</span><span>Judge: {c.judge}</span><span>Filings: {c.filings}</span><span>Last: {c.lastFiling}</span>
-              </div>
-              {c.next && <div style={{ marginTop: 5, fontFamily: T.sans, fontSize: 11.5, color: T.red, fontWeight: 600 }}>→ {c.next}</div>}
-              {exp === i && (
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
-                  <div style={{ fontFamily: T.sans, fontSize: 12.5, color: T.textMid, lineHeight: 1.6, marginBottom: 10 }}>{c.desc}</div>
-                  <div style={{ display: "flex", gap: 10 }}>
-                    {c.clUrl && <a href={c.clUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}><Mono style={{ fontSize: 10, color: T.accent }}>CourtListener →</Mono></a>}
-                    {c.pacerUrl && <a href={c.pacerUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}><Mono style={{ fontSize: 10, color: T.accent }}>PACER Docket →</Mono></a>}
-                  </div>
-                </div>
-              )}
-            </div>
-          </Panel>
-        ))}
-      </div>
     </div>
   );
 };
@@ -971,7 +913,6 @@ export default function NILMonitor() {
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "12px 14px 40px" }}>
         {page === "Monitor" && <MonitorPage />}
         {page === "States" && <StatesPage />}
-        {page === "Cases" && <CasesPage />}
         {page === "Headlines" && <HeadlinesPage />}
         {page === "About" && <AboutPage />}
       </main>

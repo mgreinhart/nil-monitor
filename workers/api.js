@@ -104,6 +104,33 @@ export async function handleApi(request, env) {
       return json(results);
     }
 
+    // Manual trigger for scheduled tasks (dev/admin use)
+    if (path === '/api/trigger') {
+      const { fetchGoogleNews } = await import('./fetch-google-news.js');
+      const { fetchNCAANews } = await import('./fetch-ncaa-rss.js');
+      const { fetchNewsData } = await import('./fetch-newsdata.js');
+      const { fetchCongress } = await import('./fetch-congress.js');
+      const { fetchCourtListener } = await import('./fetch-courtlistener.js');
+      const { runAIPipeline } = await import('./ai-pipeline.js');
+
+      const phase = url.searchParams.get('phase') || 'all';
+
+      if (phase === 'fetch' || phase === 'all') {
+        await Promise.all([
+          fetchGoogleNews(env),
+          fetchNCAANews(env),
+          fetchNewsData(env),
+          fetchCongress(env),
+          fetchCourtListener(env),
+        ]);
+      }
+      if (phase === 'ai' || phase === 'all') {
+        await runAIPipeline(env);
+      }
+
+      return json({ ok: true, phase });
+    }
+
     return json({ error: 'Not found' }, 404);
   } catch (err) {
     console.error('API error:', err);
