@@ -299,7 +299,7 @@ const NILRevFeed = () => {
     fetch(RSS2JSON)
       .then(r => r.json())
       .then(data => {
-        if (data.status === "ok") setPosts(data.items.slice(0, 5));
+        if (data.status === "ok") setPosts(data.items.slice(0, 3));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
