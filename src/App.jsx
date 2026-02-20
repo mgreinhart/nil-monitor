@@ -538,7 +538,12 @@ const MonitorPage = () => {
         </div>
 
         {/* ── ROW 2: Briefing (full width, two-column text) ── */}
-        <Panel title="Briefing" accent={T.red}>
+        <Panel title={(() => {
+          if (!briefingGeneratedAt) return "Briefing";
+          const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
+          const hour = new Date(n).toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" });
+          return parseInt(hour) < 12 ? "Morning Briefing" : "Afternoon Briefing";
+        })()} accent={T.red}>
           <div style={{ columnCount: 2, columnGap: 20, columnRule: `1px solid ${T.borderLight}` }}>
             {briefingSource.map((s, i) => (
               <div key={i} style={{ fontFamily: T.sans, fontSize: 14, lineHeight: 1.55, color: T.text, marginBottom: 8, breakInside: "avoid" }}>
