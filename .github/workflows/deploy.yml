@@ -1,4 +1,5 @@
 name: Deploy Worker
+# Auto-deploys nil-monitor-api on every push to main
 
 on:
   push:
