@@ -423,7 +423,8 @@ async function writeBriefing(db, sections) {
 }
 
 // ── Main Pipeline ────────────────────────────────────────────────
-export async function runAIPipeline(env) {
+export async function runAIPipeline(env, options = {}) {
+  const { includeBriefing = true } = options;
   const token = env.ANTHROPIC_KEY;
   if (!token) {
     console.log('AI Pipeline: no ANTHROPIC_KEY configured, skipping');
@@ -464,10 +465,15 @@ export async function runAIPipeline(env) {
   const cscWritten = await writeCSCActivity(db, cscItems);
   console.log(`AI Pipeline: detected ${cscItems.length} CSC items, wrote ${cscWritten}`);
 
-  // 6. Generate daily briefing
-  const briefingSections = await generateBriefing(env, db);
-  const briefingWritten = await writeBriefing(db, briefingSections);
-  console.log(`AI Pipeline: briefing ${briefingWritten ? 'generated' : 'skipped'}`);
+  // 6. Generate briefing (only on briefing-eligible runs)
+  let briefingWritten = 0;
+  if (includeBriefing) {
+    const briefingSections = await generateBriefing(env, db);
+    briefingWritten = await writeBriefing(db, briefingSections);
+    console.log(`AI Pipeline: briefing ${briefingWritten ? 'generated' : 'skipped'}`);
+  } else {
+    console.log('AI Pipeline: briefing skipped (non-briefing run)');
+  }
 
   // 7. Summarize unsummarized cases
   const unsummarized = await getUnsummarizedCases(db);

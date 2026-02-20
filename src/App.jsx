@@ -392,6 +392,7 @@ const MonitorPage = () => {
 
   // Live data state
   const [briefing, setBriefing] = useState(null);
+  const [briefingGeneratedAt, setBriefingGeneratedAt] = useState(null);
   const [deadlines, setDeadlines] = useState(null);
   const [house, setHouse] = useState(null);
   const [events, setEvents] = useState(null);
@@ -402,7 +403,10 @@ const MonitorPage = () => {
 
   useEffect(() => {
     fetch("/api/briefing").then(r => r.ok ? r.json() : null).then(d => {
-      if (d?.content) setBriefing(JSON.parse(d.content));
+      if (d?.content) {
+        setBriefing(JSON.parse(d.content));
+        if (d.generated_at) setBriefingGeneratedAt(d.generated_at);
+      }
     }).catch(() => {});
     fetch("/api/deadlines").then(r => r.ok ? r.json() : null).then(d => {
       if (d?.length) setDeadlines(d);
@@ -462,7 +466,6 @@ const MonitorPage = () => {
 
   // Briefing: API or mock
   const briefingSource = briefing || MOCK.briefing.map(([headline, body]) => ({ headline, body }));
-  const briefingDate = briefing ? new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Feb 19";
 
   // Build 30-day chart data from headline counts (fill gaps with 0)
   const chartData = (() => {
@@ -536,8 +539,8 @@ const MonitorPage = () => {
           </Panel>
         </div>
 
-        {/* ── ROW 2: Daily Briefing (full width, two-column text) ── */}
-        <Panel title={`Daily Briefing · ${briefingDate}`} accent={T.red}>
+        {/* ── ROW 2: Briefing (full width, two-column text) ── */}
+        <Panel title="Briefing" accent={T.red}>
           <div style={{ columnCount: 2, columnGap: 20, columnRule: `1px solid ${T.borderLight}` }}>
             {briefingSource.map((s, i) => (
               <div key={i} style={{ fontFamily: T.sans, fontSize: 14, lineHeight: 1.55, color: T.text, marginBottom: 8, breakInside: "avoid" }}>
@@ -547,7 +550,10 @@ const MonitorPage = () => {
             ))}
           </div>
           <Mono style={{ display: "block", marginTop: 4, fontSize: 10, color: T.textDim }}>
-            {briefing ? "AI-generated" : "Sample briefing"} · Sources: CourtListener, CSC.gov, LegiScan, ESPN
+            {briefingGeneratedAt ? `Generated ${(() => {
+              const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
+              return new Date(n).toLocaleString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short" }) + " · " + new Date(n).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+            })()}` : briefing ? "AI-generated" : "Sample briefing"}
           </Mono>
         </Panel>
 

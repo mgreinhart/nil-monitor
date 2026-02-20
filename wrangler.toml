@@ -8,4 +8,4 @@ database_name = "nil-monitor-db"
 database_id = "c205339b-2bde-4f06-ab64-bedef8db1f53"
 
 [triggers]
-crons = ["0 8,20 * * *", "30 8,20 * * *"]
+crons = ["0 1,11,17,19 * * *", "30 1,11,17,19 * * *"]
