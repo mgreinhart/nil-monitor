@@ -1,5 +1,5 @@
-name: Deploy Worker
-# Auto-deploys nil-monitor-api on every push to main
+name: Deploy
+# Auto-deploys Worker + Pages on every push to main
 
 on:
   push:
@@ -17,7 +17,17 @@ jobs:
 
       - run: npm ci
 
-      - run: npx wrangler deploy
+      - name: Deploy Worker
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Deploy Pages
+        run: npx wrangler pages deploy dist --project-name nil-monitor
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
