@@ -190,16 +190,6 @@ const Panel = ({ title, accent, children, style, right, noPad, className }) => (
   </div>
 );
 
-const LiveBadge = () => (
-  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-    <span style={{ position: "relative", width: 7, height: 7, display: "inline-block" }}>
-      <span style={{ position: "absolute", inset: 0, borderRadius: "50%", background: T.green, animation: "livePulse 2s infinite" }} />
-      <span style={{ position: "absolute", inset: 1, borderRadius: "50%", background: T.green }} />
-    </span>
-    <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.green }}>LIVE</Mono>
-  </span>
-);
-
 const Divider = () => <div style={{ height: 1, background: T.border, margin: 0 }} />;
 
 // ── State Map Component ────────────────────────────────────────────
@@ -264,14 +254,14 @@ const X_LIST_ACCOUNTS = [
 ];
 
 const XListEmbed = () => (
-  <Panel title="Live Feed" accent={T.green} right={<LiveBadge />}>
+  <Panel title="Curated Feed" accent={T.green}>
     <a href={X_LIST_URL} target="_blank" rel="noopener noreferrer"
       style={{
         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
         padding: "8px 12px", background: T.navy, borderRadius: 4,
         textDecoration: "none", marginBottom: 10,
       }}>
-      <span style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, color: "#fff" }}>Open Live Feed on X</span>
+      <span style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, color: "#fff" }}>Open on X</span>
       <Mono style={{ fontSize: 13, color: "rgba(255,255,255,.5)" }}>→</Mono>
     </a>
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
@@ -286,7 +276,7 @@ const XListEmbed = () => (
       ))}
     </div>
     <Mono style={{ display: "block", textAlign: "center", marginTop: 8, fontSize: 10, color: T.textDim }}>
-      39 accounts curated for NIL &amp; college sports regulatory news
+      NIL &amp; college sports regulatory news
     </Mono>
   </Panel>
 );
@@ -908,30 +898,8 @@ const AboutPage = () => (
 // ╔═══════════════════════════════════════════════════════════════════
 //  APP SHELL
 // ╚═══════════════════════════════════════════════════════════════════
-const formatRefreshTime = (ranAt) => {
-  if (!ranAt) return "Loading...";
-  const normalized = ranAt.includes("T") ? ranAt : ranAt.replace(" ", "T") + "Z";
-  const date = new Date(normalized);
-  const diff = Date.now() - date.getTime();
-  const mins = Math.floor(diff / 60000);
-  let ago;
-  if (mins < 1) ago = "just now";
-  else if (mins < 60) ago = `${mins}m ago`;
-  else if (mins < 1440) ago = `${Math.floor(mins / 60)}h ago`;
-  else ago = `${Math.floor(mins / 1440)}d ago`;
-  const ts = date.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
-  return `${ago} · ${ts}`;
-};
-
 export default function NILMonitor() {
   const [page, setPage] = useState("Monitor");
-  const [lastRefresh, setLastRefresh] = useState(null);
-
-  useEffect(() => {
-    fetch("/api/last-run").then(r => r.ok ? r.json() : null).then(d => {
-      if (d?.ran_at) setLastRefresh(d.ran_at);
-    }).catch(() => {});
-  }, []);
 
   return (
     <div style={{ background: T.bg, minHeight: "100vh", fontFamily: T.sans }}>
@@ -939,7 +907,7 @@ export default function NILMonitor() {
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: ${T.bg}; }
-        @keyframes livePulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.4; transform:scale(2); } }
+
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 2px; }
@@ -955,7 +923,6 @@ export default function NILMonitor() {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 24 }}>
           <Mono style={{ fontSize: 14, fontWeight: 700, color: "#fff", letterSpacing: ".6px" }}>NIL MONITOR</Mono>
-          <LiveBadge />
         </div>
         <div style={{ display: "flex", gap: 0 }}>
           {PAGES.map(p => (
@@ -969,9 +936,6 @@ export default function NILMonitor() {
             }}>{p}</button>
           ))}
         </div>
-        <Mono style={{ marginLeft: "auto", fontSize: 10, color: "rgba(255,255,255,.3)" }}>
-          Last refresh: {formatRefreshTime(lastRefresh)}
-        </Mono>
       </nav>
 
       {/* ── Page Content ── */}
