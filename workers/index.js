@@ -7,6 +7,8 @@ import { handleApi } from './api.js';
 import { fetchCourtListener } from './fetch-courtlistener.js';
 import { fetchGoogleNews } from './fetch-google-news.js';
 import { fetchNCAANews } from './fetch-ncaa-rss.js';
+import { fetchNewsData } from './fetch-newsdata.js';
+import { fetchCongress } from './fetch-congress.js';
 import { runAIPipeline } from './ai-pipeline.js';
 
 export default {
@@ -29,6 +31,8 @@ export default {
         Promise.all([
           fetchGoogleNews(env),
           fetchNCAANews(env),
+          fetchNewsData(env),
+          fetchCongress(env),
           fetchCourtListener(env),
         ]).then(() => runAIPipeline(env))
       );

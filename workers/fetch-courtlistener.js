@@ -1,28 +1,24 @@
 // ═══════════════════════════════════════════════════════════════════
 //  CourtListener Fetcher
 //  Updates tracked cases from CourtListener REST API v4.
-//  Requires auth token: wrangler secret put COURTLISTENER_TOKEN
+//  Works without auth for public data. Optional token for higher
+//  rate limits: wrangler secret put COURTLISTENER_TOKEN
 // ═══════════════════════════════════════════════════════════════════
 
 const CL_BASE = 'https://www.courtlistener.com/api/rest/v4';
 
 async function clFetch(path, token) {
-  const resp = await fetch(`${CL_BASE}${path}`, {
-    headers: {
-      'Authorization': `Token ${token}`,
-      'User-Agent': 'NILMonitor/1.0',
-    },
-  });
+  const headers = { 'User-Agent': 'NILMonitor/1.0' };
+  if (token) {
+    headers['Authorization'] = `Token ${token}`;
+  }
+  const resp = await fetch(`${CL_BASE}${path}`, { headers });
   if (!resp.ok) throw new Error(`CourtListener ${path}: ${resp.status}`);
   return resp.json();
 }
 
 export async function fetchCourtListener(env) {
-  const token = env.COURTLISTENER_TOKEN;
-  if (!token) {
-    console.log('CourtListener: no token configured, skipping');
-    return;
-  }
+  const token = env.COURTLISTENER_TOKEN || null;
 
   console.log('Fetching CourtListener updates...');
 
