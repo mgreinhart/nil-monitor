@@ -33,7 +33,12 @@ async function callClaude(env, systemPrompt, userContent) {
 
   // Extract JSON from response (handles markdown code blocks)
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
-  return JSON.parse(jsonMatch[1].trim());
+  try {
+    return JSON.parse(jsonMatch[1].trim());
+  } catch (parseErr) {
+    console.error('JSON parse failed. Raw response:', text.substring(0, 500));
+    throw new Error(`JSON parse failed: ${parseErr.message}`);
+  }
 }
 
 // ── Get last pipeline run time ───────────────────────────────────
@@ -90,17 +95,21 @@ For severity:
 
 Return ONLY valid JSON, no other text.`;
 
-  const headlineList = headlines.map(h =>
-    `[${h.category}] ${h.source}: ${h.title} (${h.published_at})\n  URL: ${h.url}`
+  // Limit to 40 headlines to keep prompt size manageable
+  const topHeadlines = headlines.slice(0, 40);
+  const headlineList = topHeadlines.map(h =>
+    `[${h.category}] ${h.source}: ${h.title}\n  Published: ${h.published_at}\n  URL: ${h.url}`
   ).join('\n');
 
   const caseList = caseUpdates.map(c =>
-    `[Case Update] ${c.name} (${c.court}) — Status: ${c.status}, Last filing: ${c.last_filing_date}, Filings: ${c.filing_count}`
+    `[Case Update] ${c.name} (${c.court}) — Status: ${c.status}, Last filing: ${c.last_filing_date}, Filings: ${c.filing_count}, Updated: ${c.updated_at}`
   ).join('\n');
 
   const userContent = `Extract discrete events from these items. Only include items where something concrete happened — skip opinion pieces and general commentary.
 
-HEADLINES (${headlines.length}):
+Each item has a "Published" or "Updated" timestamp — return that timestamp as "event_time" so events are ordered by when they actually happened, not when we processed them.
+
+HEADLINES (${topHeadlines.length}):
 ${headlineList || 'None'}
 
 CASE UPDATES (${caseUpdates.length}):
@@ -114,7 +123,8 @@ Return JSON:
       "category": "Legislation|Litigation|NCAA Governance|CSC / Enforcement|Revenue Sharing|Roster / Portal|Realignment",
       "severity": "routine|important|critical",
       "source": "Source name",
-      "source_url": "URL"
+      "source_url": "URL",
+      "event_time": "ISO 8601 timestamp from the source item's Published/Updated field"
     }
   ]
 }`;
@@ -318,10 +328,11 @@ async function writeEvents(db, events) {
   let count = 0;
   for (const e of events) {
     try {
+      const eventTime = e.event_time || new Date().toISOString();
       await db.prepare(
         `INSERT INTO events (source, source_url, category, text, severity, event_time)
-         VALUES (?, ?, ?, ?, ?, datetime('now'))`
-      ).bind(e.source, e.source_url || null, e.category, e.text, e.severity).run();
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).bind(e.source, e.source_url || null, e.category, e.text, e.severity, eventTime).run();
       count++;
     } catch (err) {
       // Skip duplicates or errors

@@ -15,19 +15,23 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    console.log(`Cron trigger fired: ${event.cron}`);
+    const cron = event.cron || '';
+    console.log(`Cron trigger fired: ${cron}`);
 
-    // Data fetchers run at :00 (0 8,20 * * *)
-    // AI pipeline runs at :30 (30 8,20 * * *)
-    const minute = new Date().getMinutes();
-    const isAIRun = minute >= 15; // :30 trigger → AI pipeline
+    const isAIRun = cron.startsWith('30 ');
 
     if (isAIRun) {
+      // :30 cron — AI pipeline only
       ctx.waitUntil(runAIPipeline(env));
     } else {
-      ctx.waitUntil(fetchGoogleNews(env));
-      ctx.waitUntil(fetchNCAANews(env));
-      ctx.waitUntil(fetchCourtListener(env));
+      // :00 cron or manual trigger — data fetchers + AI pipeline
+      ctx.waitUntil(
+        Promise.all([
+          fetchGoogleNews(env),
+          fetchNCAANews(env),
+          fetchCourtListener(env),
+        ]).then(() => runAIPipeline(env))
+      );
     }
   },
 };
