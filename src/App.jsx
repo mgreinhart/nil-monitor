@@ -142,7 +142,7 @@ const MOCK = {
 };
 
 // ── Embed Configuration ────────────────────────────────────────────
-const X_LIST_URL = "https://twitter.com/i/lists/2024655891015119249";
+const X_LIST_URL = "https://x.com/i/lists/2024695913898528822";
 const SPOTIFY_SHOW_ID = "1Pju07vvKyIqEZOGDNaMMD"; // Highway to NIL
 const RSS2JSON = "https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.nilrevolution.com%2Ffeed%2F";
 
