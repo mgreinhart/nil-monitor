@@ -4,7 +4,8 @@
 //  Requires: wrangler secret put ANTHROPIC_KEY
 // ═══════════════════════════════════════════════════════════════════
 
-const MODEL = 'claude-sonnet-4-5-20241022';
+const MODEL = 'claude-sonnet-4-5-20250929';
+const PIPELINE_ERRORS = [];
 
 async function callClaude(env, systemPrompt, userContent) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -136,6 +137,7 @@ Return JSON:
     return result.events || [];
   } catch (err) {
     console.error('Event extraction failed:', err.message);
+    PIPELINE_ERRORS.push(`events: ${err.message}`);
     return [];
   }
 }
@@ -195,6 +197,7 @@ Return JSON:
     return result.deadlines || [];
   } catch (err) {
     console.error('Deadline extraction failed:', err.message);
+    PIPELINE_ERRORS.push(`deadlines: ${err.message}`);
     return [];
   }
 }
@@ -250,6 +253,7 @@ If none of these are actually about CSC activity, return: {"csc_items": []}`;
     return result.csc_items || [];
   } catch (err) {
     console.error('CSC detection failed:', err.message);
+    PIPELINE_ERRORS.push(`csc: ${err.message}`);
     return [];
   }
 }
@@ -321,6 +325,7 @@ Return JSON:
     return result.sections || null;
   } catch (err) {
     console.error('Briefing generation failed:', err.message);
+    PIPELINE_ERRORS.push(`briefing: ${err.message}`);
     return null;
   }
 }
@@ -469,4 +474,9 @@ export async function runAIPipeline(env) {
   ).bind(totalNew, eventsWritten, deadlinesWritten, cscWritten, briefingWritten).run();
 
   console.log('AI Pipeline: complete');
+  if (PIPELINE_ERRORS.length > 0) {
+    const errors = [...PIPELINE_ERRORS];
+    PIPELINE_ERRORS.length = 0;
+    throw new Error(`Pipeline completed with errors: ${errors.join('; ')}`);
+  }
 }
