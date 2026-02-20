@@ -254,7 +254,7 @@ const X_LIST_ACCOUNTS = [
 ];
 
 const XListEmbed = () => (
-  <Panel title="Curated Feed" accent={T.green}>
+  <Panel title="Live NIL News Feed" accent={T.green}>
     <a href={X_LIST_URL} target="_blank" rel="noopener noreferrer"
       style={{
         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
