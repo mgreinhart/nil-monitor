@@ -405,10 +405,10 @@ const MonitorPage = () => {
       if (d?.phase) setHouse(d);
     }).catch(() => {});
     fetch("/api/events?limit=20").then(r => r.ok ? r.json() : null).then(d => {
-      if (d?.length) setEvents(d);
+      if (d) setEvents(d);
     }).catch(() => {});
     fetch("/api/csc").then(r => r.ok ? r.json() : null).then(d => {
-      if (d?.length) setCscFeed(d);
+      if (d) setCscFeed(d);
     }).catch(() => {});
     fetch("/api/cases").then(r => r.ok ? r.json() : null).then(d => {
       if (d?.length) setCases(d);
@@ -559,7 +559,7 @@ const MonitorPage = () => {
         <Panel title="CSC Activity Feed" accent={T.red}>
           {cscSource.length === 0 ? (
             <Mono style={{ fontSize: 10, color: T.textDim, padding: "12px 0" }}>
-              CSC activity populates when AI pipeline detects College Sports Commission news
+              No CSC activity detected today
             </Mono>
           ) : cscSource.map((item, i) => (
             <div key={i} style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: i < cscSource.length - 1 ? `1px solid ${T.borderLight}` : "none", alignItems: "flex-start" }}>
@@ -812,13 +812,17 @@ const CasesPage = () => {
 // ╚═══════════════════════════════════════════════════════════════════
 const timeAgo = (dateStr) => {
   if (!dateStr) return "";
-  const diff = Date.now() - new Date(dateStr).getTime();
+  // Normalize D1 datetime format "YYYY-MM-DD HH:MM:SS" → ISO for reliable parsing
+  const normalized = dateStr.includes("T") ? dateStr : dateStr.replace(" ", "T") + "Z";
+  const diff = Date.now() - new Date(normalized).getTime();
+  if (isNaN(diff) || diff < 0) return "";
   const mins = Math.floor(diff / 60000);
   if (mins < 60) return `${mins}m`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h`;
   const days = Math.floor(hrs / 24);
-  return `${days}d`;
+  if (days <= 7) return `${days}d`;
+  return new Date(normalized).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
 const HeadlinesPage = () => {
