@@ -302,7 +302,7 @@ If none of these are actually NEW CSC activity (not already tracked), return: {"
 }
 
 // ── Task 4: Daily Briefing ───────────────────────────────────────
-async function generateBriefing(env, db) {
+async function generateBriefing(env, db, isAfternoon = false) {
   // Get today's events + recent headlines for context
   const { results: events } = await db.prepare(
     "SELECT * FROM events WHERE date(event_time) >= date('now', '-1 day') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, event_time DESC LIMIT 20"
@@ -320,7 +320,7 @@ async function generateBriefing(env, db) {
     return null; // Nothing to brief on
   }
 
-  const system = `You are a sharp deputy AD briefing your boss at 6 AM. Be direct — no throat-clearing, no filler.
+  const system = `You are a sharp deputy AD briefing your boss. Be direct — no throat-clearing, no filler.
 
 STRICT FORMAT RULES:
 - Maximum 4 sections. Fewer is better if the news warrants it.
@@ -346,7 +346,45 @@ Return ONLY valid JSON, no other text.`;
 
   const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  const userContent = `Generate the daily briefing for ${today}.
+  let userContent;
+  if (isAfternoon) {
+    // Fetch this morning's briefing
+    const morningBriefing = await db.prepare(
+      "SELECT content FROM briefings WHERE date = date('now') ORDER BY id DESC LIMIT 1"
+    ).first();
+    const morningContent = morningBriefing?.content || '[]';
+    const morningText = JSON.parse(morningContent)
+      .map(s => `• ${s.headline} ${s.body}`)
+      .join('\n');
+
+    userContent = `Generate the afternoon briefing for ${today}.
+
+Here is this morning's briefing:
+${morningText || 'No morning briefing was generated.'}
+
+Now summarize only NEW developments since then. Do not repeat anything already covered in the morning briefing.
+If nothing new has happened, return: {"sections": []}
+
+EVENTS (last 24 hours):
+${eventList || 'No new events.'}
+
+RECENT HEADLINES:
+${headlineList || 'No recent headlines.'}
+
+UPCOMING DEADLINES (next 14 days):
+${deadlineList || 'No imminent deadlines.'}
+
+Return JSON (max 4 sections, each headline is ONE sentence, each body is MAX 2 sentences):
+{
+  "sections": [
+    {
+      "headline": "Bold opening sentence stating what happened.",
+      "body": "One to two sentences of context or action items. No more."
+    }
+  ]
+}`;
+  } else {
+    userContent = `Summarize the most significant developments in the last 24 hours for ${today}.
 
 EVENTS (last 24 hours):
 ${eventList || 'No new events extracted yet.'}
@@ -366,6 +404,7 @@ Return JSON (max 4 sections, each headline is ONE sentence, each body is MAX 2 s
     }
   ]
 }`;
+  }
 
   try {
     const result = await callClaude(env, system, userContent);
@@ -472,7 +511,7 @@ async function writeBriefing(db, sections) {
 
 // ── Main Pipeline ────────────────────────────────────────────────
 export async function runAIPipeline(env, options = {}) {
-  const { includeBriefing = true } = options;
+  const { includeBriefing = true, isAfternoon = false } = options;
   const token = env.ANTHROPIC_KEY;
   if (!token) {
     console.log('AI Pipeline: no ANTHROPIC_KEY configured, skipping');
@@ -516,9 +555,14 @@ export async function runAIPipeline(env, options = {}) {
   // 6. Generate briefing (only on briefing-eligible runs)
   let briefingWritten = 0;
   if (includeBriefing) {
-    const briefingSections = await generateBriefing(env, db);
-    briefingWritten = await writeBriefing(db, briefingSections);
-    console.log(`AI Pipeline: briefing ${briefingWritten ? 'generated' : 'skipped'}`);
+    const briefingSections = await generateBriefing(env, db, isAfternoon);
+    // If afternoon returns empty sections, keep the morning briefing
+    if (isAfternoon && (!briefingSections || briefingSections.length === 0)) {
+      console.log('AI Pipeline: afternoon briefing empty, keeping morning briefing');
+    } else {
+      briefingWritten = await writeBriefing(db, briefingSections);
+      console.log(`AI Pipeline: briefing ${briefingWritten ? 'generated' : 'skipped'}`);
+    }
   } else {
     console.log('AI Pipeline: briefing skipped (non-briefing run)');
   }

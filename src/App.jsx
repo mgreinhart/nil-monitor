@@ -541,8 +541,12 @@ const MonitorPage = () => {
         <Panel title={(() => {
           if (!briefingGeneratedAt) return "Briefing";
           const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
-          const hour = new Date(n).toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" });
-          return parseInt(hour) < 12 ? "Morning Briefing" : "Afternoon Briefing";
+          const d = new Date(n);
+          const month = d.toLocaleString("en-US", { month: "short", timeZone: "America/New_York" }).toUpperCase();
+          const day = d.toLocaleString("en-US", { day: "numeric", timeZone: "America/New_York" });
+          const hour = parseInt(d.toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" }));
+          const period = hour < 12 ? "AM" : "PM";
+          return `${month} ${day} · ${period} BRIEFING`;
         })()} accent={T.red}>
           <div style={{ columnCount: 2, columnGap: 20, columnRule: `1px solid ${T.borderLight}` }}>
             {briefingSource.map((s, i) => (

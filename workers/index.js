@@ -22,12 +22,12 @@ export default {
 
     const isAIRun = cron.startsWith('30 ');
     // Generate briefing only at 11:30 and 19:30 UTC (6:30 AM / 2:30 PM ET)
-    const briefingHours = ['30 11', '30 19'];
-    const includeBriefing = briefingHours.some(h => cron.startsWith(h));
+    const includeBriefing = cron.startsWith('30 11') || cron.startsWith('30 19');
+    const isAfternoon = cron.startsWith('30 19');
 
     if (isAIRun) {
       // :30 cron — AI pipeline only
-      ctx.waitUntil(runAIPipeline(env, { includeBriefing }));
+      ctx.waitUntil(runAIPipeline(env, { includeBriefing, isAfternoon }));
     } else {
       // :00 cron — data fetchers only
       ctx.waitUntil(
