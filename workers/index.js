@@ -20,16 +20,15 @@ export default {
     const cron = event.cron || '';
     console.log(`Cron trigger fired: ${cron}`);
 
-    const isAIRun = cron.startsWith('30 ');
-    // Generate briefing only at 11:30 and 19:30 UTC (6:30 AM / 2:30 PM ET)
-    const includeBriefing = cron.startsWith('30 11') || cron.startsWith('30 19');
-    const isAfternoon = cron.startsWith('30 19');
+    const isAIRun = cron.startsWith('0 ');
+    // Both AI runs generate briefings: 11:00 UTC = AM, 21:00 UTC = PM
+    const isAfternoon = cron.startsWith('0 21');
 
     if (isAIRun) {
-      // :30 cron — AI pipeline only
-      ctx.waitUntil(runAIPipeline(env, { includeBriefing, isAfternoon }));
+      // :00 cron — AI pipeline (always includes briefing)
+      ctx.waitUntil(runAIPipeline(env, { includeBriefing: true, isAfternoon }));
     } else {
-      // :00 cron — data fetchers only
+      // :30 cron — data fetchers only
       ctx.waitUntil(
         Promise.all([
           fetchGoogleNews(env),
