@@ -156,19 +156,19 @@ const Mono = ({ children, style }) => <span style={{ fontFamily: T.mono, ...styl
 
 const Badge = ({ children, color = T.accent, small }) => (
   <span style={{
-    fontFamily: T.mono, fontSize: small ? 8 : 9, fontWeight: 600, letterSpacing: ".4px",
+    fontFamily: T.mono, fontSize: small ? 10 : 11, fontWeight: 600, letterSpacing: ".4px",
     padding: small ? "1px 5px" : "2px 6px", borderRadius: 3,
     background: color + "15", color, whiteSpace: "nowrap", textTransform: "uppercase", lineHeight: 1.4,
   }}>{children}</span>
 );
 
 const SevDot = ({ s }) => (
-  <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: SEV[s] || T.textDim, flexShrink: 0, marginTop: 5 }} />
+  <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: SEV[s] || T.textDim, flexShrink: 0, marginTop: 6 }} />
 );
 
 const Pill = ({ active, children, onClick }) => (
   <button onClick={onClick} style={{
-    fontFamily: T.mono, fontSize: 9, fontWeight: 600, padding: "3px 9px", borderRadius: 3,
+    fontFamily: T.mono, fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 3,
     border: `1px solid ${active ? T.accent : T.border}`,
     background: active ? T.accentDim : "transparent",
     color: active ? T.accent : T.textDim, cursor: "pointer", whiteSpace: "nowrap", letterSpacing: ".3px",
@@ -181,7 +181,7 @@ const Panel = ({ title, accent, children, style, right, noPad, className }) => (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", borderBottom: `1px solid ${T.border}`, background: T.surfaceAlt, minHeight: 30 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {accent && <div style={{ width: 3, height: 12, borderRadius: 1.5, background: accent, flexShrink: 0 }} />}
-          <Mono style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: T.textDim }}>{title}</Mono>
+          <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: T.textDim }}>{title}</Mono>
         </div>
         {right}
       </div>
@@ -196,7 +196,7 @@ const LiveBadge = () => (
       <span style={{ position: "absolute", inset: 0, borderRadius: "50%", background: T.green, animation: "livePulse 2s infinite" }} />
       <span style={{ position: "absolute", inset: 1, borderRadius: "50%", background: T.green }} />
     </span>
-    <Mono style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1px", color: T.green }}>LIVE</Mono>
+    <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.green }}>LIVE</Mono>
   </span>
 );
 
@@ -223,7 +223,7 @@ const StateMap = ({ selected, onSelect, compact }) => {
             background: isSel ? T.navy : color,
             borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer", fontFamily: T.mono,
-            fontSize: compact ? 6 : 7.5, fontWeight: 700, letterSpacing: ".3px",
+            fontSize: compact ? 7 : 9, fontWeight: 700, letterSpacing: ".3px",
             color: isSel ? "#fff" : isDark ? "#fff" : T.textDim,
             transition: "all .12s",
             outline: isSel ? `2px solid ${T.accent}` : "none", outlineOffset: 1,
@@ -267,8 +267,8 @@ const XListEmbed = () => (
         padding: "8px 12px", background: T.navy, borderRadius: 4,
         textDecoration: "none", marginBottom: 10,
       }}>
-      <span style={{ fontFamily: T.sans, fontSize: 11, fontWeight: 600, color: "#fff" }}>Open Live Feed on X</span>
-      <Mono style={{ fontSize: 11, color: "rgba(255,255,255,.5)" }}>→</Mono>
+      <span style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, color: "#fff" }}>Open Live Feed on X</span>
+      <Mono style={{ fontSize: 13, color: "rgba(255,255,255,.5)" }}>→</Mono>
     </a>
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       {X_LIST_ACCOUNTS.map((a, i) => (
@@ -276,12 +276,12 @@ const XListEmbed = () => (
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "4px 0", borderBottom: i < X_LIST_ACCOUNTS.length - 1 ? `1px solid ${T.borderLight}` : "none",
         }}>
-          <Mono style={{ fontSize: 10, fontWeight: 600, color: T.accent }}>{a.handle}</Mono>
-          <Mono style={{ fontSize: 8, color: T.textDim }}>{a.org}</Mono>
+          <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>{a.handle}</Mono>
+          <Mono style={{ fontSize: 10, color: T.textDim }}>{a.org}</Mono>
         </div>
       ))}
     </div>
-    <Mono style={{ display: "block", textAlign: "center", marginTop: 8, fontSize: 8, color: T.textDim }}>
+    <Mono style={{ display: "block", textAlign: "center", marginTop: 8, fontSize: 10, color: T.textDim }}>
       39 accounts curated for NIL &amp; college sports regulatory news
     </Mono>
   </Panel>
@@ -304,16 +304,16 @@ const NILRevFeed = () => {
   return (
     <Panel title="NIL Revolution" accent={T.purple}>
       {loading ? (
-        <Mono style={{ fontSize: 9, color: T.textDim }}>Loading feed...</Mono>
+        <Mono style={{ fontSize: 11, color: T.textDim }}>Loading feed...</Mono>
       ) : posts.length === 0 ? (
-        <Mono style={{ fontSize: 9, color: T.textDim }}>Unable to load feed</Mono>
+        <Mono style={{ fontSize: 11, color: T.textDim }}>Unable to load feed</Mono>
       ) : (
         posts.map((p, i) => (
           <div key={i} style={{ padding: "5px 0", borderBottom: i < posts.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
-            <a href={p.link} target="_blank" rel="noopener noreferrer" style={{ fontFamily: T.sans, fontSize: 10.5, color: T.accent, lineHeight: 1.3, textDecoration: "none", display: "block" }}>
+            <a href={p.link} target="_blank" rel="noopener noreferrer" style={{ fontFamily: T.sans, fontSize: 13, color: T.accent, lineHeight: 1.3, textDecoration: "none", display: "block" }}>
               {p.title}
             </a>
-            <Mono style={{ fontSize: 8, color: T.textDim }}>
+            <Mono style={{ fontSize: 10, color: T.textDim }}>
               Troutman Pepper · {new Date(p.pubDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </Mono>
           </div>
@@ -340,11 +340,11 @@ const SpotifyEmbed = () => (
 const KalshiSection = () => (
   <div style={{ marginTop: 10 }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-      <Mono style={{ fontSize: 8, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
+      <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
         Prediction Markets · Kalshi
       </Mono>
       <a href="https://kalshi.com/sports" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
-        <Mono style={{ fontSize: 8, color: T.accent }}>All markets →</Mono>
+        <Mono style={{ fontSize: 10, color: T.accent }}>All markets →</Mono>
       </a>
     </div>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
@@ -355,8 +355,8 @@ const KalshiSection = () => (
       ].map((link, i) => (
         <a key={i} href={link.href} target="_blank" rel="noopener noreferrer"
           style={{ padding: "8px 10px", background: T.surfaceAlt, borderRadius: 3, textDecoration: "none", border: `1px solid ${T.borderLight}` }}>
-          <div style={{ fontFamily: T.sans, fontSize: 11, fontWeight: 600, color: T.text, marginBottom: 2 }}>{link.label}</div>
-          <Mono style={{ fontSize: 8, color: T.textDim }}>{link.desc}</Mono>
+          <div style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 2 }}>{link.label}</div>
+          <Mono style={{ fontSize: 10, color: T.textDim }}>{link.desc}</Mono>
         </a>
       ))}
     </div>
@@ -472,16 +472,16 @@ const MonitorPage = () => {
               {dlSource.slice(0, 3).map((d, i) => (
                 <div key={i} style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: i < 2 ? `1px solid ${T.borderLight}` : "none", alignItems: "flex-start" }}>
                   <div style={{
-                    fontFamily: T.mono, fontSize: 16, fontWeight: 700, lineHeight: 1, minWidth: 32, textAlign: "right",
+                    fontFamily: T.mono, fontSize: 20, fontWeight: 700, lineHeight: 1, minWidth: 36, textAlign: "right",
                     color: d.sev === "critical" && d.days <= 7 ? T.red : d.days <= 14 ? T.amber : T.text,
                   }}>
-                    {d.days}<span style={{ fontSize: 9, fontWeight: 500 }}>d</span>
+                    {d.days}<span style={{ fontSize: 11, fontWeight: 500 }}>d</span>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: T.sans, fontSize: 11, color: T.text, lineHeight: 1.3 }}>{d.text}</div>
+                    <div style={{ fontFamily: T.sans, fontSize: 13, color: T.text, lineHeight: 1.3 }}>{d.text}</div>
                     <div style={{ display: "flex", gap: 5, marginTop: 2, alignItems: "center" }}>
                       <Badge color={CAT_COLORS[d.cat]} small>{d.cat}</Badge>
-                      <Mono style={{ fontSize: 8, color: T.textDim }}>{d.date}</Mono>
+                      <Mono style={{ fontSize: 10, color: T.textDim }}>{d.date}</Mono>
                     </div>
                   </div>
                 </div>
@@ -492,7 +492,7 @@ const MonitorPage = () => {
           <Panel title="House v. NCAA" accent={T.green}>
             <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 7 }}>
               <Badge color={T.amber}>{houseData.phase}</Badge>
-              <Mono style={{ fontSize: 8, color: T.textDim }}>Hearing: {houseData.hearing}</Mono>
+              <Mono style={{ fontSize: 10, color: T.textDim }}>Hearing: {houseData.hearing}</Mono>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
               {[
@@ -502,9 +502,9 @@ const MonitorPage = () => {
                 ["CSC ACTIONS", houseData.cscActions, ""],
               ].map(([l, v, s], i) => (
                 <div key={i} style={{ padding: "5px 7px", background: T.surfaceAlt, borderRadius: 3 }}>
-                  <Mono style={{ fontSize: 7, fontWeight: 700, letterSpacing: "1px", color: T.textDim }}>{l}</Mono>
-                  <div style={{ fontFamily: T.mono, fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.2 }}>{v}</div>
-                  {s && <Mono style={{ fontSize: 8, color: T.textDim }}>{s}</Mono>}
+                  <Mono style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1px", color: T.textDim }}>{l}</Mono>
+                  <div style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: T.text, lineHeight: 1.2 }}>{v}</div>
+                  {s && <Mono style={{ fontSize: 10, color: T.textDim }}>{s}</Mono>}
                 </div>
               ))}
             </div>
@@ -515,13 +515,13 @@ const MonitorPage = () => {
         <Panel title={`Daily Briefing · ${briefingDate}`} accent={T.red}>
           <div style={{ columnCount: 2, columnGap: 20, columnRule: `1px solid ${T.borderLight}` }}>
             {briefingSource.map((s, i) => (
-              <div key={i} style={{ fontFamily: T.sans, fontSize: 11.5, lineHeight: 1.55, color: T.text, marginBottom: 8, breakInside: "avoid" }}>
+              <div key={i} style={{ fontFamily: T.sans, fontSize: 14, lineHeight: 1.55, color: T.text, marginBottom: 8, breakInside: "avoid" }}>
                 <strong style={{ color: T.text }}>{s.headline}</strong>{" "}
                 <span style={{ color: T.textMid }}>{s.body}</span>
               </div>
             ))}
           </div>
-          <Mono style={{ display: "block", marginTop: 4, fontSize: 8, color: T.textDim }}>
+          <Mono style={{ display: "block", marginTop: 4, fontSize: 10, color: T.textDim }}>
             {briefing ? "AI-generated" : "Sample briefing"} · Sources: CourtListener, CSC.gov, LegiScan, ESPN
           </Mono>
         </Panel>
@@ -540,16 +540,16 @@ const MonitorPage = () => {
             {cats.map(c => <Pill key={c} active={catFilt === c} onClick={() => setCatFilt(c)}>{c}</Pill>)}
           </div>
           {filtered.length === 0 ? (
-            <Mono style={{ fontSize: 10, color: T.textDim, padding: "12px 0" }}>
+            <Mono style={{ fontSize: 12, color: T.textDim, padding: "12px 0" }}>
               {events ? "No events in this category" : "Events timeline populates when AI pipeline runs"}
             </Mono>
           ) : filtered.map((e, i) => (
             <div key={i} style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: `1px solid ${T.borderLight}`, alignItems: "flex-start" }}>
               <SevDot s={e.sev} />
-              <Mono style={{ fontSize: 9, color: T.textDim, minWidth: 24, flexShrink: 0 }}>{e.time}</Mono>
+              <Mono style={{ fontSize: 11, color: T.textDim, minWidth: 28, flexShrink: 0 }}>{e.time}</Mono>
               <Badge color={CAT_COLORS[e.cat]} small>{e.cat}</Badge>
-              <span style={{ fontFamily: T.sans, fontSize: 11.5, color: T.text, flex: 1, lineHeight: 1.35 }}>{e.text}</span>
-              <Mono style={{ fontSize: 8, color: T.textDim, flexShrink: 0 }}>{e.src}</Mono>
+              <span style={{ fontFamily: T.sans, fontSize: 14, color: T.text, flex: 1, lineHeight: 1.35 }}>{e.text}</span>
+              <Mono style={{ fontSize: 10, color: T.textDim, flexShrink: 0 }}>{e.src}</Mono>
             </div>
           ))}
         </Panel>
@@ -557,17 +557,17 @@ const MonitorPage = () => {
         {/* ── CSC Activity Feed ── */}
         <Panel title="CSC Activity Feed" accent={T.red}>
           {cscSource.length === 0 ? (
-            <Mono style={{ fontSize: 10, color: T.textDim, padding: "12px 0" }}>
+            <Mono style={{ fontSize: 12, color: T.textDim, padding: "12px 0" }}>
               No CSC activity detected today
             </Mono>
           ) : cscSource.map((item, i) => (
             <div key={i} style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: i < cscSource.length - 1 ? `1px solid ${T.borderLight}` : "none", alignItems: "flex-start" }}>
-              <Mono style={{ fontSize: 9, color: T.textDim, minWidth: 22, flexShrink: 0 }}>{item.time}</Mono>
+              <Mono style={{ fontSize: 11, color: T.textDim, minWidth: 26, flexShrink: 0 }}>{item.time}</Mono>
               <Badge color={CSC_TAG_COLORS[item.tag]} small>{item.tag}</Badge>
-              <span style={{ fontFamily: T.sans, fontSize: 11.5, color: T.text, flex: 1, lineHeight: 1.35 }}>{item.text}</span>
+              <span style={{ fontFamily: T.sans, fontSize: 14, color: T.text, flex: 1, lineHeight: 1.35 }}>{item.text}</span>
             </div>
           ))}
-          <div style={{ marginTop: 8, padding: "6px 8px", background: T.surfaceAlt, borderRadius: 3, fontFamily: T.sans, fontSize: 10, color: T.textDim }}>
+          <div style={{ marginTop: 8, padding: "6px 8px", background: T.surfaceAlt, borderRadius: 3, fontFamily: T.sans, fontSize: 12, color: T.textDim }}>
             <strong style={{ color: T.textMid }}>Key Personnel:</strong> Bryan Seeley (Exec. Dir.) · Katie Medearis (Deputy Dir., Enforcement)
           </div>
         </Panel>
@@ -580,7 +580,7 @@ const MonitorPage = () => {
                 {[["Enacted", T.green], ["Active", T.accent], ["Introduced", T.amber], ["None", T.borderLight]].map(([l, c]) => (
                   <div key={l} style={{ display: "flex", alignItems: "center", gap: 3 }}>
                     <div style={{ width: 8, height: 8, borderRadius: 2, background: c }} />
-                    <Mono style={{ fontSize: 8, color: T.textDim }}>{l}</Mono>
+                    <Mono style={{ fontSize: 10, color: T.textDim }}>{l}</Mono>
                   </div>
                 ))}
               </div>
@@ -589,17 +589,17 @@ const MonitorPage = () => {
             <div style={{ flex: 1, padding: "10px 12px", minWidth: 0 }}>
               {selState ? (
                 <>
-                  <div style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 4 }}>{selState}</div>
+                  <div style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 700, color: T.text, marginBottom: 4 }}>{selState}</div>
                   <Badge color={MOCK.states.active.includes(selState) ? T.accent : MOCK.states.enacted.includes(selState) ? T.green : T.amber}>
                     {MOCK.states.active.includes(selState) ? "Active Bills" : MOCK.states.enacted.includes(selState) ? "Enacted" : "Introduced"}
                   </Badge>
-                  <div style={{ marginTop: 8, fontFamily: T.sans, fontSize: 11, color: T.textDim, lineHeight: 1.5 }}>
+                  <div style={{ marginTop: 8, fontFamily: T.sans, fontSize: 13, color: T.textDim, lineHeight: 1.5 }}>
                     Full state detail with current law provisions, active bills, sponsors, and hearing dates loads from LegiScan API data. View the States page for full detail.
                   </div>
                 </>
               ) : (
                 <>
-                  <Mono style={{ fontSize: 10, fontWeight: 700, color: T.textMid, marginBottom: 6, display: "block" }}>Federal Bills</Mono>
+                  <Mono style={{ fontSize: 12, fontWeight: 700, color: T.textMid, marginBottom: 6, display: "block" }}>Federal Bills</Mono>
                   {[
                     { bill: "S. 2439", title: "College Athletes Protection Act", sponsor: "Murphy (D-CT)", status: "In Committee", cos: 12 },
                     { bill: "H.R. 1147", title: "Student Athlete Level Playing Field Act", sponsor: "Gonzalez (R-OH)", status: "In Committee", cos: 8 },
@@ -607,11 +607,11 @@ const MonitorPage = () => {
                   ].map((b, i) => (
                     <div key={i} style={{ padding: "6px 0", borderBottom: `1px solid ${T.borderLight}` }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                        <Mono style={{ fontSize: 10, fontWeight: 700, color: T.accent }}>{b.bill}</Mono>
+                        <Mono style={{ fontSize: 12, fontWeight: 700, color: T.accent }}>{b.bill}</Mono>
                         <Badge color={b.status === "In Committee" ? T.amber : T.textDim} small>{b.status}</Badge>
                       </div>
-                      <div style={{ fontFamily: T.sans, fontSize: 11, color: T.text }}>{b.title}</div>
-                      <Mono style={{ fontSize: 8, color: T.textDim }}>{b.sponsor} · {b.cos} cosponsors</Mono>
+                      <div style={{ fontFamily: T.sans, fontSize: 13, color: T.text }}>{b.title}</div>
+                      <Mono style={{ fontSize: 10, color: T.textDim }}>{b.sponsor} · {b.cos} cosponsors</Mono>
                     </div>
                   ))}
                 </>
@@ -629,23 +629,23 @@ const MonitorPage = () => {
                 cursor: "pointer", background: expCase === i ? T.surfaceAlt : "transparent", transition: "background .1s",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: T.sans, fontSize: 12, fontWeight: 700, color: T.text }}>{c.name}</span>
+                  <span style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 700, color: T.text }}>{c.name}</span>
                   <Badge color={T.amber}>{c.status}</Badge>
                   <Badge color={CAT_COLORS[c.cat]} small>{c.cat}</Badge>
                 </div>
-                <div style={{ display: "flex", gap: 12, marginTop: 3, fontFamily: T.mono, fontSize: 9, color: T.textDim, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: 12, marginTop: 3, fontFamily: T.mono, fontSize: 11, color: T.textDim, flexWrap: "wrap" }}>
                   <span>Court: {c.court}</span>
                   <span>Judge: {c.judge}</span>
                   <span>Filings: {c.filings}</span>
                   <span>Last: {c.lastFiling}</span>
                 </div>
-                {c.next && <div style={{ marginTop: 3, fontFamily: T.sans, fontSize: 10.5, color: T.red, fontWeight: 600 }}>→ {c.next}</div>}
+                {c.next && <div style={{ marginTop: 3, fontFamily: T.sans, fontSize: 13, color: T.red, fontWeight: 600 }}>→ {c.next}</div>}
                 {expCase === i && (
                   <div style={{ marginTop: 7, paddingTop: 7, borderTop: `1px solid ${T.border}` }}>
-                    <div style={{ fontFamily: T.sans, fontSize: 11.5, color: T.textMid, lineHeight: 1.55, marginBottom: 8 }}>{c.desc}</div>
+                    <div style={{ fontFamily: T.sans, fontSize: 14, color: T.textMid, lineHeight: 1.55, marginBottom: 8 }}>{c.desc}</div>
                     <div style={{ display: "flex", gap: 10 }}>
-                      {c.clUrl && <a href={c.clUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}><Mono style={{ fontSize: 10, color: T.accent }}>CourtListener →</Mono></a>}
-                      {c.pacerUrl && <a href={c.pacerUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}><Mono style={{ fontSize: 10, color: T.accent }}>PACER Docket →</Mono></a>}
+                      {c.clUrl && <a href={c.clUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}><Mono style={{ fontSize: 12, color: T.accent }}>CourtListener →</Mono></a>}
+                      {c.pacerUrl && <a href={c.pacerUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}><Mono style={{ fontSize: 12, color: T.accent }}>PACER Docket →</Mono></a>}
                     </div>
                   </div>
                 )}
@@ -656,13 +656,13 @@ const MonitorPage = () => {
 
         {/* ── Outside View ── */}
         <Panel title="The Outside View" accent="#64748b">
-          <Mono style={{ fontSize: 8, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 6, display: "block" }}>News Volume · 30 Days</Mono>
+          <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 6, display: "block" }}>News Volume · 30 Days</Mono>
           <div style={{ height: 72 }}>
             <MiniBarChart />
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
-            <Mono style={{ fontSize: 7, color: T.textDim }}>30d ago</Mono>
-            <Mono style={{ fontSize: 7, color: T.textDim }}>Today</Mono>
+            <Mono style={{ fontSize: 9, color: T.textDim }}>30d ago</Mono>
+            <Mono style={{ fontSize: 9, color: T.textDim }}>Today</Mono>
           </div>
           <KalshiSection />
         </Panel>
@@ -698,7 +698,7 @@ const StatesPage = () => {
                 {[["Enacted", T.green], ["Active", T.accent], ["Introduced", T.amber], ["None", T.borderLight]].map(([l, c]) => (
                   <div key={l} style={{ display: "flex", alignItems: "center", gap: 3 }}>
                     <div style={{ width: 10, height: 10, borderRadius: 2, background: c }} />
-                    <Mono style={{ fontSize: 9, color: T.textDim }}>{l}</Mono>
+                    <Mono style={{ fontSize: 11, color: T.textDim }}>{l}</Mono>
                   </div>
                 ))}
               </div>
@@ -707,16 +707,16 @@ const StatesPage = () => {
             <div style={{ flex: 1, padding: 14 }}>
               {sel ? (
                 <>
-                  <div style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 700, color: T.text, marginBottom: 6 }}>{sel}</div>
+                  <div style={{ fontFamily: T.sans, fontSize: 22, fontWeight: 700, color: T.text, marginBottom: 6 }}>{sel}</div>
                   <Badge color={MOCK.states.active.includes(sel) ? T.accent : MOCK.states.enacted.includes(sel) ? T.green : T.amber}>
                     {MOCK.states.active.includes(sel) ? "Active Bills" : MOCK.states.enacted.includes(sel) ? "Enacted" : "Introduced"}
                   </Badge>
-                  <div style={{ marginTop: 10, fontFamily: T.sans, fontSize: 12, color: T.textDim, lineHeight: 1.6 }}>
+                  <div style={{ marginTop: 10, fontFamily: T.sans, fontSize: 14, color: T.textDim, lineHeight: 1.6 }}>
                     Full state detail — current law, active bills, bill text, sponsors, hearings — loads from LegiScan API.
                   </div>
                 </>
               ) : (
-                <div style={{ fontFamily: T.sans, fontSize: 12, color: T.textDim }}>Select a state to view NIL legislation details.</div>
+                <div style={{ fontFamily: T.sans, fontSize: 14, color: T.textDim }}>Select a state to view NIL legislation details.</div>
               )}
             </div>
           </div>
@@ -727,18 +727,18 @@ const StatesPage = () => {
             <thead>
               <tr style={{ borderBottom: `2px solid ${T.border}` }}>
                 {["State", "Bills", "Status", "Last Action", "Date"].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "5px 8px", fontFamily: T.mono, fontSize: 9, fontWeight: 700, color: T.textDim, textTransform: "uppercase", letterSpacing: ".5px" }}>{h}</th>
+                  <th key={h} style={{ textAlign: "left", padding: "5px 8px", fontFamily: T.mono, fontSize: 11, fontWeight: 700, color: T.textDim, textTransform: "uppercase", letterSpacing: ".5px" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {MOCK.states.active.map((st, i) => (
                 <tr key={st} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
-                  <td style={{ padding: "7px 8px", fontFamily: T.sans, fontSize: 12, fontWeight: 600, color: T.text }}>{st}</td>
-                  <td style={{ padding: "7px 8px", fontFamily: T.mono, fontSize: 11 }}>{1 + (i % 3)}</td>
+                  <td style={{ padding: "7px 8px", fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.text }}>{st}</td>
+                  <td style={{ padding: "7px 8px", fontFamily: T.mono, fontSize: 13 }}>{1 + (i % 3)}</td>
                   <td style={{ padding: "7px 8px" }}><Badge color={T.amber} small>In Committee</Badge></td>
-                  <td style={{ padding: "7px 8px", fontFamily: T.sans, fontSize: 11, color: T.textDim }}>Referred to subcommittee</td>
-                  <td style={{ padding: "7px 8px", fontFamily: T.mono, fontSize: 10, color: T.textDim }}>Feb {10 + i}</td>
+                  <td style={{ padding: "7px 8px", fontFamily: T.sans, fontSize: 13, color: T.textDim }}>Referred to subcommittee</td>
+                  <td style={{ padding: "7px 8px", fontFamily: T.mono, fontSize: 12, color: T.textDim }}>Feb {10 + i}</td>
                 </tr>
               ))}
             </tbody>
@@ -790,25 +790,25 @@ const HeadlinesPage = () => {
 
   return (
     <div>
-      {error && <Mono style={{ fontSize: 9, color: T.amber, display: "block", marginBottom: 8 }}>Using cached data — API unavailable</Mono>}
+      {error && <Mono style={{ fontSize: 11, color: T.amber, display: "block", marginBottom: 8 }}>Using cached data — API unavailable</Mono>}
       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 12 }}>
         {allCats.map(c => <Pill key={c} active={cat === c} onClick={() => setCat(c)}>{c}</Pill>)}
       </div>
       <Panel noPad>
         {filtered.length === 0 ? (
           <div style={{ padding: "20px 14px", textAlign: "center" }}>
-            <Mono style={{ fontSize: 10, color: T.textDim }}>No headlines in this category</Mono>
+            <Mono style={{ fontSize: 12, color: T.textDim }}>No headlines in this category</Mono>
           </div>
         ) : filtered.map((h, i) => (
           <a key={i} href={h.url} target="_blank" rel="noopener noreferrer"
             style={{ display: "flex", gap: 10, padding: "10px 14px", borderBottom: `1px solid ${T.borderLight}`, alignItems: "center", textDecoration: "none", cursor: "pointer" }}>
-            <div style={{ flex: "0 0 56px" }}>
-              <Mono style={{ fontSize: 10, fontWeight: 700, color: T.accent, display: "block" }}>{h.src}</Mono>
-              <Mono style={{ fontSize: 8, color: T.textDim }}>{h.time}</Mono>
+            <div style={{ flex: "0 0 64px" }}>
+              <Mono style={{ fontSize: 12, fontWeight: 700, color: T.accent, display: "block" }}>{h.src}</Mono>
+              <Mono style={{ fontSize: 10, color: T.textDim }}>{h.time}</Mono>
             </div>
             <Badge color={CAT_COLORS[h.cat]} small>{h.cat}</Badge>
-            <div style={{ flex: 1, fontFamily: T.sans, fontSize: 12.5, color: T.text, lineHeight: 1.35 }}>{h.title}</div>
-            <Mono style={{ fontSize: 10, color: T.accent }}>→</Mono>
+            <div style={{ flex: 1, fontFamily: T.sans, fontSize: 15, color: T.text, lineHeight: 1.35 }}>{h.title}</div>
+            <Mono style={{ fontSize: 12, color: T.accent }}>→</Mono>
           </a>
         ))}
       </Panel>
@@ -822,17 +822,17 @@ const HeadlinesPage = () => {
 const AboutPage = () => (
   <div style={{ maxWidth: 680 }}>
     <Panel>
-      <h2 style={{ fontFamily: T.sans, fontSize: 20, fontWeight: 700, color: T.text, margin: "0 0 10px" }}>What is NIL Monitor?</h2>
-      <p style={{ fontFamily: T.sans, fontSize: 13, lineHeight: 1.7, color: T.textMid, margin: "0 0 12px" }}>
+      <h2 style={{ fontFamily: T.sans, fontSize: 24, fontWeight: 700, color: T.text, margin: "0 0 10px" }}>What is NIL Monitor?</h2>
+      <p style={{ fontFamily: T.sans, fontSize: 16, lineHeight: 1.7, color: T.textMid, margin: "0 0 12px" }}>
         A live dashboard that gives college athletics decision-makers a single place to answer: <strong style={{ color: T.text }}>did anything change overnight that I need to know about?</strong>
       </p>
-      <p style={{ fontFamily: T.sans, fontSize: 13, lineHeight: 1.7, color: T.textMid, margin: "0 0 12px" }}>
+      <p style={{ fontFamily: T.sans, fontSize: 16, lineHeight: 1.7, color: T.textMid, margin: "0 0 12px" }}>
         We track the regulatory, legal, and governance landscape across five domains: state and federal legislation, active litigation, NCAA governance, College Sports Commission enforcement, and the news environment that shapes institutional attention.
       </p>
-      <p style={{ fontFamily: T.sans, fontSize: 13, lineHeight: 1.7, color: T.textMid, margin: "0 0 20px" }}>
+      <p style={{ fontFamily: T.sans, fontSize: 16, lineHeight: 1.7, color: T.textMid, margin: "0 0 20px" }}>
         We don't compete with D1.ticker (editorial), Teamworks (operations), or Troutman Pepper (legal analysis). We are the <strong style={{ color: T.text }}>first screen</strong> — the check that determines how you spend the rest of your morning.
       </p>
-      <h3 style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 700, color: T.text, margin: "0 0 8px" }}>Data Sources</h3>
+      <h3 style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 700, color: T.text, margin: "0 0 8px" }}>Data Sources</h3>
       <div style={{ marginBottom: 18 }}>
         {[
           ["X (Twitter) List", "Real-time curated feed", "Free embed"],
@@ -848,14 +848,14 @@ const AboutPage = () => (
           ["NIL Revolution", "Legal analysis (Troutman Pepper)", "RSS"],
         ].map(([src, what, method], i) => (
           <div key={i} style={{ display: "flex", padding: "4px 0", borderBottom: `1px solid ${T.borderLight}` }}>
-            <Mono style={{ fontSize: 10, fontWeight: 600, color: T.text, flex: "0 0 170px" }}>{src}</Mono>
-            <span style={{ fontFamily: T.sans, fontSize: 11, color: T.textDim, flex: 1 }}>{what}</span>
-            <Mono style={{ fontSize: 9, color: T.green }}>{method}</Mono>
+            <Mono style={{ fontSize: 12, fontWeight: 600, color: T.text, flex: "0 0 180px" }}>{src}</Mono>
+            <span style={{ fontFamily: T.sans, fontSize: 13, color: T.textDim, flex: 1 }}>{what}</span>
+            <Mono style={{ fontSize: 11, color: T.green }}>{method}</Mono>
           </div>
         ))}
       </div>
-      <h3 style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 700, color: T.text, margin: "0 0 8px" }}>Methodology</h3>
-      <p style={{ fontFamily: T.sans, fontSize: 13, lineHeight: 1.7, color: T.textMid, margin: 0 }}>
+      <h3 style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 700, color: T.text, margin: "0 0 8px" }}>Methodology</h3>
+      <p style={{ fontFamily: T.sans, fontSize: 16, lineHeight: 1.7, color: T.textMid, margin: 0 }}>
         All data is aggregated automatically from public sources. An AI processing pipeline reads, categorizes, and routes information — generating the daily briefing, extracting deadlines from filings, detecting new cases, and tagging CSC activity. No editorial judgment on inclusion. All content links to original sources. Zero manual maintenance after initial setup.
       </p>
     </Panel>
@@ -889,13 +889,13 @@ export default function NILMonitor() {
         borderBottom: `1px solid ${T.navySoft}`,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 24 }}>
-          <Mono style={{ fontSize: 12, fontWeight: 700, color: "#fff", letterSpacing: ".6px" }}>NIL MONITOR</Mono>
+          <Mono style={{ fontSize: 14, fontWeight: 700, color: "#fff", letterSpacing: ".6px" }}>NIL MONITOR</Mono>
           <LiveBadge />
         </div>
         <div style={{ display: "flex", gap: 0 }}>
           {PAGES.map(p => (
             <button key={p} onClick={() => setPage(p)} style={{
-              fontFamily: T.sans, fontSize: 11.5, fontWeight: page === p ? 700 : 500,
+              fontFamily: T.sans, fontSize: 14, fontWeight: page === p ? 700 : 500,
               padding: "11px 12px", background: "transparent",
               color: page === p ? "#fff" : "rgba(255,255,255,.5)",
               border: "none", cursor: "pointer",
@@ -904,7 +904,7 @@ export default function NILMonitor() {
             }}>{p}</button>
           ))}
         </div>
-        <Mono style={{ marginLeft: "auto", fontSize: 8, color: "rgba(255,255,255,.3)" }}>
+        <Mono style={{ marginLeft: "auto", fontSize: 10, color: "rgba(255,255,255,.3)" }}>
           Last refresh: 2 min ago · Feb 19, 2026 6:14 AM EST
         </Mono>
       </nav>
