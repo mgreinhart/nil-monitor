@@ -157,8 +157,13 @@ Return JSON:
 }
 
 // ── Task 2: Deadline Extraction ──────────────────────────────────
-async function extractDeadlines(env, headlines, caseUpdates) {
+async function extractDeadlines(env, headlines, caseUpdates, db) {
   if (headlines.length === 0 && caseUpdates.length === 0) return [];
+
+  // Fetch existing deadlines to avoid duplicates
+  const { results: existingDeadlines } = await db.prepare(
+    "SELECT date, text FROM deadlines WHERE date >= date('now') ORDER BY date ASC"
+  ).all();
 
   const system = `You extract upcoming deadlines from college athletics news and court data for a regulatory dashboard.
 A deadline is a specific future date that requires action or attention — a hearing date, a filing deadline, a reporting window, a legislative hearing, a vote date, a portal window, an implementation date.
@@ -173,6 +178,8 @@ For severity:
 - important: Significant date that affects strategy or planning
 - routine: Worth tracking but no immediate action needed
 
+CRITICAL DEDUPLICATION RULE: You will be given a list of already-tracked deadlines. Do NOT create duplicates of those. Only return genuinely new deadlines not already in the list. If a headline mentions a date that's already tracked, skip it.
+
 Return ONLY valid JSON, no other text.`;
 
   const headlineList = headlines.slice(0, 50).map(h =>
@@ -183,6 +190,10 @@ Return ONLY valid JSON, no other text.`;
     `${c.name}: next_action=${c.next_action}, next_action_date=${c.next_action_date}, status=${c.status}`
   ).join('\n');
 
+  const existingList = existingDeadlines.length > 0
+    ? existingDeadlines.map(d => `${d.date}: ${d.text}`).join('\n')
+    : 'None';
+
   const today = new Date().toISOString().split('T')[0];
 
   const userContent = `Today is ${today}. Extract any upcoming deadlines from these items. Only include dates that are in the future.
@@ -192,6 +203,9 @@ ${headlineList || 'None'}
 
 CASE DATA:
 ${caseList || 'None'}
+
+ALREADY TRACKED DEADLINES (do NOT create duplicates of these):
+${existingList}
 
 Return JSON:
 {
@@ -398,12 +412,18 @@ async function writeEvents(db, events) {
 async function writeDeadlines(db, deadlines) {
   let count = 0;
   for (const d of deadlines) {
-    // Check if this deadline already exists (same date + similar text)
+    // Check if a deadline already exists on the same date in the same category
     const existing = await db.prepare(
-      "SELECT id FROM deadlines WHERE date = ? AND text LIKE '%' || ? || '%'"
-    ).bind(d.date, d.text.substring(0, 30)).first();
-
+      'SELECT id FROM deadlines WHERE date = ? AND category = ?'
+    ).bind(d.date, d.category).first();
     if (existing) continue;
+
+    // Also check for same date + similar text (cross-category)
+    const textPrefix = d.text.substring(0, 30);
+    const similar = await db.prepare(
+      "SELECT id FROM deadlines WHERE date = ? AND text LIKE ? || '%'"
+    ).bind(d.date, textPrefix).first();
+    if (similar) continue;
 
     try {
       await db.prepare(
@@ -484,7 +504,7 @@ export async function runAIPipeline(env, options = {}) {
   console.log(`AI Pipeline: extracted ${events.length} events, wrote ${eventsWritten}`);
 
   // 4. Extract deadlines
-  const deadlines = await extractDeadlines(env, headlines, caseUpdates);
+  const deadlines = await extractDeadlines(env, headlines, caseUpdates, db);
   const deadlinesWritten = await writeDeadlines(db, deadlines);
   console.log(`AI Pipeline: extracted ${deadlines.length} deadlines, wrote ${deadlinesWritten}`);
 
