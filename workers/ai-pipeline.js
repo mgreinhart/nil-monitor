@@ -203,12 +203,17 @@ Return JSON:
 }
 
 // ── Task 3: CSC Activity Detection ───────────────────────────────
-async function detectCSCActivity(env, headlines) {
+async function detectCSCActivity(env, headlines, db) {
   // Filter to only potentially CSC-related headlines
   const cscKeywords = /college sports commission|csc|enforcement|bryan seeley|katie medearis|compliance|investigation|tip line|valid business purpose/i;
   const relevant = headlines.filter(h => cscKeywords.test(h.title));
 
   if (relevant.length === 0) return [];
+
+  // Fetch existing CSC items to avoid duplicates
+  const { results: existingCSC } = await db.prepare(
+    'SELECT text, tag FROM csc_activity ORDER BY activity_time DESC LIMIT 30'
+  ).all();
 
   const system = `You identify and tag College Sports Commission (CSC) activity from news headlines for a regulatory dashboard.
 
@@ -223,16 +228,25 @@ Tags:
 
 Only tag items that are specifically about CSC activity. General NIL news is not CSC activity unless the CSC is directly involved.
 
+CRITICAL DEDUPLICATION RULE: If multiple headlines cover the SAME event (e.g., 5 outlets reporting the same investigation), create only ONE csc_item that represents the event. Pick the most descriptive headline and the earliest published timestamp. Do NOT create one item per headline — one item per distinct real-world event.
+
 Return ONLY valid JSON, no other text.`;
 
   const headlineList = relevant.map(h =>
-    `${h.source}: ${h.title}\n  URL: ${h.url}`
+    `${h.source}: ${h.title}\n  Published: ${h.published_at}\n  URL: ${h.url}`
   ).join('\n');
+
+  const existingList = existingCSC.length > 0
+    ? existingCSC.map(c => `[${c.tag}] ${c.text}`).join('\n')
+    : 'None';
 
   const userContent = `Identify items related to the College Sports Commission and tag each one.
 
 POTENTIALLY CSC-RELATED HEADLINES:
 ${headlineList}
+
+ALREADY TRACKED CSC ITEMS (do NOT create duplicates of these):
+${existingList}
 
 Return JSON:
 {
@@ -241,12 +255,13 @@ Return JSON:
       "text": "Description of the CSC activity",
       "tag": "Guidance|Investigation|Enforcement|Personnel|Rule Clarification",
       "source": "Source name",
-      "source_url": "URL"
+      "source_url": "URL",
+      "activity_time": "ISO 8601 timestamp from the headline's Published field"
     }
   ]
 }
 
-If none of these are actually about CSC activity, return: {"csc_items": []}`;
+If none of these are actually NEW CSC activity (not already tracked), return: {"csc_items": []}`;
 
   try {
     const result = await callClaude(env, system, userContent);
@@ -277,11 +292,15 @@ async function generateBriefing(env, db) {
     return null; // Nothing to brief on
   }
 
-  const system = `You are a sharp deputy Athletic Director briefing your boss at 6 AM. Write a concise briefing of the most significant developments in the last 24 hours.
+  const system = `You are a sharp deputy AD briefing your boss at 6 AM. Be direct — no throat-clearing, no filler.
 
-Voice: Direct, action-oriented, no fluff. Cite sources. Highlight anything requiring institutional action. You're speaking to ADs, compliance officers, and sports lawyers who need to know what changed overnight.
-
-Structure: 2-4 sections, each with a bold opening sentence and 2-3 sentences of supporting detail. Lead with the most important item. Group related items.
+STRICT FORMAT RULES:
+- Maximum 4 sections. Fewer is better if the news warrants it.
+- Each section: ONE bold opening sentence stating what happened + TWO sentences max of detail/context/action items.
+- Lead with the most important item. Group related developments.
+- Cite sources parenthetically (e.g., "per ESPN" or "(CourtListener)").
+- If something requires institutional action, say so explicitly.
+- Total output should be ~150-200 words. Half the length you'd normally write.
 
 Return ONLY valid JSON, no other text.`;
 
@@ -310,12 +329,12 @@ ${headlineList || 'No recent headlines.'}
 UPCOMING DEADLINES (next 14 days):
 ${deadlineList || 'No imminent deadlines.'}
 
-Return JSON:
+Return JSON (max 4 sections, each headline is ONE sentence, each body is MAX 2 sentences):
 {
   "sections": [
     {
-      "headline": "Bold opening sentence describing the most significant development.",
-      "body": "2-3 sentences of detail, context, and what it means for your institution. Cite sources."
+      "headline": "Bold opening sentence stating what happened.",
+      "body": "One to two sentences of context or action items. No more."
     }
   ]
 }`;
@@ -375,10 +394,11 @@ async function writeCSCActivity(db, items) {
   let count = 0;
   for (const item of items) {
     try {
+      const activityTime = item.activity_time || new Date().toISOString();
       await db.prepare(
         `INSERT INTO csc_activity (tag, text, source, source_url, activity_time)
-         VALUES (?, ?, ?, ?, datetime('now'))`
-      ).bind(item.tag, item.text, item.source, item.source_url || null).run();
+         VALUES (?, ?, ?, ?, ?)`
+      ).bind(item.tag, item.text, item.source, item.source_url || null, activityTime).run();
       count++;
     } catch (err) {
       // Skip errors
@@ -440,7 +460,7 @@ export async function runAIPipeline(env) {
   console.log(`AI Pipeline: extracted ${deadlines.length} deadlines, wrote ${deadlinesWritten}`);
 
   // 5. Detect CSC activity
-  const cscItems = await detectCSCActivity(env, headlines);
+  const cscItems = await detectCSCActivity(env, headlines, db);
   const cscWritten = await writeCSCActivity(db, cscItems);
   console.log(`AI Pipeline: detected ${cscItems.length} CSC items, wrote ${cscWritten}`);
 

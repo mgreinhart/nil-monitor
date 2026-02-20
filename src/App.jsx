@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 /* ═══════════════════════════════════════════════════════════════════
    NIL MONITOR — Phase 1 Static Shell
@@ -235,12 +235,16 @@ const StateMap = ({ selected, onSelect, compact }) => {
 };
 
 // ── Bar Chart ──────────────────────────────────────────────────────
-const MiniBarChart = () => {
-  const bars = useRef(Array.from({ length: 30 }, () => 15 + Math.random() * 70));
+const MiniBarChart = ({ data }) => {
+  const max = Math.max(...data.map(d => d.count), 1);
   return (
     <div style={{ display: "flex", alignItems: "flex-end", gap: 1.5, height: 52 }}>
-      {bars.current.map((h, i) => (
-        <div key={i} style={{ flex: 1, height: `${h}%`, background: i === 29 ? T.accent : T.accent + "35", borderRadius: "1px 1px 0 0" }} />
+      {data.map((d, i) => (
+        <div key={i} title={`${d.day}: ${d.count}`} style={{
+          flex: 1, height: `${(d.count / max) * 100}%`,
+          background: i === data.length - 1 ? T.accent : T.accent + "35",
+          borderRadius: "1px 1px 0 0", minHeight: d.count > 0 ? 2 : 0,
+        }} />
       ))}
     </div>
   );
@@ -393,6 +397,8 @@ const MonitorPage = () => {
   const [events, setEvents] = useState(null);
   const [cscFeed, setCscFeed] = useState(null);
   const [cases, setCases] = useState(null);
+  const [bills, setBills] = useState(null);
+  const [headlineCounts, setHeadlineCounts] = useState(null);
 
   useEffect(() => {
     fetch("/api/briefing").then(r => r.ok ? r.json() : null).then(d => {
@@ -412,6 +418,12 @@ const MonitorPage = () => {
     }).catch(() => {});
     fetch("/api/cases").then(r => r.ok ? r.json() : null).then(d => {
       if (d?.length) setCases(d);
+    }).catch(() => {});
+    fetch("/api/bills?state=Federal").then(r => r.ok ? r.json() : null).then(d => {
+      if (d) setBills(d);
+    }).catch(() => {});
+    fetch("/api/headline-counts").then(r => r.ok ? r.json() : null).then(d => {
+      if (d) setHeadlineCounts(d);
     }).catch(() => {});
   }, []);
 
@@ -451,6 +463,19 @@ const MonitorPage = () => {
   // Briefing: API or mock
   const briefingSource = briefing || MOCK.briefing.map(([headline, body]) => ({ headline, body }));
   const briefingDate = briefing ? new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Feb 19";
+
+  // Build 30-day chart data from headline counts (fill gaps with 0)
+  const chartData = (() => {
+    const map = {};
+    if (headlineCounts) headlineCounts.forEach(r => { map[r.day] = r.count; });
+    const days = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000);
+      const key = d.toISOString().split("T")[0];
+      days.push({ day: key, count: map[key] || 0 });
+    }
+    return days;
+  })();
 
   const times = ["Today", "24h", "3d", "7d", "30d"];
   const cats = ["All", ...Object.keys(CAT_COLORS).slice(0, 7)];
@@ -600,20 +625,22 @@ const MonitorPage = () => {
               ) : (
                 <>
                   <Mono style={{ fontSize: 12, fontWeight: 700, color: T.textMid, marginBottom: 6, display: "block" }}>Federal Bills</Mono>
-                  {[
-                    { bill: "S. 2439", title: "College Athletes Protection Act", sponsor: "Murphy (D-CT)", status: "In Committee", cos: 12 },
-                    { bill: "H.R. 1147", title: "Student Athlete Level Playing Field Act", sponsor: "Gonzalez (R-OH)", status: "In Committee", cos: 8 },
-                    { bill: "S. 3011", title: "NIL Federal Framework Act", sponsor: "Wicker (R-MS)", status: "Introduced", cos: 3 },
-                  ].map((b, i) => (
+                  {bills && bills.length > 0 ? bills.slice(0, 5).map((b, i) => (
                     <div key={i} style={{ padding: "6px 0", borderBottom: `1px solid ${T.borderLight}` }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                        <Mono style={{ fontSize: 12, fontWeight: 700, color: T.accent }}>{b.bill}</Mono>
-                        <Badge color={b.status === "In Committee" ? T.amber : T.textDim} small>{b.status}</Badge>
+                        <Mono style={{ fontSize: 12, fontWeight: 700, color: T.accent }}>{b.bill_number}</Mono>
+                        <Badge color={b.status === "Introduced" ? T.textDim : T.amber} small>{b.status}</Badge>
                       </div>
-                      <div style={{ fontFamily: T.sans, fontSize: 13, color: T.text }}>{b.title}</div>
-                      <Mono style={{ fontSize: 10, color: T.textDim }}>{b.sponsor} · {b.cos} cosponsors</Mono>
+                      <div style={{ fontFamily: T.sans, fontSize: 13, color: T.text, lineHeight: 1.3 }}>{b.title}</div>
+                      <Mono style={{ fontSize: 10, color: T.textDim }}>
+                        {b.sponsor ? `${b.sponsor} · ` : ""}{b.last_action_date || ""}
+                      </Mono>
                     </div>
-                  ))}
+                  )) : (
+                    <Mono style={{ fontSize: 12, color: T.textDim, padding: "12px 0", display: "block" }}>
+                      {bills === null ? "Loading..." : "No federal bills tracked yet"}
+                    </Mono>
+                  )}
                 </>
               )}
             </div>
@@ -658,7 +685,9 @@ const MonitorPage = () => {
         <Panel title="The Outside View" accent="#64748b">
           <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 6, display: "block" }}>News Volume · 30 Days</Mono>
           <div style={{ height: 72 }}>
-            <MiniBarChart />
+            {chartData.length > 0 ? <MiniBarChart data={chartData} /> : (
+              <Mono style={{ fontSize: 11, color: T.textDim }}>Loading chart data...</Mono>
+            )}
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
             <Mono style={{ fontSize: 9, color: T.textDim }}>30d ago</Mono>
@@ -865,8 +894,30 @@ const AboutPage = () => (
 // ╔═══════════════════════════════════════════════════════════════════
 //  APP SHELL
 // ╚═══════════════════════════════════════════════════════════════════
+const formatRefreshTime = (ranAt) => {
+  if (!ranAt) return "Loading...";
+  const normalized = ranAt.includes("T") ? ranAt : ranAt.replace(" ", "T") + "Z";
+  const date = new Date(normalized);
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  let ago;
+  if (mins < 1) ago = "just now";
+  else if (mins < 60) ago = `${mins}m ago`;
+  else if (mins < 1440) ago = `${Math.floor(mins / 60)}h ago`;
+  else ago = `${Math.floor(mins / 1440)}d ago`;
+  const ts = date.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+  return `${ago} · ${ts}`;
+};
+
 export default function NILMonitor() {
   const [page, setPage] = useState("Monitor");
+  const [lastRefresh, setLastRefresh] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/last-run").then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.ran_at) setLastRefresh(d.ran_at);
+    }).catch(() => {});
+  }, []);
 
   return (
     <div style={{ background: T.bg, minHeight: "100vh", fontFamily: T.sans }}>
@@ -905,7 +956,7 @@ export default function NILMonitor() {
           ))}
         </div>
         <Mono style={{ marginLeft: "auto", fontSize: 10, color: "rgba(255,255,255,.3)" }}>
-          Last refresh: 2 min ago · Feb 19, 2026 6:14 AM EST
+          Last refresh: {formatRefreshTime(lastRefresh)}
         </Mono>
       </nav>
 

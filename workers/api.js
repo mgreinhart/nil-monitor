@@ -96,7 +96,40 @@ export async function handleApi(request, env) {
       return json(results);
     }
 
-    // CSC Activity (Phase 3 — empty for now)
+    // Bills
+    if (path === '/api/bills') {
+      const state = url.searchParams.get('state');
+      let query = 'SELECT * FROM bills ORDER BY last_action_date DESC';
+      const params = [];
+      if (state) {
+        query = 'SELECT * FROM bills WHERE state = ? ORDER BY last_action_date DESC';
+        params.push(state);
+      }
+      const { results } = await env.DB.prepare(query).bind(...params).all();
+      return json(results);
+    }
+
+    // Headline counts per day (for news volume chart)
+    if (path === '/api/headline-counts') {
+      const { results } = await env.DB.prepare(
+        `SELECT date(published_at) as day, COUNT(*) as count
+         FROM headlines
+         WHERE published_at >= date('now', '-30 days')
+         GROUP BY date(published_at)
+         ORDER BY day ASC`
+      ).all();
+      return json(results);
+    }
+
+    // Last pipeline run time
+    if (path === '/api/last-run') {
+      const row = await env.DB.prepare(
+        'SELECT ran_at FROM pipeline_runs ORDER BY id DESC LIMIT 1'
+      ).first();
+      return json({ ran_at: row?.ran_at || null });
+    }
+
+    // CSC Activity
     if (path === '/api/csc') {
       const { results } = await env.DB.prepare(
         'SELECT * FROM csc_activity ORDER BY activity_time DESC LIMIT 20'
