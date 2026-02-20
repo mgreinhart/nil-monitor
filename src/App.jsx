@@ -358,7 +358,7 @@ const KalshiSection = () => (
 );
 
 // ── Pages ──────────────────────────────────────────────────────────
-const PAGES = ["Monitor", "States", "Headlines", "About"];
+const PAGES = ["Monitor", "States", "About"];
 
 // ╔═══════════════════════════════════════════════════════════════════
 //  MONITOR PAGE — The Dashboard (live from D1, falls back to mock)
@@ -379,6 +379,8 @@ const MonitorPage = () => {
   const [catFilt, setCatFilt] = useState("All");
   const [selState, setSelState] = useState(null);
   const [expCase, setExpCase] = useState(null);
+  const [headlinesExpanded, setHeadlinesExpanded] = useState(false);
+  const [headlineCatFilt, setHeadlineCatFilt] = useState("All");
 
   // Live data state
   const [briefing, setBriefing] = useState(null);
@@ -390,6 +392,7 @@ const MonitorPage = () => {
   const [cases, setCases] = useState(null);
   const [bills, setBills] = useState(null);
   const [headlineCounts, setHeadlineCounts] = useState(null);
+  const [headlines, setHeadlines] = useState(null);
 
   useEffect(() => {
     fetch("/api/briefing").then(r => r.ok ? r.json() : null).then(d => {
@@ -418,6 +421,9 @@ const MonitorPage = () => {
     }).catch(() => {});
     fetch("/api/headline-counts").then(r => r.ok ? r.json() : null).then(d => {
       if (d) setHeadlineCounts(d);
+    }).catch(() => {});
+    fetch("/api/headlines?limit=100").then(r => r.ok ? r.json() : null).then(d => {
+      if (d) setHeadlines(d);
     }).catch(() => {});
   }, []);
 
@@ -481,88 +487,86 @@ const MonitorPage = () => {
   const times = ["24h", "3d", "7d", "30d", "All"];
   const cats = ["All", ...Object.keys(CAT_COLORS).slice(0, 7)];
 
+  // Headlines: normalize for feed
+  const hlSource = headlines ? headlines.map(h => ({
+    src: h.source, title: h.title, cat: h.category,
+    time: timeAgo(h.published_at), url: h.url,
+  })) : MOCK.headlines;
+  const hlFiltered = headlinesExpanded
+    ? hlSource.filter(h => headlineCatFilt === "All" || h.cat === headlineCatFilt)
+    : hlSource.slice(0, 10);
+
   return (
     <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
       {/* ══ MAIN COLUMN ══ */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
 
         {/* ══════════════════════════════════════════════════════════
-            ABOVE THE FOLD — Dense grid. The actual dashboard.
-            Row 1: Deadlines + House (side by side, compact)
-            Row 2: Briefing (full width, two-column text)
+            ABOVE THE FOLD — Briefing (left) + Headlines (right)
            ══════════════════════════════════════════════════════════ */}
-        {/* ── ROW 1: Deadlines + House ── */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <Panel title="Deadlines" accent={T.red}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-              {dlSource.slice(0, 3).map((d, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: i < 2 ? `1px solid ${T.borderLight}` : "none", alignItems: "flex-start" }}>
-                  <div style={{
-                    fontFamily: T.mono, fontSize: 20, fontWeight: 700, lineHeight: 1, minWidth: 36, textAlign: "right",
-                    color: d.sev === "critical" && d.days <= 7 ? T.red : d.days <= 14 ? T.amber : T.text,
-                  }}>
-                    {d.days}<span style={{ fontSize: 11, fontWeight: 500 }}>d</span>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: T.sans, fontSize: 13, color: T.text, lineHeight: 1.3 }}>{d.text}</div>
-                    <div style={{ display: "flex", gap: 5, marginTop: 2, alignItems: "center" }}>
-                      <Badge color={CAT_COLORS[d.cat]} small>{d.cat}</Badge>
-                      <Mono style={{ fontSize: 10, color: T.textDim }}>{d.date}</Mono>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Panel>
-
-          <Panel title="House v. NCAA" accent={T.green}>
-            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 7 }}>
-              <Badge color={T.amber}>{houseData.phase}</Badge>
-              <Mono style={{ fontSize: 10, color: T.textDim }}>Hearing: {houseData.hearing}</Mono>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-              {[
-                ["REV-SHARE CAP", houseData.cap, `Adj: ${houseData.capAdj}`],
-                ["BACK DAMAGES", houseData.damages, `Paid: ${houseData.distributed}`],
-                ["OPTED IN", houseData.optedIn, "Power 4"],
-                ["CSC ACTIONS", houseData.cscActions, ""],
-              ].map(([l, v, s], i) => (
-                <div key={i} style={{ padding: "5px 7px", background: T.surfaceAlt, borderRadius: 3 }}>
-                  <Mono style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1px", color: T.textDim }}>{l}</Mono>
-                  <div style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: T.text, lineHeight: 1.2 }}>{v}</div>
-                  {s && <Mono style={{ fontSize: 10, color: T.textDim }}>{s}</Mono>}
-                </div>
-              ))}
-            </div>
-          </Panel>
-        </div>
-
-        {/* ── ROW 2: Briefing (full width, two-column text) ── */}
-        <Panel title={(() => {
-          if (!briefingGeneratedAt) return "Briefing";
-          const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
-          const d = new Date(n);
-          const month = d.toLocaleString("en-US", { month: "short", timeZone: "America/New_York" }).toUpperCase();
-          const day = d.toLocaleString("en-US", { day: "numeric", timeZone: "America/New_York" });
-          const hour = parseInt(d.toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" }));
-          const period = hour < 12 ? "AM" : "PM";
-          return `${month} ${day} · ${period} BRIEFING`;
-        })()} accent={T.red}>
-          <div style={{ columnCount: 2, columnGap: 20, columnRule: `1px solid ${T.borderLight}` }}>
+          {/* ── Briefing ── */}
+          <Panel title={(() => {
+            if (!briefingGeneratedAt) return "Briefing";
+            const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
+            const d = new Date(n);
+            const month = d.toLocaleString("en-US", { month: "short", timeZone: "America/New_York" }).toUpperCase();
+            const day = d.toLocaleString("en-US", { day: "numeric", timeZone: "America/New_York" });
+            const hour = parseInt(d.toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" }));
+            const period = hour < 12 ? "AM" : "PM";
+            return `${month} ${day} · ${period} BRIEFING`;
+          })()} accent={T.red}>
             {briefingSource.map((s, i) => (
-              <div key={i} style={{ fontFamily: T.sans, fontSize: 14, lineHeight: 1.55, color: T.text, marginBottom: 8, breakInside: "avoid" }}>
+              <div key={i} style={{ fontFamily: T.sans, fontSize: 14, lineHeight: 1.55, color: T.text, marginBottom: 8 }}>
                 <strong style={{ color: T.text }}>{s.headline}</strong>{" "}
                 <span style={{ color: T.textMid }}>{s.body}</span>
               </div>
             ))}
-          </div>
-          <Mono style={{ display: "block", marginTop: 4, fontSize: 10, color: T.textDim }}>
-            {briefingGeneratedAt ? `Generated ${(() => {
-              const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
-              return new Date(n).toLocaleString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short" }) + " · " + new Date(n).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-            })()}` : briefing ? "AI-generated" : "Sample briefing"}
-          </Mono>
-        </Panel>
+            <Mono style={{ display: "block", marginTop: 4, fontSize: 10, color: T.textDim }}>
+              {briefingGeneratedAt ? `Generated ${(() => {
+                const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
+                return new Date(n).toLocaleString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short" }) + " · " + new Date(n).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+              })()}` : briefing ? "AI-generated" : "Sample briefing"}
+            </Mono>
+          </Panel>
+
+          {/* ── Latest Headlines ── */}
+          <Panel title="Latest Headlines" accent={T.accent} noPad>
+            {headlinesExpanded && (
+              <div style={{ display: "flex", gap: 3, flexWrap: "wrap", padding: "8px 10px 0" }}>
+                {["All", ...Object.keys(CAT_COLORS).slice(0, 7)].map(c => (
+                  <Pill key={c} active={headlineCatFilt === c} onClick={() => setHeadlineCatFilt(c)}>{c}</Pill>
+                ))}
+              </div>
+            )}
+            {hlFiltered.length === 0 ? (
+              <div style={{ padding: "20px 10px", textAlign: "center" }}>
+                <Mono style={{ fontSize: 12, color: T.textDim }}>
+                  {headlines ? "No headlines in this category" : "Headlines populate when data pipeline runs"}
+                </Mono>
+              </div>
+            ) : hlFiltered.map((h, i) => (
+              <a key={i} href={h.url} target="_blank" rel="noopener noreferrer"
+                style={{ display: "flex", gap: 8, padding: "6px 10px", borderBottom: `1px solid ${T.borderLight}`, alignItems: "center", textDecoration: "none" }}>
+                <div style={{ flex: "0 0 50px" }}>
+                  <Mono style={{ fontSize: 11, fontWeight: 700, color: T.accent, display: "block" }}>{h.src}</Mono>
+                  <Mono style={{ fontSize: 10, color: T.textDim }}>{h.time}</Mono>
+                </div>
+                <Badge color={CAT_COLORS[h.cat]} small>{h.cat}</Badge>
+                <div style={{ flex: 1, fontFamily: T.sans, fontSize: 13, color: T.text, lineHeight: 1.3 }}>{h.title}</div>
+                <Mono style={{ fontSize: 11, color: T.accent, flexShrink: 0 }}>→</Mono>
+              </a>
+            ))}
+            <div style={{ padding: "6px 10px", textAlign: "center", borderTop: `1px solid ${T.borderLight}` }}>
+              <button onClick={() => setHeadlinesExpanded(!headlinesExpanded)} style={{
+                fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: T.accent,
+                background: "transparent", border: "none", cursor: "pointer", padding: "2px 8px",
+              }}>
+                {headlinesExpanded ? "Show less" : "View all headlines →"}
+              </button>
+            </div>
+          </Panel>
+        </div>
 
         {/* ══════════════════════════════════════════════════════════
             BELOW THE FOLD — Detail Sections
@@ -715,6 +719,46 @@ const MonitorPage = () => {
         <XListEmbed />
         <NILRevFeed />
         <SpotifyEmbed />
+
+        {/* ── Reference Cards ── */}
+        <Panel title="Deadlines" accent={T.red}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            {dlSource.slice(0, 4).map((d, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, padding: "4px 0", borderBottom: i < 3 ? `1px solid ${T.borderLight}` : "none", alignItems: "flex-start" }}>
+                <div style={{
+                  fontFamily: T.mono, fontSize: 16, fontWeight: 700, lineHeight: 1, minWidth: 28, textAlign: "right",
+                  color: d.sev === "critical" && d.days <= 7 ? T.red : d.days <= 14 ? T.amber : T.text,
+                }}>
+                  {d.days}<span style={{ fontSize: 10, fontWeight: 500 }}>d</span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: T.sans, fontSize: 12, color: T.text, lineHeight: 1.3 }}>{d.text}</div>
+                  <Mono style={{ fontSize: 9, color: T.textDim }}>{d.date}</Mono>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Panel>
+
+        <Panel title="House v. NCAA" accent={T.green}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
+            <Badge color={T.amber} small>{houseData.phase}</Badge>
+            <Mono style={{ fontSize: 9, color: T.textDim }}>Hearing: {houseData.hearing}</Mono>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+            {[
+              ["REV-SHARE CAP", houseData.cap],
+              ["BACK DAMAGES", houseData.damages],
+              ["OPTED IN", houseData.optedIn],
+              ["CSC ACTIONS", houseData.cscActions],
+            ].map(([l, v], i) => (
+              <div key={i} style={{ padding: "4px 6px", background: T.surfaceAlt, borderRadius: 3 }}>
+                <Mono style={{ fontSize: 8, fontWeight: 700, letterSpacing: ".8px", color: T.textDim }}>{l}</Mono>
+                <div style={{ fontFamily: T.mono, fontSize: 14, fontWeight: 700, color: T.text, lineHeight: 1.2 }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </Panel>
       </div>
     </div>
   );
@@ -951,7 +995,6 @@ export default function NILMonitor() {
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "12px 14px 40px" }}>
         {page === "Monitor" && <MonitorPage />}
         {page === "States" && <StatesPage />}
-        {page === "Headlines" && <HeadlinesPage />}
         {page === "About" && <AboutPage />}
       </main>
     </div>
