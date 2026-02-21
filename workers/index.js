@@ -1,6 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════
 //  NIL MONITOR — Worker Entry Point
-//  Handles API routes (fetch) and data fetching (scheduled/cron)
+//  Two cron patterns:
+//    */15 * * * *   — fetchers (self-governing cooldowns)
+//    0 11,21 * * *  — AI pipeline (6 AM / 4 PM ET)
 // ═══════════════════════════════════════════════════════════════════
 
 import { handleApi } from './api.js';
@@ -20,21 +22,21 @@ export default {
     const cron = event.cron || '';
     console.log(`Cron trigger fired: ${cron}`);
 
-    const isAfternoon = cron.startsWith('0 21');
-
-    ctx.waitUntil((async () => {
-      // Step 1: Fetch all data sources in parallel
-      await Promise.all([
-        fetchGoogleNews(env),
-        fetchNCAANews(env),
-        fetchNewsData(env),
-        fetchCongress(env),
-        fetchCourtListener(env),
-      ]);
-      console.log('Data fetchers complete, starting AI pipeline...');
-
-      // Step 2: Run AI pipeline with fresh data
-      await runAIPipeline(env, { includeBriefing: true, isAfternoon });
-    })());
+    if (cron === '0 11,21 * * *') {
+      // AI pipeline — 11:00 UTC (6 AM ET) / 21:00 UTC (4 PM ET)
+      const isAfternoon = new Date().getUTCHours() >= 20;
+      ctx.waitUntil(runAIPipeline(env, { includeBriefing: true, isAfternoon }));
+    } else {
+      // */15 trigger — all fetchers run (each self-governs its cooldown)
+      ctx.waitUntil(
+        Promise.all([
+          fetchGoogleNews(env).catch(e => console.error('google-news:', e.message)),
+          fetchNCAANews(env).catch(e => console.error('ncaa-rss:', e.message)),
+          fetchNewsData(env).catch(e => console.error('newsdata:', e.message)),
+          fetchCongress(env).catch(e => console.error('congress:', e.message)),
+          fetchCourtListener(env).catch(e => console.error('courtlistener:', e.message)),
+        ])
+      );
+    }
   },
 };

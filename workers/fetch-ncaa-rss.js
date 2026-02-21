@@ -1,10 +1,16 @@
 // ═══════════════════════════════════════════════════════════════════
 //  NCAA.com RSS Fetcher
-//  NCAA.org doesn't have governance RSS. NCAA.com has sport feeds.
-//  We pull from the sport feeds most relevant to NIL Monitor.
+//  Self-governing cooldown:
+//    6 AM–12 PM ET: every 15 min
+//    12–5 PM ET:    every 15 min
+//    5–10 PM ET:    every 30 min
+//    10 PM–6 AM ET: skip
 // ═══════════════════════════════════════════════════════════════════
 
 import { parseRSS } from './rss-parser.js';
+import { getETHour, shouldRun, recordRun, categorizeByKeyword } from './fetcher-utils.js';
+
+const FETCHER = 'ncaa-rss';
 
 const FEEDS = [
   { url: 'https://www.ncaa.com/news/ncaa/d1/rss.xml', fallbackSource: 'NCAA.com' },
@@ -12,7 +18,24 @@ const FEEDS = [
   { url: 'https://www.ncaa.com/news/football/fbs/rss.xml', fallbackSource: 'NCAA.com' },
 ];
 
+function getCooldown() {
+  const h = getETHour();
+  if (h >= 6 && h < 17) return 15;
+  if (h >= 17 && h < 22) return 30;
+  return null;
+}
+
 export async function fetchNCAANews(env) {
+  const cooldown = getCooldown();
+  if (cooldown === null) {
+    console.log('NCAA RSS: outside active hours, skipping');
+    return;
+  }
+  if (!await shouldRun(env.DB, FETCHER, cooldown)) {
+    console.log(`NCAA RSS: cooldown (${cooldown}m) not elapsed, skipping`);
+    return;
+  }
+
   console.log('Fetching NCAA RSS...');
   let totalInserted = 0;
 
@@ -34,12 +57,13 @@ export async function fetchNCAANews(env) {
 
         const source = item.sourceName || feed.fallbackSource;
         const published = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString();
+        const category = categorizeByKeyword(item.title);
 
         try {
           await env.DB.prepare(
-            `INSERT OR IGNORE INTO headlines (source, title, url, published_at)
-             VALUES (?, ?, ?, ?)`
-          ).bind(source, item.title, item.link, published).run();
+            `INSERT OR IGNORE INTO headlines (source, title, url, category, published_at)
+             VALUES (?, ?, ?, ?, ?)`
+          ).bind(source, item.title, item.link, category, published).run();
           totalInserted++;
         } catch (e) {
           // Skip duplicates
@@ -50,5 +74,6 @@ export async function fetchNCAANews(env) {
     }
   }
 
+  await recordRun(env.DB, FETCHER);
   console.log(`NCAA RSS: inserted ${totalInserted} headlines`);
 }

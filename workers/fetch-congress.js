@@ -1,10 +1,14 @@
 // ═══════════════════════════════════════════════════════════════════
 //  Congress.gov Fetcher
-//  Fetches recent bills from Congress.gov API, filters for NIL/
-//  college sports relevance by keyword matching on titles.
+//  Self-governing cooldown:
+//    6 AM–10 PM ET: every 4 hours
+//    10 PM–6 AM ET: skip
 //  Requires secret: wrangler secret put CONGRESS_KEY
 // ═══════════════════════════════════════════════════════════════════
 
+import { getETHour, shouldRun, recordRun } from './fetcher-utils.js';
+
+const FETCHER = 'congress';
 const BASE_URL = 'https://api.congress.gov/v3';
 const CONGRESS = 119; // Current Congress (2025-2027)
 
@@ -20,6 +24,12 @@ const NIL_KEYWORDS = [
   'amateur athlete',
 ];
 
+function getCooldown() {
+  const h = getETHour();
+  if (h >= 6 && h < 22) return 240;
+  return null;
+}
+
 function matchesKeywords(title) {
   const lower = title.toLowerCase();
   return NIL_KEYWORDS.some(kw => lower.includes(kw));
@@ -29,6 +39,16 @@ export async function fetchCongress(env) {
   const apiKey = env.CONGRESS_KEY;
   if (!apiKey) {
     console.log('Congress.gov: no API key configured, skipping');
+    return;
+  }
+
+  const cooldown = getCooldown();
+  if (cooldown === null) {
+    console.log('Congress.gov: outside active hours, skipping');
+    return;
+  }
+  if (!await shouldRun(env.DB, FETCHER, cooldown)) {
+    console.log(`Congress.gov: cooldown (${cooldown}m) not elapsed, skipping`);
     return;
   }
 
@@ -102,6 +122,7 @@ export async function fetchCongress(env) {
       }
     }
 
+    await recordRun(env.DB, FETCHER);
     console.log(`Congress.gov: ${matched} NIL-related bills found/updated`);
   } catch (err) {
     console.error('Congress.gov fetch error:', err.message);

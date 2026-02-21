@@ -1,11 +1,23 @@
 // ═══════════════════════════════════════════════════════════════════
 //  CourtListener Fetcher
-//  Updates tracked cases from CourtListener REST API v4.
-//  Works without auth for public data. Optional token for higher
-//  rate limits: wrangler secret put COURTLISTENER_TOKEN
+//  Self-governing cooldown:
+//    6 AM–5 PM ET:  every 2 hours
+//    5–10 PM ET:    every 4 hours
+//    10 PM–6 AM ET: skip
+//  Optional: wrangler secret put COURTLISTENER_TOKEN
 // ═══════════════════════════════════════════════════════════════════
 
+import { getETHour, shouldRun, recordRun } from './fetcher-utils.js';
+
+const FETCHER = 'courtlistener';
 const CL_BASE = 'https://www.courtlistener.com/api/rest/v4';
+
+function getCooldown() {
+  const h = getETHour();
+  if (h >= 6 && h < 17) return 120;
+  if (h >= 17 && h < 22) return 240;
+  return null;
+}
 
 async function clFetch(path, token) {
   const headers = { 'User-Agent': 'NILMonitor/1.0' };
@@ -18,8 +30,17 @@ async function clFetch(path, token) {
 }
 
 export async function fetchCourtListener(env) {
-  const token = env.COURTLISTENER_TOKEN || null;
+  const cooldown = getCooldown();
+  if (cooldown === null) {
+    console.log('CourtListener: outside active hours, skipping');
+    return;
+  }
+  if (!await shouldRun(env.DB, FETCHER, cooldown)) {
+    console.log(`CourtListener: cooldown (${cooldown}m) not elapsed, skipping`);
+    return;
+  }
 
+  const token = env.COURTLISTENER_TOKEN || null;
   console.log('Fetching CourtListener updates...');
 
   // Get all tracked cases that have a source_id
@@ -30,10 +51,8 @@ export async function fetchCourtListener(env) {
   for (const c of cases) {
     try {
       // Step 1: Search for the case if we don't have a CourtListener docket ID
-      // source_id is either a CL docket ID (numeric) or a slug we seeded
       let docketId = c.source_id;
 
-      // If source_id is not numeric, search for the case by name
       if (!/^\d+$/.test(docketId)) {
         const search = await clFetch(
           `/search/?type=d&q=${encodeURIComponent(c.name)}&order_by=score+desc`,
@@ -41,7 +60,6 @@ export async function fetchCourtListener(env) {
         );
         if (search.results && search.results.length > 0) {
           docketId = search.results[0].docket_id;
-          // Store the CL docket ID for future lookups
           await env.DB.prepare(
             'UPDATE cases SET source_id = ? WHERE id = ?'
           ).bind(String(docketId), c.id).run();
@@ -87,5 +105,6 @@ export async function fetchCourtListener(env) {
     }
   }
 
+  await recordRun(env.DB, FETCHER);
   console.log('CourtListener update complete');
 }

@@ -98,3 +98,9 @@ CREATE TABLE IF NOT EXISTS pipeline_runs (
   csc_items_created INTEGER DEFAULT 0,
   briefing_generated INTEGER DEFAULT 0
 );
+
+-- Fetcher self-governing cooldowns
+CREATE TABLE IF NOT EXISTS fetcher_runs (
+  fetcher_name TEXT PRIMARY KEY,
+  last_run TEXT
+);
