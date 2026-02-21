@@ -80,20 +80,6 @@ const MOCK = {
     { time: "2d", cat: "Realignment", src: "FOS", text: "Pac-12 expansion negotiations with Mountain West stalled over media rights", sev: "routine" },
     { time: "2d", cat: "Litigation", src: "CourtListener", text: "Carter v. NCAA — NLRB certifies Dartmouth basketball union election", sev: "important" },
   ],
-  deadlines: [
-    { date: "Feb 23", days: 4, cat: "CSC / Enforcement", text: "CSC Q1 reporting window closes", sev: "critical" },
-    { date: "Mar 1", days: 10, cat: "Revenue Sharing", text: "Participation agreement signature deadline (Power 4)", sev: "critical" },
-    { date: "Mar 12", days: 21, cat: "Litigation", text: "House v. NCAA final fairness hearing", sev: "critical" },
-    { date: "Mar 15", days: 24, cat: "Roster / Portal", text: "Spring transfer portal window closes", sev: "important" },
-    { date: "Apr 1", days: 41, cat: "Legislation", text: "TX HB 1247 committee hearing", sev: "routine" },
-    { date: "Apr 15", days: 55, cat: "CSC / Enforcement", text: "CSC Q2 reporting window opens", sev: "routine" },
-  ],
-  house: {
-    phase: "Final Approval Pending", hearing: "Mar 12",
-    cap: "$20.5M", capAdj: "Jul 1, 2026",
-    damages: "$2.78B", distributed: "$0",
-    optedIn: "62/70", cscActions: "8",
-  },
   cscFeed: [
     { time: "2h", tag: "Guidance", text: "Published 'valid business purpose' evaluation criteria memo" },
     { time: "1d", tag: "Investigation", text: "Confirmed active investigation into LSU collective reporting" },
@@ -327,12 +313,6 @@ const PAGES = ["Monitor", "States", "About"];
 // ╔═══════════════════════════════════════════════════════════════════
 //  MONITOR PAGE — The Dashboard (live from D1, falls back to mock)
 // ╚═══════════════════════════════════════════════════════════════════
-const daysUntil = (dateStr) => {
-  if (!dateStr) return 999;
-  const diff = new Date(dateStr) - new Date();
-  return Math.max(0, Math.ceil(diff / 86400000));
-};
-
 const formatDate = (dateStr) => {
   if (!dateStr) return "";
   return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -347,8 +327,6 @@ const MonitorPage = () => {
   // Live data state
   const [briefing, setBriefing] = useState(null);
   const [briefingGeneratedAt, setBriefingGeneratedAt] = useState(null);
-  const [deadlines, setDeadlines] = useState(null);
-  const [house, setHouse] = useState(null);
   const [cscFeed, setCscFeed] = useState(null);
   const [cases, setCases] = useState(null);
   const [bills, setBills] = useState(null);
@@ -361,12 +339,6 @@ const MonitorPage = () => {
         setBriefing(JSON.parse(d.content));
         if (d.generated_at) setBriefingGeneratedAt(d.generated_at);
       }
-    }).catch(() => {});
-    fetch("/api/deadlines").then(r => r.ok ? r.json() : null).then(d => {
-      if (d?.length) setDeadlines(d);
-    }).catch(() => {});
-    fetch("/api/house").then(r => r.ok ? r.json() : null).then(d => {
-      if (d?.phase) setHouse(d);
     }).catch(() => {});
     fetch("/api/csc").then(r => r.ok ? r.json() : null).then(d => {
       if (d) setCscFeed(d);
@@ -384,20 +356,6 @@ const MonitorPage = () => {
       if (d) setHeadlines(d);
     }).catch(() => {});
   }, []);
-
-  // Normalize API deadlines or use mock
-  const dlSource = deadlines ? deadlines.map(d => ({
-    date: formatDate(d.date), days: daysUntil(d.date), cat: d.category, text: d.text, sev: d.severity,
-  })) : MOCK.deadlines;
-
-  // Normalize API house or use mock
-  const h = house || MOCK.house;
-  const houseData = house ? {
-    phase: h.phase, hearing: formatDate(h.hearing_date),
-    cap: h.rev_share_cap, capAdj: formatDate(h.cap_adjustment_date),
-    damages: h.back_damages_total, distributed: h.back_damages_distributed,
-    optedIn: h.opted_in, cscActions: "—",
-  } : MOCK.house;
 
   // Normalize API CSC or use mock
   const cscSource = cscFeed ? cscFeed.map(c => ({
@@ -640,46 +598,6 @@ const MonitorPage = () => {
       <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 10, position: "sticky", top: 56 }}>
         <XListEmbed />
         <PodcastsSection />
-
-        {/* ── Reference Cards ── */}
-        <Panel title="Deadlines" accent={T.red}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-            {dlSource.slice(0, 4).map((d, i) => (
-              <div key={i} style={{ display: "flex", gap: 6, padding: "4px 0", borderBottom: i < 3 ? `1px solid ${T.borderLight}` : "none", alignItems: "flex-start" }}>
-                <div style={{
-                  fontFamily: T.mono, fontSize: 16, fontWeight: 700, lineHeight: 1, minWidth: 28, textAlign: "right",
-                  color: d.sev === "critical" && d.days <= 7 ? T.red : d.days <= 14 ? T.amber : T.text,
-                }}>
-                  {d.days}<span style={{ fontSize: 10, fontWeight: 500 }}>d</span>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: T.sans, fontSize: 12, color: T.text, lineHeight: 1.3 }}>{d.text}</div>
-                  <Mono style={{ fontSize: 9, color: T.textDim }}>{d.date}</Mono>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Panel>
-
-        <Panel title="House v. NCAA" accent={T.green}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
-            <Badge color={T.amber} small>{houseData.phase}</Badge>
-            <Mono style={{ fontSize: 9, color: T.textDim }}>Hearing: {houseData.hearing}</Mono>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
-            {[
-              ["REV-SHARE CAP", houseData.cap],
-              ["BACK DAMAGES", houseData.damages],
-              ["OPTED IN", houseData.optedIn],
-              ["CSC ACTIONS", houseData.cscActions],
-            ].map(([l, v], i) => (
-              <div key={i} style={{ padding: "4px 6px", background: T.surfaceAlt, borderRadius: 3 }}>
-                <Mono style={{ fontSize: 8, fontWeight: 700, letterSpacing: ".8px", color: T.textDim }}>{l}</Mono>
-                <div style={{ fontFamily: T.mono, fontSize: 14, fontWeight: 700, color: T.text, lineHeight: 1.2 }}>{v}</div>
-              </div>
-            ))}
-          </div>
-        </Panel>
       </div>
     </div>
   );
