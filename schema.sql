@@ -29,6 +29,7 @@ CREATE TABLE cases (
   filed_date TEXT,
   last_filing_date TEXT,
   filing_count INTEGER DEFAULT 0,
+  last_action TEXT,
   next_action TEXT,
   next_action_date TEXT,
   description TEXT,

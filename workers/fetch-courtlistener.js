@@ -1,9 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════
-//  CourtListener Fetcher — Unauthenticated Public API
+//  CourtListener Fetcher — Free API (token required)
 //  Self-governing cooldown:
 //    6 AM–5 PM ET:  every 2 hours
 //    5–10 PM ET:    every 4 hours
 //    10 PM–6 AM ET: skip
+//  Requires: wrangler secret put COURTLISTENER_TOKEN
+//    (free — sign up at courtlistener.com, token in profile)
 //  For each tracked case with a numeric source_id (CL docket ID),
 //  fetches latest docket entries and updates D1. Setting updated_at
 //  on change flags the case for the next AI pipeline run.
@@ -21,9 +23,12 @@ function getCooldown() {
   return null;
 }
 
-async function clFetch(path) {
+async function clFetch(path, token) {
   const resp = await fetch(`${CL_BASE}${path}`, {
-    headers: { 'User-Agent': 'NILMonitor/1.0' },
+    headers: {
+      'User-Agent': 'NILMonitor/1.0',
+      'Authorization': `Token ${token}`,
+    },
   });
   if (!resp.ok) throw new Error(`CourtListener ${path}: ${resp.status}`);
   return resp.json();
@@ -36,6 +41,12 @@ function stripHtml(str) {
 }
 
 export async function fetchCourtListener(env) {
+  const token = env.COURTLISTENER_TOKEN;
+  if (!token) {
+    console.log('CourtListener: no COURTLISTENER_TOKEN configured, skipping (free at courtlistener.com)');
+    return;
+  }
+
   const cooldown = getCooldown();
   if (cooldown === null) {
     console.log('CourtListener: outside active hours, skipping');
@@ -48,7 +59,7 @@ export async function fetchCourtListener(env) {
 
   console.log('Fetching CourtListener updates...');
 
-  // Get all tracked cases with a numeric source_id (CourtListener docket ID)
+  // Get all tracked cases
   const { results: cases } = await env.DB.prepare(
     'SELECT id, source_id, name, last_filing_date, filing_count FROM cases'
   ).all();
@@ -65,7 +76,8 @@ export async function fetchCourtListener(env) {
     try {
       // Fetch latest docket entries (most recent 5)
       const entries = await clFetch(
-        `/docket-entries/?docket=${c.source_id}&order_by=-date_filed&page_size=5`
+        `/docket-entries/?docket=${c.source_id}&order_by=-date_filed&page_size=5`,
+        token
       );
 
       const filingCount = entries.count || 0;
