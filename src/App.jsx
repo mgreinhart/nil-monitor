@@ -52,8 +52,6 @@ const CSC_SUB_COLORS = {
   "Guidance": "#3b82f6", "Investigation": "#ef4444", "Enforcement": "#dc2626",
   "Personnel": "#8b5cf6", "Rule Clarification": "#f59e0b",
 };
-const SEV = { critical: T.red, important: T.amber, routine: T.textDim };
-
 // ── Mock Data ──────────────────────────────────────────────────────
 const MOCK = {
   kpis: [
@@ -87,11 +85,6 @@ const MOCK = {
     { name: "Tennessee v. NCAA", court: "E.D. Tenn.", judge: "Atchley", status: "Discovery", cat: "Governance", lastFiling: "Feb 10", next: "Apr 20 — Discovery deadline", filings: 89, desc: "State challenging NCAA governance authority. Antitrust claims in enforcement actions." },
     { name: "Duke v. Harper", court: "M.D.N.C.", judge: "Schroeder", status: "MTD Pending", cat: "Contract Enforcement", lastFiling: "Feb 8", next: "Mar 28 — MTD hearing", filings: 12, desc: "Duke seeking enforcement of multi-year revenue-sharing contract after player announced transfer intent." },
   ],
-  states: {
-    enacted: ["CA","FL","TX","AL","GA","CO","IL","OH","PA","MI","NC","NJ","NY","VA","TN","KY","MS","LA","SC","NE","NM","AZ","OR","MT","WV","MD","CT","AR","OK","KS","MO","IN","UT","NV"],
-    active: ["TX","FL","WI","MN","IA","WA","MA","NH","HI"],
-    introduced: ["VT","ME","RI","SD","WY","ND","ID"],
-  },
   headlines: [
     { src: "ESPN", time: "1h", cat: "Revenue Sharing", title: "Inside the $20.5M math problem: How ADs are allocating revenue-sharing dollars" },
     { src: "Sportico", time: "2h", cat: "CSC / Enforcement", title: "CSC's first enforcement rubric signals tough line on collective-funded deals" },
@@ -122,11 +115,6 @@ const NIL_PODCASTS = [
   { name: "The Portal", id: "2Wr77m5yVBgANHkDS7NxI5" },
   { name: "College Football Enquirer", id: "0x30kB7Vc7T7WAK7ExXzRi" },
 ];
-// ── State Grid Cartogram ───────────────────────────────────────────
-const SG = {
-  ME:[0,10],WI:[1,5],VT:[1,9],NH:[1,10],WA:[2,0],ID:[2,1],MT:[2,2],ND:[2,3],MN:[2,4],IL:[2,5],MI:[2,6],NY:[2,7],MA:[2,9],CT:[2,10],OR:[3,0],NV:[3,1],WY:[3,2],SD:[3,3],IA:[3,4],IN:[3,5],OH:[3,6],PA:[3,7],NJ:[3,8],RI:[3,10],CA:[4,0],UT:[4,1],CO:[4,2],NE:[4,3],MO:[4,4],KY:[4,5],WV:[4,6],VA:[4,7],MD:[4,8],DE:[4,9],AZ:[5,1],NM:[5,2],KS:[5,3],AR:[5,4],TN:[5,5],NC:[5,6],SC:[5,7],DC:[5,8],AK:[6,0],HI:[6,1],OK:[6,2],LA:[6,3],MS:[6,4],AL:[6,5],GA:[6,6],TX:[7,2],FL:[7,5]
-};
-
 // ── Shared Components ──────────────────────────────────────────────
 const Mono = ({ children, style }) => <span style={{ fontFamily: T.mono, ...style }}>{children}</span>;
 
@@ -136,10 +124,6 @@ const Badge = ({ children, color = T.accent, small }) => (
     padding: small ? "1px 5px" : "2px 6px", borderRadius: 3,
     background: color + "15", color, whiteSpace: "nowrap", textTransform: "uppercase", lineHeight: 1.4,
   }}>{children}</span>
-);
-
-const SevDot = ({ s }) => (
-  <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: SEV[s] || T.textDim, flexShrink: 0, marginTop: 6 }} />
 );
 
 const Pill = ({ active, children, onClick }) => (
@@ -167,38 +151,6 @@ const Panel = ({ title, accent, children, style, right, noPad, className }) => (
 );
 
 const Divider = () => <div style={{ height: 1, background: T.border, margin: 0 }} />;
-
-// ── State Map Component ────────────────────────────────────────────
-const StateMap = ({ selected, onSelect, compact }) => {
-  const gc = (st) => {
-    if (MOCK.states.active.includes(st)) return T.accent;
-    if (MOCK.states.enacted.includes(st)) return T.green;
-    if (MOCK.states.introduced.includes(st)) return T.amber;
-    return T.borderLight;
-  };
-  const sz = compact ? 18 : 24;
-  return (
-    <div style={{ position: "relative", display: "grid", gridTemplateColumns: `repeat(11, ${sz}px)`, gridAutoRows: sz, gap: compact ? 1 : 2 }}>
-      {Object.entries(SG).map(([st, [r, c]]) => {
-        const color = gc(st);
-        const isSel = st === selected;
-        const isDark = color !== T.borderLight;
-        return (
-          <div key={st} onClick={() => onSelect?.(isSel ? null : st)} style={{
-            gridRow: r + 1, gridColumn: c + 1,
-            background: isSel ? T.navy : color,
-            borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", fontFamily: T.mono,
-            fontSize: compact ? 7 : 9, fontWeight: 700, letterSpacing: ".3px",
-            color: isSel ? "#fff" : isDark ? "#fff" : T.textDim,
-            transition: "all .12s",
-            outline: isSel ? `2px solid ${T.accent}` : "none", outlineOffset: 1,
-          }}>{st}</div>
-        );
-      })}
-    </div>
-  );
-};
 
 // ── Bar Chart ──────────────────────────────────────────────────────
 const MiniBarChart = ({ data }) => {
@@ -303,7 +255,7 @@ const KalshiSection = () => (
 );
 
 // ── Pages ──────────────────────────────────────────────────────────
-const PAGES = ["Monitor", "States", "About"];
+const PAGES = ["Monitor", "About"];
 
 // ╔═══════════════════════════════════════════════════════════════════
 //  MONITOR PAGE — The Dashboard (live from D1, falls back to mock)
@@ -314,7 +266,6 @@ const formatDate = (dateStr) => {
 };
 
 const MonitorPage = () => {
-  const [selState, setSelState] = useState(null);
   const [expCase, setExpCase] = useState(null);
   const [headlineCatFilt, setHeadlineCatFilt] = useState("All");
   const [hlPage, setHlPage] = useState(0);
@@ -324,7 +275,6 @@ const MonitorPage = () => {
   const [briefing, setBriefing] = useState(null);
   const [briefingGeneratedAt, setBriefingGeneratedAt] = useState(null);
   const [cases, setCases] = useState(null);
-  const [bills, setBills] = useState(null);
   const [headlineCounts, setHeadlineCounts] = useState(null);
   const [headlines, setHeadlines] = useState(null);
 
@@ -337,9 +287,6 @@ const MonitorPage = () => {
     }).catch(() => {});
     fetch("/api/cases").then(r => r.ok ? r.json() : null).then(d => {
       if (d?.length) setCases(d);
-    }).catch(() => {});
-    fetch("/api/bills?state=Federal").then(r => r.ok ? r.json() : null).then(d => {
-      if (d) setBills(d);
     }).catch(() => {});
     fetch("/api/headline-counts").then(r => r.ok ? r.json() : null).then(d => {
       if (d) setHeadlineCounts(d);
@@ -488,56 +435,6 @@ const MonitorPage = () => {
             BELOW THE FOLD — Detail Sections
            ══════════════════════════════════════════════════════════ */}
 
-        {/* ── Legislation Map ── */}
-        <Panel title="Regulatory Landscape" accent="#6366f1" noPad>
-          <div style={{ display: "flex" }}>
-            <div style={{ flex: "0 0 50%", padding: "10px 12px", borderRight: `1px solid ${T.border}` }}>
-              <div style={{ display: "flex", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-                {[["Enacted", T.green], ["Active", T.accent], ["Introduced", T.amber], ["None", T.borderLight]].map(([l, c]) => (
-                  <div key={l} style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: c }} />
-                    <Mono style={{ fontSize: 10, color: T.textDim }}>{l}</Mono>
-                  </div>
-                ))}
-              </div>
-              <StateMap selected={selState} onSelect={setSelState} compact />
-            </div>
-            <div style={{ flex: 1, padding: "10px 12px", minWidth: 0 }}>
-              {selState ? (
-                <>
-                  <div style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 700, color: T.text, marginBottom: 4 }}>{selState}</div>
-                  <Badge color={MOCK.states.active.includes(selState) ? T.accent : MOCK.states.enacted.includes(selState) ? T.green : T.amber}>
-                    {MOCK.states.active.includes(selState) ? "Active Bills" : MOCK.states.enacted.includes(selState) ? "Enacted" : "Introduced"}
-                  </Badge>
-                  <div style={{ marginTop: 8, fontFamily: T.sans, fontSize: 13, color: T.textDim, lineHeight: 1.5 }}>
-                    Full state detail with current law provisions, active bills, sponsors, and hearing dates loads from LegiScan API data. View the States page for full detail.
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Mono style={{ fontSize: 12, fontWeight: 700, color: T.textMid, marginBottom: 6, display: "block" }}>Federal Bills</Mono>
-                  {bills && bills.length > 0 ? bills.slice(0, 5).map((b, i) => (
-                    <div key={i} style={{ padding: "6px 0", borderBottom: `1px solid ${T.borderLight}` }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                        <Mono style={{ fontSize: 12, fontWeight: 700, color: T.accent }}>{b.bill_number}</Mono>
-                        <Badge color={b.status === "Introduced" ? T.textDim : T.amber} small>{b.status}</Badge>
-                      </div>
-                      <div style={{ fontFamily: T.sans, fontSize: 13, color: T.text, lineHeight: 1.3 }}>{b.title}</div>
-                      <Mono style={{ fontSize: 10, color: T.textDim }}>
-                        {b.sponsor ? `${b.sponsor} · ` : ""}{b.last_action_date || ""}
-                      </Mono>
-                    </div>
-                  )) : (
-                    <Mono style={{ fontSize: 12, color: T.textDim, padding: "12px 0", display: "block" }}>
-                      {bills === null ? "Loading..." : "No federal bills tracked yet"}
-                    </Mono>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </Panel>
-
         {/* ── Litigation ── */}
         <Panel title="The Courtroom" accent={T.accent}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -593,77 +490,6 @@ const MonitorPage = () => {
         <XListEmbed />
         <PodcastsSection />
       </div>
-    </div>
-  );
-};
-
-// ╔═══════════════════════════════════════════════════════════════════
-//  STATES PAGE
-// ╚═══════════════════════════════════════════════════════════════════
-const StatesPage = () => {
-  const [sel, setSel] = useState(null);
-  const [mode, setMode] = useState("map");
-  return (
-    <div>
-      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-        <Pill active={mode === "map"} onClick={() => setMode("map")}>Map View</Pill>
-        <Pill active={mode === "table"} onClick={() => setMode("table")}>Table View</Pill>
-      </div>
-      {mode === "map" ? (
-        <Panel title="State NIL Legislation" accent="#6366f1" noPad>
-          <div style={{ display: "flex" }}>
-            <div style={{ flex: "0 0 55%", padding: 14, borderRight: `1px solid ${T.border}` }}>
-              <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-                {[["Enacted", T.green], ["Active", T.accent], ["Introduced", T.amber], ["None", T.borderLight]].map(([l, c]) => (
-                  <div key={l} style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: 2, background: c }} />
-                    <Mono style={{ fontSize: 11, color: T.textDim }}>{l}</Mono>
-                  </div>
-                ))}
-              </div>
-              <StateMap selected={sel} onSelect={setSel} />
-            </div>
-            <div style={{ flex: 1, padding: 14 }}>
-              {sel ? (
-                <>
-                  <div style={{ fontFamily: T.sans, fontSize: 22, fontWeight: 700, color: T.text, marginBottom: 6 }}>{sel}</div>
-                  <Badge color={MOCK.states.active.includes(sel) ? T.accent : MOCK.states.enacted.includes(sel) ? T.green : T.amber}>
-                    {MOCK.states.active.includes(sel) ? "Active Bills" : MOCK.states.enacted.includes(sel) ? "Enacted" : "Introduced"}
-                  </Badge>
-                  <div style={{ marginTop: 10, fontFamily: T.sans, fontSize: 14, color: T.textDim, lineHeight: 1.6 }}>
-                    Full state detail — current law, active bills, bill text, sponsors, hearings — loads from LegiScan API.
-                  </div>
-                </>
-              ) : (
-                <div style={{ fontFamily: T.sans, fontSize: 14, color: T.textDim }}>Select a state to view NIL legislation details.</div>
-              )}
-            </div>
-          </div>
-        </Panel>
-      ) : (
-        <Panel title="States with Active Legislation" accent="#6366f1">
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: `2px solid ${T.border}` }}>
-                {["State", "Bills", "Status", "Last Action", "Date"].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "5px 8px", fontFamily: T.mono, fontSize: 11, fontWeight: 700, color: T.textDim, textTransform: "uppercase", letterSpacing: ".5px" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {MOCK.states.active.map((st, i) => (
-                <tr key={st} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
-                  <td style={{ padding: "7px 8px", fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.text }}>{st}</td>
-                  <td style={{ padding: "7px 8px", fontFamily: T.mono, fontSize: 13 }}>{1 + (i % 3)}</td>
-                  <td style={{ padding: "7px 8px" }}><Badge color={T.amber} small>In Committee</Badge></td>
-                  <td style={{ padding: "7px 8px", fontFamily: T.sans, fontSize: 13, color: T.textDim }}>Referred to subcommittee</td>
-                  <td style={{ padding: "7px 8px", fontFamily: T.mono, fontSize: 12, color: T.textDim }}>Feb {10 + i}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Panel>
-      )}
     </div>
   );
 };
@@ -827,7 +653,6 @@ export default function NILMonitor() {
       {/* ── Page Content ── */}
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "12px 14px 40px" }}>
         {page === "Monitor" && <MonitorPage />}
-        {page === "States" && <StatesPage />}
         {page === "About" && <AboutPage />}
       </main>
     </div>
