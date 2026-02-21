@@ -285,7 +285,17 @@ const MonitorPage = () => {
   const [headlineCounts, setHeadlineCounts] = useState(null);
   const [headlines, setHeadlines] = useState(null);
 
+  const fetchHeadlines = () => {
+    fetch("/api/headlines?limit=100").then(r => r.ok ? r.json() : null).then(d => {
+      if (d) setHeadlines(d);
+    }).catch(() => {});
+    fetch("/api/headline-counts").then(r => r.ok ? r.json() : null).then(d => {
+      if (d) setHeadlineCounts(d);
+    }).catch(() => {});
+  };
+
   useEffect(() => {
+    // Initial load — all data
     fetch("/api/briefing").then(r => r.ok ? r.json() : null).then(d => {
       if (d?.content) {
         setBriefing(JSON.parse(d.content));
@@ -295,12 +305,11 @@ const MonitorPage = () => {
     fetch("/api/cases").then(r => r.ok ? r.json() : null).then(d => {
       if (d?.length) setCases(d);
     }).catch(() => {});
-    fetch("/api/headline-counts").then(r => r.ok ? r.json() : null).then(d => {
-      if (d) setHeadlineCounts(d);
-    }).catch(() => {});
-    fetch("/api/headlines?limit=100").then(r => r.ok ? r.json() : null).then(d => {
-      if (d) setHeadlines(d);
-    }).catch(() => {});
+    fetchHeadlines();
+
+    // Auto-refresh headlines every 2 minutes
+    const id = setInterval(fetchHeadlines, 120000);
+    return () => clearInterval(id);
   }, []);
 
   // Normalize API cases or use mock
