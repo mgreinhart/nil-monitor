@@ -46,6 +46,7 @@ CREATE TABLE headlines (
   title TEXT,
   url TEXT UNIQUE,
   category TEXT,                -- AI-assigned: Legislation, Litigation, NCAA Governance, etc.
+  sub_category TEXT,            -- AI-assigned: CSC sub-tag (Guidance, Investigation, etc.)
   severity TEXT,                -- AI-assigned: routine, important, critical
   published_at TEXT,
   fetched_at TEXT DEFAULT (datetime('now'))

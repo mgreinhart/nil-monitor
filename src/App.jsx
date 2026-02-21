@@ -48,7 +48,7 @@ const CAT_COLORS = {
   "Governance": "#6366f1",
 };
 
-const CSC_TAG_COLORS = {
+const CSC_SUB_COLORS = {
   "Guidance": "#3b82f6", "Investigation": "#ef4444", "Enforcement": "#dc2626",
   "Personnel": "#8b5cf6", "Rule Clarification": "#f59e0b",
 };
@@ -79,13 +79,6 @@ const MOCK = {
     { time: "1d", cat: "CSC / Enforcement", src: "Sportico", text: "CSC confirms active investigation into LSU collective reporting practices", sev: "critical" },
     { time: "2d", cat: "Realignment", src: "FOS", text: "Pac-12 expansion negotiations with Mountain West stalled over media rights", sev: "routine" },
     { time: "2d", cat: "Litigation", src: "CourtListener", text: "Carter v. NCAA — NLRB certifies Dartmouth basketball union election", sev: "important" },
-  ],
-  cscFeed: [
-    { time: "2h", tag: "Guidance", text: "Published 'valid business purpose' evaluation criteria memo" },
-    { time: "1d", tag: "Investigation", text: "Confirmed active investigation into LSU collective reporting" },
-    { time: "5d", tag: "Enforcement", text: "First formal warning to Group of 5 program for late NIL disclosures" },
-    { time: "1w", tag: "Personnel", text: "Katie Medearis appointed Deputy Director of Enforcement" },
-    { time: "2w", tag: "Rule Clarification", text: "5-business-day reporting window applies to verbal agreements" },
   ],
   cases: [
     { name: "House v. NCAA", court: "N.D. Cal.", judge: "Wilken", status: "Final Approval Pending", cat: "Settlement Implementation", lastFiling: "Feb 19", next: "Mar 12 — Fairness hearing", filings: 847, desc: "Class action settlement: revenue sharing ($20.5M cap), back-damages ($2.78B), College Sports Commission as enforcement body." },
@@ -330,7 +323,6 @@ const MonitorPage = () => {
   // Live data state
   const [briefing, setBriefing] = useState(null);
   const [briefingGeneratedAt, setBriefingGeneratedAt] = useState(null);
-  const [cscFeed, setCscFeed] = useState(null);
   const [cases, setCases] = useState(null);
   const [bills, setBills] = useState(null);
   const [headlineCounts, setHeadlineCounts] = useState(null);
@@ -342,9 +334,6 @@ const MonitorPage = () => {
         setBriefing(JSON.parse(d.content));
         if (d.generated_at) setBriefingGeneratedAt(d.generated_at);
       }
-    }).catch(() => {});
-    fetch("/api/csc").then(r => r.ok ? r.json() : null).then(d => {
-      if (d) setCscFeed(d);
     }).catch(() => {});
     fetch("/api/cases").then(r => r.ok ? r.json() : null).then(d => {
       if (d?.length) setCases(d);
@@ -359,11 +348,6 @@ const MonitorPage = () => {
       if (d) setHeadlines(d);
     }).catch(() => {});
   }, []);
-
-  // Normalize API CSC or use mock
-  const cscSource = cscFeed ? cscFeed.map(c => ({
-    time: timeAgo(c.activity_time), tag: c.tag, text: c.text,
-  })) : MOCK.cscFeed;
 
   // Normalize API cases or use mock
   const caseSource = cases ? cases.map(c => ({
@@ -393,7 +377,7 @@ const MonitorPage = () => {
   // Headlines: normalize for feed (include severity when AI-tagged)
   const hlSource = headlines ? headlines.map(h => ({
     src: h.source, title: h.title, cat: h.category, sev: h.severity,
-    time: timeAgo(h.published_at), url: h.url,
+    subCat: h.sub_category, time: timeAgo(h.published_at), url: h.url,
   })) : MOCK.headlines;
   const hlFiltered = hlSource.filter(h => headlineCatFilt === "All" || h.cat === headlineCatFilt);
   const HL_PER_PAGE = 8;
@@ -484,6 +468,7 @@ const MonitorPage = () => {
             >
               <Mono style={{ flex: "0 0 70px", fontSize: 9, fontWeight: 600, color: T.textDim, textTransform: "uppercase", letterSpacing: ".3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.src}</Mono>
               {h.cat && <Badge color={CAT_COLORS[h.cat]} small>{h.cat}</Badge>}
+              {h.subCat && <Badge color={CSC_SUB_COLORS[h.subCat] || T.textDim} small>{h.subCat}</Badge>}
               <div style={{ flex: 1, fontFamily: T.sans, fontSize: 12, color: T.text, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
               <Mono style={{ flex: "0 0 auto", fontSize: 9, color: T.textDim }}>{h.time}</Mono>
             </a>
@@ -502,24 +487,6 @@ const MonitorPage = () => {
         {/* ══════════════════════════════════════════════════════════
             BELOW THE FOLD — Detail Sections
            ══════════════════════════════════════════════════════════ */}
-
-        {/* ── CSC Activity Feed ── */}
-        <Panel title="CSC Activity Feed" accent={T.red}>
-          {cscSource.length === 0 ? (
-            <Mono style={{ fontSize: 12, color: T.textDim, padding: "12px 0" }}>
-              No CSC activity detected today
-            </Mono>
-          ) : cscSource.map((item, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: i < cscSource.length - 1 ? `1px solid ${T.borderLight}` : "none", alignItems: "flex-start" }}>
-              <Mono style={{ fontSize: 11, color: T.textDim, minWidth: 26, flexShrink: 0 }}>{item.time}</Mono>
-              <Badge color={CSC_TAG_COLORS[item.tag]} small>{item.tag}</Badge>
-              <span style={{ fontFamily: T.sans, fontSize: 14, color: T.text, flex: 1, lineHeight: 1.35 }}>{item.text}</span>
-            </div>
-          ))}
-          <div style={{ marginTop: 8, padding: "6px 8px", background: T.surfaceAlt, borderRadius: 3, fontFamily: T.sans, fontSize: 12, color: T.textDim }}>
-            <strong style={{ color: T.textMid }}>Key Personnel:</strong> Bryan Seeley (Exec. Dir.) · Katie Medearis (Deputy Dir., Enforcement)
-          </div>
-        </Panel>
 
         {/* ── Legislation Map ── */}
         <Panel title="Regulatory Landscape" accent="#6366f1" noPad>

@@ -102,13 +102,20 @@ Severity:
 - important: Significant development that affects strategy (new bills, major filings, policy changes)
 - routine: Noteworthy but no immediate action needed (commentary, minor updates, general news)
 
+Sub-category (ONLY for "CSC / Enforcement" headlines — omit for all other categories):
+- Guidance: Official guidance documents, memos, criteria, FAQs
+- Investigation: Active investigations, inquiries, audit notices
+- Enforcement: Formal warnings, penalties, sanctions, enforcement actions
+- Personnel: Staff hires, appointments, organizational changes
+- Rule Clarification: Interpretive guidance on existing rules, Q&A responses
+
 Return ONLY valid JSON, no other text.`;
 
   const headlineList = untagged.map(h =>
     `ID ${h.id}: [${h.source}] ${h.title}`
   ).join('\n');
 
-  const userContent = `Tag each headline with a category and severity.
+  const userContent = `Tag each headline with a category and severity. For headlines categorized as "CSC / Enforcement", also include a sub_category field.
 
 HEADLINES:
 ${headlineList}
@@ -116,7 +123,7 @@ ${headlineList}
 Return JSON:
 {
   "tags": [
-    { "id": ${untagged[0].id}, "category": "Category Name", "severity": "routine|important|critical" }
+    { "id": ${untagged[0].id}, "category": "Category Name", "severity": "routine|important|critical", "sub_category": "only for CSC / Enforcement, omit otherwise" }
   ]
 }`;
 
@@ -127,8 +134,8 @@ Return JSON:
     for (const tag of tags) {
       try {
         await db.prepare(
-          'UPDATE headlines SET category = ?, severity = ? WHERE id = ?'
-        ).bind(tag.category, tag.severity, tag.id).run();
+          'UPDATE headlines SET category = ?, severity = ?, sub_category = ? WHERE id = ?'
+        ).bind(tag.category, tag.severity, tag.sub_category || null, tag.id).run();
         count++;
       } catch (err) {
         // Skip errors
