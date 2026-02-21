@@ -137,7 +137,12 @@ const MOCK = {
 
 // ── Embed Configuration ────────────────────────────────────────────
 const X_LIST_URL = "https://x.com/i/lists/2024695913898528822";
-const SPOTIFY_SHOW_ID = "1Pju07vvKyIqEZOGDNaMMD"; // Highway to NIL
+const NIL_PODCASTS = [
+  { name: "Highway to NIL", id: "1Pju07vvKyIqEZOGDNaMMD" },
+  { name: "Business of College Sports", id: "2nzS5WfKHRlrAuP0uQfuK1" },
+  { name: "Airtime", id: "57luADo86jWEeU3DOy2YsR" },
+  { name: "The Official NIL Podcast", id: "2cGm7gusvANSdBtJ64E5Ul" },
+];
 // ── State Grid Cartogram ───────────────────────────────────────────
 const SG = {
   ME:[0,10],WI:[1,5],VT:[1,9],NH:[1,10],WA:[2,0],ID:[2,1],MT:[2,2],ND:[2,3],MN:[2,4],IL:[2,5],MI:[2,6],NY:[2,7],MA:[2,9],CT:[2,10],OR:[3,0],NV:[3,1],WY:[3,2],SD:[3,3],IA:[3,4],IN:[3,5],OH:[3,6],PA:[3,7],NJ:[3,8],RI:[3,10],CA:[4,0],UT:[4,1],CO:[4,2],NE:[4,3],MO:[4,4],KY:[4,5],WV:[4,6],VA:[4,7],MD:[4,8],DE:[4,9],AZ:[5,1],NM:[5,2],KS:[5,3],AR:[5,4],TN:[5,5],NC:[5,6],SC:[5,7],DC:[5,8],AK:[6,0],HI:[6,1],OK:[6,2],LA:[6,3],MS:[6,4],AL:[6,5],GA:[6,6],TX:[7,2],FL:[7,5]
@@ -273,17 +278,20 @@ const XListEmbed = () => (
   </Panel>
 );
 
-const SpotifyEmbed = () => (
-  <Panel title="Highway to NIL" accent={T.purple} noPad>
-    <iframe
-      src={`https://open.spotify.com/embed/show/${SPOTIFY_SHOW_ID}?theme=0`}
-      width="100%"
-      height="152"
-      frameBorder="0"
-      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-      loading="lazy"
-      style={{ borderRadius: 0, display: "block" }}
-    />
+const PodcastsSection = () => (
+  <Panel title="Podcasts" accent={T.purple} noPad>
+    {NIL_PODCASTS.map((p, i) => (
+      <iframe
+        key={p.id}
+        src={`https://open.spotify.com/embed/show/${p.id}?utm_source=generator&theme=0`}
+        width="100%"
+        height="152"
+        frameBorder="0"
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy"
+        style={{ display: "block", borderBottom: i < NIL_PODCASTS.length - 1 ? `1px solid ${T.borderLight}` : "none" }}
+      />
+    ))}
   </Panel>
 );
 
@@ -631,7 +639,7 @@ const MonitorPage = () => {
       {/* ══ SIDEBAR ══ */}
       <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 10, position: "sticky", top: 56 }}>
         <XListEmbed />
-        <SpotifyEmbed />
+        <PodcastsSection />
 
         {/* ── Reference Cards ── */}
         <Panel title="Deadlines" accent={T.red}>
