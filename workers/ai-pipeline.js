@@ -334,7 +334,7 @@ Return ONLY valid JSON, no other text.`;
 
   let userContent;
   if (isAfternoon) {
-    // Fetch this morning's briefing
+    // Fetch this morning's briefing — carry-over is fine for impactful items
     const morningBriefing = await db.prepare(
       "SELECT content FROM briefings WHERE date = date('now') ORDER BY id DESC LIMIT 1"
     ).first();
@@ -348,7 +348,7 @@ Return ONLY valid JSON, no other text.`;
 This morning's briefing covered:
 ${morningText || 'No morning briefing was generated.'}
 
-Produce a fresh 4-section briefing for the afternoon. Lead with any NEW developments since this morning. Fill remaining sections with the most important morning items that still matter or upcoming deadlines/actions. Never pad with old news or repeat the morning wording verbatim.
+Lead with any NEW developments since this morning. It's fine to carry over important morning items if they're still the biggest stories of the day — just rewrite them with fresh wording or updated context, don't copy verbatim. Fill any remaining sections with upcoming deadlines or developments to watch.
 
 TODAY'S HEADLINES (tagged by severity):
 ${headlineList || 'No new headlines today.'}
@@ -366,10 +366,23 @@ Return JSON (EXACTLY 4 sections, each headline is ONE sentence, each body is MAX
   ]
 }`;
   } else {
+    // Fetch yesterday's last briefing so the morning avoids repeating it
+    const yesterdayBriefing = await db.prepare(
+      "SELECT content FROM briefings WHERE date = date('now', '-1 day') ORDER BY id DESC LIMIT 1"
+    ).first();
+    const yesterdayContent = yesterdayBriefing?.content || '[]';
+    const yesterdayText = JSON.parse(yesterdayContent)
+      .map(s => `• ${s.headline}`)
+      .join('\n');
+
+    const yesterdayBlock = yesterdayText
+      ? `\nYESTERDAY'S BRIEFING (do NOT repeat these unless there is a major new development to add):\n${yesterdayText}\n`
+      : '';
+
     userContent = `Generate the morning briefing for ${today}. You must return EXACTLY 4 sections.
 
-Lead with today's most important developments. If today's headlines don't fill all 4 sections, use remaining sections for upcoming deadlines or developments to watch — never drag in yesterday's news.
-
+Lead with today's most important developments. If today's headlines don't fill all 4 sections, use remaining sections for upcoming deadlines or developments to watch this week.
+${yesterdayBlock}
 TODAY'S HEADLINES (tagged by severity):
 ${headlineList || 'No headlines yet today.'}
 
