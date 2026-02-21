@@ -30,10 +30,20 @@ function extractText(xml, tag) {
 
   // Handle plain text: <tag>content</tag>
   const plain = xml.match(new RegExp(`<${tag}[^>]*>([^<]*)</${tag}>`));
-  if (plain) return plain[1].trim();
+  if (plain) return decodeXMLEntities(plain[1].trim());
 
   // Handle self-closing or empty
   return '';
+}
+
+/** Decode the 5 standard XML entities. */
+function decodeXMLEntities(text) {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
 }
 
 function extractAttr(xml, tag, attr) {
