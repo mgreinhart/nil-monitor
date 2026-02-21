@@ -325,6 +325,7 @@ const MonitorPage = () => {
   const [expCase, setExpCase] = useState(null);
   const [headlineCatFilt, setHeadlineCatFilt] = useState("All");
   const [hlPage, setHlPage] = useState(0);
+  const [briefingOpen, setBriefingOpen] = useState(new Set());
 
   // Live data state
   const [briefing, setBriefing] = useState(null);
@@ -406,73 +407,100 @@ const MonitorPage = () => {
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
 
         {/* ══════════════════════════════════════════════════════════
-            ABOVE THE FOLD — Briefing (left) + Headlines (right)
+            ABOVE THE FOLD — Briefing + Headlines (stacked)
            ══════════════════════════════════════════════════════════ */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          {/* ── Briefing ── */}
-          <Panel title={(() => {
-            if (!briefingGeneratedAt) return "Briefing";
-            const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
-            const d = new Date(n);
-            const month = d.toLocaleString("en-US", { month: "short", timeZone: "America/New_York" }).toUpperCase();
-            const day = d.toLocaleString("en-US", { day: "numeric", timeZone: "America/New_York" });
-            const hour = parseInt(d.toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" }));
-            const period = hour < 12 ? "AM" : "PM";
-            return `${month} ${day} · ${period} BRIEFING`;
-          })()} accent={T.red}>
-            {briefingSource.map((s, i) => (
-              <div key={i} style={{ fontFamily: T.sans, fontSize: 14, lineHeight: 1.55, color: T.text, marginBottom: 8 }}>
-                <strong style={{ color: T.text }}>{s.headline}</strong>{" "}
-                <span style={{ color: T.textMid }}>{s.body}</span>
-              </div>
-            ))}
-            <Mono style={{ display: "block", marginTop: 4, fontSize: 10, color: T.textDim }}>
-              {briefingGeneratedAt ? `Generated ${(() => {
-                const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
-                return new Date(n).toLocaleString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short" }) + " · " + new Date(n).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-              })()}` : briefing ? "AI-generated" : "Sample briefing"}
-            </Mono>
-          </Panel>
 
-          {/* ── Latest Headlines ── */}
-          <Panel title="Latest Headlines" accent={T.accent} noPad>
-            <div style={{ display: "flex", gap: 3, flexWrap: "wrap", padding: "8px 10px", borderBottom: `1px solid ${T.borderLight}` }}>
-              {["All", ...Object.keys(CAT_COLORS).slice(0, 7)].map(c => (
-                <Pill key={c} active={headlineCatFilt === c} onClick={() => { setHeadlineCatFilt(c); setHlPage(0); }}>{c}</Pill>
-              ))}
-            </div>
-            <div style={{ minHeight: 320 }}>
-              {hlPageItems.length === 0 ? (
-                <div style={{ padding: "20px 10px", textAlign: "center" }}>
-                  <Mono style={{ fontSize: 12, color: T.textDim }}>
-                    {headlines ? "No headlines in this category" : "Headlines populate when data pipeline runs"}
-                  </Mono>
+        {/* ── Briefing (accordion) ── */}
+        <Panel title={(() => {
+          if (!briefingGeneratedAt) return "Briefing";
+          const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
+          const d = new Date(n);
+          const month = d.toLocaleString("en-US", { month: "short", timeZone: "America/New_York" }).toUpperCase();
+          const day = d.toLocaleString("en-US", { day: "numeric", timeZone: "America/New_York" });
+          const hour = parseInt(d.toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" }));
+          const period = hour < 12 ? "AM" : "PM";
+          return `${month} ${day} · ${period} BRIEFING`;
+        })()} accent={T.red} right={briefingSource.length > 0 && (
+          <button
+            onClick={() => setBriefingOpen(prev =>
+              prev.size === briefingSource.length ? new Set() : new Set(briefingSource.map((_, i) => i))
+            )}
+            style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 600, color: T.accent, background: "transparent", border: "none", cursor: "pointer", letterSpacing: ".3px" }}
+          >{briefingOpen.size === briefingSource.length ? "Collapse all" : "Expand all"}</button>
+        )}>
+          {briefingSource.map((s, i) => {
+            const isOpen = briefingOpen.has(i);
+            return (
+              <div key={i} style={{ borderBottom: i < briefingSource.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
+                <div
+                  onClick={() => setBriefingOpen(prev => {
+                    const next = new Set(prev);
+                    next.has(i) ? next.delete(i) : next.add(i);
+                    return next;
+                  })}
+                  style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "8px 0", cursor: "pointer" }}
+                >
+                  <Mono style={{ fontSize: 11, color: T.textDim, lineHeight: 1.6, flexShrink: 0, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none" }}>▸</Mono>
+                  <strong style={{ fontFamily: T.sans, fontSize: 14, lineHeight: 1.5, color: T.text }}>{s.headline}</strong>
                 </div>
-              ) : hlPageItems.map((h, i) => (
-                <a key={i} href={h.url} target="_blank" rel="noopener noreferrer"
-                  style={{ display: "flex", gap: 8, padding: "6px 10px", borderBottom: `1px solid ${T.borderLight}`, alignItems: "center", textDecoration: "none" }}>
-                  {h.sev && <SevDot s={h.sev} />}
-                  <div style={{ flex: "0 0 50px" }}>
-                    <Mono style={{ fontSize: 11, fontWeight: 700, color: T.accent, display: "block" }}>{h.src}</Mono>
-                    <Mono style={{ fontSize: 10, color: T.textDim }}>{h.time}</Mono>
+                <div style={{
+                  maxHeight: isOpen ? 200 : 0, overflow: "hidden",
+                  transition: "max-height .2s ease, opacity .2s ease",
+                  opacity: isOpen ? 1 : 0,
+                }}>
+                  <div style={{ fontFamily: T.sans, fontSize: 13, lineHeight: 1.5, color: T.textMid, padding: "0 0 8px 19px" }}>
+                    {s.body}
                   </div>
-                  {h.cat && <Badge color={CAT_COLORS[h.cat]} small>{h.cat}</Badge>}
-                  <div style={{ flex: 1, fontFamily: T.sans, fontSize: 13, color: T.text, lineHeight: 1.3 }}>{h.title}</div>
-                  <Mono style={{ fontSize: 11, color: T.accent, flexShrink: 0 }}>→</Mono>
-                </a>
-              ))}
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", borderTop: `1px solid ${T.borderLight}` }}>
-              {hlPageClamped > 0 ? (
-                <button onClick={() => setHlPage(hlPageClamped - 1)} style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: T.accent, background: "transparent", border: "none", cursor: "pointer" }}>← Previous</button>
-              ) : <span />}
-              <Mono style={{ fontSize: 10, color: T.textDim }}>{hlPageClamped + 1} of {hlTotalPages}</Mono>
-              {hlPageClamped < hlTotalPages - 1 ? (
-                <button onClick={() => setHlPage(hlPageClamped + 1)} style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: T.accent, background: "transparent", border: "none", cursor: "pointer" }}>Next →</button>
-              ) : <span />}
-            </div>
-          </Panel>
-        </div>
+                </div>
+              </div>
+            );
+          })}
+          <Mono style={{ display: "block", marginTop: 4, fontSize: 10, color: T.textDim }}>
+            {briefingGeneratedAt ? `Generated ${(() => {
+              const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
+              return new Date(n).toLocaleString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short" }) + " · " + new Date(n).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+            })()}` : briefing ? "AI-generated" : "Sample briefing"}
+          </Mono>
+        </Panel>
+
+        {/* ── Latest Headlines ── */}
+        <Panel title="Latest Headlines" accent={T.accent} noPad>
+          <div style={{ display: "flex", gap: 3, flexWrap: "wrap", padding: "8px 10px", borderBottom: `1px solid ${T.borderLight}` }}>
+            {["All", ...Object.keys(CAT_COLORS).slice(0, 7)].map(c => (
+              <Pill key={c} active={headlineCatFilt === c} onClick={() => { setHeadlineCatFilt(c); setHlPage(0); }}>{c}</Pill>
+            ))}
+          </div>
+          <div style={{ minHeight: 320 }}>
+            {hlPageItems.length === 0 ? (
+              <div style={{ padding: "20px 10px", textAlign: "center" }}>
+                <Mono style={{ fontSize: 12, color: T.textDim }}>
+                  {headlines ? "No headlines in this category" : "Headlines populate when data pipeline runs"}
+                </Mono>
+              </div>
+            ) : hlPageItems.map((h, i) => (
+              <a key={i} href={h.url} target="_blank" rel="noopener noreferrer"
+                style={{ display: "flex", gap: 8, padding: "6px 10px", borderBottom: `1px solid ${T.borderLight}`, alignItems: "center", textDecoration: "none" }}>
+                {h.sev && <SevDot s={h.sev} />}
+                <div style={{ flex: "0 0 50px" }}>
+                  <Mono style={{ fontSize: 11, fontWeight: 700, color: T.accent, display: "block" }}>{h.src}</Mono>
+                  <Mono style={{ fontSize: 10, color: T.textDim }}>{h.time}</Mono>
+                </div>
+                {h.cat && <Badge color={CAT_COLORS[h.cat]} small>{h.cat}</Badge>}
+                <div style={{ flex: 1, fontFamily: T.sans, fontSize: 13, color: T.text, lineHeight: 1.3 }}>{h.title}</div>
+                <Mono style={{ fontSize: 11, color: T.accent, flexShrink: 0 }}>→</Mono>
+              </a>
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", borderTop: `1px solid ${T.borderLight}` }}>
+            {hlPageClamped > 0 ? (
+              <button onClick={() => setHlPage(hlPageClamped - 1)} style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: T.accent, background: "transparent", border: "none", cursor: "pointer" }}>← Previous</button>
+            ) : <span />}
+            <Mono style={{ fontSize: 10, color: T.textDim }}>{hlPageClamped + 1} of {hlTotalPages}</Mono>
+            {hlPageClamped < hlTotalPages - 1 ? (
+              <button onClick={() => setHlPage(hlPageClamped + 1)} style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: T.accent, background: "transparent", border: "none", cursor: "pointer" }}>Next →</button>
+            ) : <span />}
+          </div>
+        </Panel>
 
         {/* ══════════════════════════════════════════════════════════
             BELOW THE FOLD — Detail Sections
