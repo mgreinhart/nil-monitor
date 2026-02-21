@@ -130,6 +130,7 @@ export async function handleApi(request, env) {
       const { fetchNewsData } = await import('./fetch-newsdata.js');
       const { fetchCongress } = await import('./fetch-congress.js');
       const { fetchCourtListener } = await import('./fetch-courtlistener.js');
+      const { fetchNILRevolution } = await import('./fetch-nil-revolution.js');
       const { runAIPipeline } = await import('./ai-pipeline.js');
 
       const phase = url.searchParams.get('phase') || 'all';
@@ -143,6 +144,7 @@ export async function handleApi(request, env) {
             fetchNewsData(env).then(() => log.push('newsdata: ok')).catch(e => log.push(`newsdata: ${e.message}`)),
             fetchCongress(env).then(() => log.push('congress: ok')).catch(e => log.push(`congress: ${e.message}`)),
             fetchCourtListener(env).then(() => log.push('courtlistener: ok')).catch(e => log.push(`courtlistener: ${e.message}`)),
+            fetchNILRevolution(env).then(() => log.push('nil-revolution: ok')).catch(e => log.push(`nil-revolution: ${e.message}`)),
           ]);
         }
         if (phase === 'ai' || phase === 'all') {

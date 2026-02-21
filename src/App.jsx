@@ -125,12 +125,6 @@ const MOCK = {
     { src: "NIL Revolution", time: "2d", cat: "CSC / Enforcement", title: "Breaking down the CSC's investigation powers and due process requirements" },
     { src: "ESPN", time: "2d", cat: "Litigation", title: "NLRB certifies Dartmouth union election — what it means for college sports" },
   ],
-  nilRevPosts: [
-    { title: "CSC Valid Business Purpose Guidance: What Schools Need to Know", date: "Feb 19" },
-    { title: "Contract Enforcement After Williams v. Washington", date: "Feb 15" },
-    { title: "CSC Investigation Powers: Due Process and Rights", date: "Feb 10" },
-    { title: "SPARTA and FTC: Federal Agent Regulation", date: "Feb 4" },
-  ],
   xFeed: [
     { handle: "@PeteThamel", time: "12m", text: "BREAKING: CSC guidance memo is most specific enforcement document yet. Key: 'market rate comparables required for all deals >$50K.' Compliance offices scrambling." },
     { handle: "@RossDellenger", time: "28m", text: "Source: 4 Power 4 schools still haven't signed CSC participation agreement. March 1 deadline. Commissioners applying pressure." },
@@ -144,8 +138,6 @@ const MOCK = {
 // ── Embed Configuration ────────────────────────────────────────────
 const X_LIST_URL = "https://x.com/i/lists/2024695913898528822";
 const SPOTIFY_SHOW_ID = "1Pju07vvKyIqEZOGDNaMMD"; // Highway to NIL
-const RSS2JSON = "https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.nilrevolution.com%2Ffeed%2F";
-
 // ── State Grid Cartogram ───────────────────────────────────────────
 const SG = {
   ME:[0,10],WI:[1,5],VT:[1,9],NH:[1,10],WA:[2,0],ID:[2,1],MT:[2,2],ND:[2,3],MN:[2,4],IL:[2,5],MI:[2,6],NY:[2,7],MA:[2,9],CT:[2,10],OR:[3,0],NV:[3,1],WY:[3,2],SD:[3,3],IA:[3,4],IN:[3,5],OH:[3,6],PA:[3,7],NJ:[3,8],RI:[3,10],CA:[4,0],UT:[4,1],CO:[4,2],NE:[4,3],MO:[4,4],KY:[4,5],WV:[4,6],VA:[4,7],MD:[4,8],DE:[4,9],AZ:[5,1],NM:[5,2],KS:[5,3],AR:[5,4],TN:[5,5],NC:[5,6],SC:[5,7],DC:[5,8],AK:[6,0],HI:[6,1],OK:[6,2],LA:[6,3],MS:[6,4],AL:[6,5],GA:[6,6],TX:[7,2],FL:[7,5]
@@ -280,42 +272,6 @@ const XListEmbed = () => (
     </Mono>
   </Panel>
 );
-
-const NILRevFeed = () => {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch(RSS2JSON)
-      .then(r => r.json())
-      .then(data => {
-        if (data.status === "ok") setPosts(data.items.slice(0, 3));
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  return (
-    <Panel title="NIL Revolution" accent={T.purple}>
-      {loading ? (
-        <Mono style={{ fontSize: 11, color: T.textDim }}>Loading feed...</Mono>
-      ) : posts.length === 0 ? (
-        <Mono style={{ fontSize: 11, color: T.textDim }}>Unable to load feed</Mono>
-      ) : (
-        posts.map((p, i) => (
-          <div key={i} style={{ padding: "5px 0", borderBottom: i < posts.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
-            <a href={p.link} target="_blank" rel="noopener noreferrer" style={{ fontFamily: T.sans, fontSize: 13, color: T.accent, lineHeight: 1.3, textDecoration: "none", display: "block" }}>
-              {p.title}
-            </a>
-            <Mono style={{ fontSize: 10, color: T.textDim }}>
-              Troutman Pepper · {new Date(p.pubDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-            </Mono>
-          </div>
-        ))
-      )}
-    </Panel>
-  );
-};
 
 const SpotifyEmbed = () => (
   <Panel title="Highway to NIL" accent={T.purple} noPad>
@@ -675,7 +631,6 @@ const MonitorPage = () => {
       {/* ══ SIDEBAR ══ */}
       <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 10, position: "sticky", top: 56 }}>
         <XListEmbed />
-        <NILRevFeed />
         <SpotifyEmbed />
 
         {/* ── Reference Cards ── */}
