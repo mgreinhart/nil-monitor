@@ -37,9 +37,9 @@ export async function fetchNCAANews(env) {
 
         try {
           await env.DB.prepare(
-            `INSERT OR IGNORE INTO headlines (source, title, url, category, published_at)
-             VALUES (?, ?, ?, ?, ?)`
-          ).bind(source, item.title, item.link, 'NCAA Governance', published).run();
+            `INSERT OR IGNORE INTO headlines (source, title, url, published_at)
+             VALUES (?, ?, ?, ?)`
+          ).bind(source, item.title, item.link, published).run();
           totalInserted++;
         } catch (e) {
           // Skip duplicates

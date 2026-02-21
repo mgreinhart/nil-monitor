@@ -38,27 +38,16 @@ CREATE TABLE cases (
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
--- Headlines (from NewsData.io + Google News RSS)
+-- Headlines (from NewsData.io + Google News RSS, AI-tagged with category + severity)
 CREATE TABLE headlines (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   source TEXT,
   title TEXT,
   url TEXT UNIQUE,
-  category TEXT,
+  category TEXT,                -- AI-assigned: Legislation, Litigation, NCAA Governance, etc.
+  severity TEXT,                -- AI-assigned: routine, important, critical
   published_at TEXT,
   fetched_at TEXT DEFAULT (datetime('now'))
-);
-
--- Events Timeline (AI-extracted from all sources)
-CREATE TABLE events (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  source TEXT,
-  source_url TEXT,
-  category TEXT,
-  text TEXT,
-  severity TEXT,
-  event_time TEXT,
-  created_at TEXT DEFAULT (datetime('now'))
 );
 
 -- Deadlines (AI-extracted + pre-loaded)
@@ -104,7 +93,7 @@ CREATE TABLE IF NOT EXISTS pipeline_runs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   ran_at TEXT DEFAULT (datetime('now')),
   items_processed INTEGER DEFAULT 0,
-  events_created INTEGER DEFAULT 0,
+  headlines_tagged INTEGER DEFAULT 0,
   deadlines_created INTEGER DEFAULT 0,
   csc_items_created INTEGER DEFAULT 0,
   briefing_generated INTEGER DEFAULT 0

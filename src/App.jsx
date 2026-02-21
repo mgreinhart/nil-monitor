@@ -387,7 +387,6 @@ const MonitorPage = () => {
   const [briefingGeneratedAt, setBriefingGeneratedAt] = useState(null);
   const [deadlines, setDeadlines] = useState(null);
   const [house, setHouse] = useState(null);
-  const [events, setEvents] = useState(null);
   const [cscFeed, setCscFeed] = useState(null);
   const [cases, setCases] = useState(null);
   const [bills, setBills] = useState(null);
@@ -406,9 +405,6 @@ const MonitorPage = () => {
     }).catch(() => {});
     fetch("/api/house").then(r => r.ok ? r.json() : null).then(d => {
       if (d?.phase) setHouse(d);
-    }).catch(() => {});
-    fetch("/api/events?limit=20").then(r => r.ok ? r.json() : null).then(d => {
-      if (d) setEvents(d);
     }).catch(() => {});
     fetch("/api/csc").then(r => r.ok ? r.json() : null).then(d => {
       if (d) setCscFeed(d);
@@ -441,14 +437,17 @@ const MonitorPage = () => {
     optedIn: h.opted_in, cscActions: "—",
   } : MOCK.house;
 
-  // Normalize API events or use mock
-  const evSource = events ? events.map(e => ({
-    time: timeAgo(e.event_time), rawTime: e.event_time, cat: e.category, src: e.source, text: e.text, sev: e.severity,
-  })) : MOCK.timeline;
+  // Tagged headlines for Events Timeline (only those with category + severity)
+  const taggedHeadlines = headlines
+    ? headlines.filter(h => h.category && h.severity).map(h => ({
+        time: timeAgo(h.published_at), rawTime: h.published_at, cat: h.category,
+        src: h.source, text: h.title, sev: h.severity, url: h.url,
+      }))
+    : MOCK.timeline;
 
   // Time filter: compute cutoff in ms
   const timeFilterMs = { "24h": 86400000, "3d": 3*86400000, "7d": 7*86400000, "30d": 30*86400000, "All": Infinity };
-  const filtered = evSource.filter(e => {
+  const filtered = taggedHeadlines.filter(e => {
     if (catFilt !== "All" && e.cat !== catFilt) return false;
     if (!e.rawTime || timeFilt === "All") return true;
     const normalized = e.rawTime.includes("T") ? e.rawTime : e.rawTime.replace(" ", "T") + "Z";
@@ -583,16 +582,17 @@ const MonitorPage = () => {
           </div>
           {filtered.length === 0 ? (
             <Mono style={{ fontSize: 12, color: T.textDim, padding: "12px 0" }}>
-              {events ? "No events in this category" : "Events timeline populates when AI pipeline runs"}
+              {headlines ? "No headlines in this time range / category" : "Timeline populates when AI pipeline tags headlines"}
             </Mono>
           ) : filtered.map((e, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: `1px solid ${T.borderLight}`, alignItems: "flex-start" }}>
+            <a key={i} href={e.url} target="_blank" rel="noopener noreferrer"
+              style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: `1px solid ${T.borderLight}`, alignItems: "flex-start", textDecoration: "none" }}>
               <SevDot s={e.sev} />
               <Mono style={{ fontSize: 11, color: T.textDim, minWidth: 28, flexShrink: 0 }}>{e.time}</Mono>
               <Badge color={CAT_COLORS[e.cat]} small>{e.cat}</Badge>
               <span style={{ fontFamily: T.sans, fontSize: 14, color: T.text, flex: 1, lineHeight: 1.35 }}>{e.text}</span>
               <Mono style={{ fontSize: 10, color: T.textDim, flexShrink: 0 }}>{e.src}</Mono>
-            </div>
+            </a>
           ))}
         </Panel>
 

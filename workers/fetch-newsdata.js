@@ -7,11 +7,11 @@
 const BASE_URL = 'https://newsdata.io/api/1/latest';
 
 const QUERIES = [
-  { q: 'NIL college sports', category: 'Revenue Sharing' },
-  { q: 'NCAA governance OR NCAA rules', category: 'NCAA Governance' },
-  { q: 'college sports commission OR CSC enforcement', category: 'CSC / Enforcement' },
-  { q: 'college athlete lawsuit OR NCAA litigation', category: 'Litigation' },
-  { q: 'NIL legislation OR college athlete bill', category: 'Legislation' },
+  'NIL college sports',
+  'NCAA governance OR NCAA rules',
+  'college sports commission OR CSC enforcement',
+  'college athlete lawsuit OR NCAA litigation',
+  'NIL legislation OR college athlete bill',
 ];
 
 function buildUrl(apiKey, query) {
@@ -38,7 +38,7 @@ export async function fetchNewsData(env) {
   console.log('Fetching NewsData.io headlines...');
   let totalInserted = 0;
 
-  for (const { q, category } of QUERIES) {
+  for (const q of QUERIES) {
     try {
       const resp = await fetch(buildUrl(apiKey, q));
       if (!resp.ok) {
@@ -63,9 +63,9 @@ export async function fetchNewsData(env) {
 
         try {
           await env.DB.prepare(
-            `INSERT OR IGNORE INTO headlines (source, title, url, category, published_at)
-             VALUES (?, ?, ?, ?, ?)`
-          ).bind(source, article.title, article.link, category, published).run();
+            `INSERT OR IGNORE INTO headlines (source, title, url, published_at)
+             VALUES (?, ?, ?, ?)`
+          ).bind(source, article.title, article.link, published).run();
           totalInserted++;
         } catch (e) {
           // UNIQUE constraint on url — skip duplicates silently

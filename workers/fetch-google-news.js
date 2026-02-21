@@ -6,13 +6,13 @@
 import { parseRSS } from './rss-parser.js';
 
 const QUERIES = [
-  { q: '"NIL" college sports', category: 'Revenue Sharing' },
-  { q: 'NCAA governance rules', category: 'NCAA Governance' },
-  { q: '"college sports commission" OR "CSC enforcement"', category: 'CSC / Enforcement' },
-  { q: '"transfer portal" college', category: 'Roster / Portal' },
-  { q: 'college athlete lawsuit OR "NCAA litigation"', category: 'Litigation' },
-  { q: 'NIL legislation OR "college athlete" bill', category: 'Legislation' },
-  { q: 'conference realignment college sports', category: 'Realignment' },
+  '"NIL" college sports',
+  'NCAA governance rules',
+  '"college sports commission" OR "CSC enforcement"',
+  '"transfer portal" college',
+  'college athlete lawsuit OR "NCAA litigation"',
+  'NIL legislation OR "college athlete" bill',
+  'conference realignment college sports',
 ];
 
 function buildGoogleNewsUrl(query) {
@@ -23,7 +23,7 @@ export async function fetchGoogleNews(env) {
   console.log('Fetching Google News RSS...');
   let totalInserted = 0;
 
-  for (const { q, category } of QUERIES) {
+  for (const q of QUERIES) {
     try {
       const resp = await fetch(buildGoogleNewsUrl(q));
       if (!resp.ok) {
@@ -42,9 +42,9 @@ export async function fetchGoogleNews(env) {
 
         try {
           await env.DB.prepare(
-            `INSERT OR IGNORE INTO headlines (source, title, url, category, published_at)
-             VALUES (?, ?, ?, ?, ?)`
-          ).bind(source, item.title, item.link, category, published).run();
+            `INSERT OR IGNORE INTO headlines (source, title, url, published_at)
+             VALUES (?, ?, ?, ?)`
+          ).bind(source, item.title, item.link, published).run();
           totalInserted++;
         } catch (e) {
           // UNIQUE constraint on url — skip duplicates silently

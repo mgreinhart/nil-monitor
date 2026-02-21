@@ -75,84 +75,70 @@ async function getUnsummarizedCases(db) {
   return results;
 }
 
-// ── Task 1: Event Extraction ─────────────────────────────────────
-async function extractEvents(env, headlines, caseUpdates, db) {
-  if (headlines.length === 0 && caseUpdates.length === 0) return [];
-
-  // Fetch existing events to avoid duplicates
-  const { results: existingEvents } = await db.prepare(
-    'SELECT text, source_url FROM events ORDER BY event_time DESC LIMIT 50'
+// ── Task 1: Tag Untagged Headlines ───────────────────────────────
+async function tagHeadlines(env, db) {
+  // Find headlines without category or severity
+  const { results: untagged } = await db.prepare(
+    'SELECT id, source, title, url FROM headlines WHERE category IS NULL OR severity IS NULL ORDER BY published_at DESC LIMIT 50'
   ).all();
 
-  const system = `You are extracting discrete events for a college athletics regulatory dashboard called NIL Monitor.
-An event is something that HAPPENED — a bill moved, a filing was made, a rule changed, guidance was issued, an enforcement action was taken, a settlement progressed. Not general commentary or opinion articles.
+  if (untagged.length === 0) return 0;
 
-Focus on these categories:
-- Legislation: New bills, committee hearings, votes, enactments
-- Litigation: Court filings, rulings, settlements, hearings
-- NCAA Governance: Rule changes, board decisions, policy updates
-- CSC / Enforcement: College Sports Commission actions, investigations, guidance
-- Revenue Sharing: Revenue-sharing implementation, cap changes, distribution updates
-- Roster / Portal: Transfer portal activity, roster management rules
-- Realignment: Conference changes, media rights, membership
+  const system = `You are tagging headlines for a college athletics regulatory dashboard called NIL Monitor.
 
-For severity:
+For each headline, assign:
+
+Category (exactly one):
+- Legislation: Bills, hearings, votes, enacted laws, regulatory proposals
+- Litigation: Court filings, rulings, settlements, lawsuits, legal actions
+- NCAA Governance: Rule changes, board decisions, policy updates, NCAA organizational moves
+- CSC / Enforcement: College Sports Commission actions, investigations, guidance, enforcement
+- Revenue Sharing: Revenue-sharing deals, cap changes, distribution, NIL collective activity
+- Roster / Portal: Transfer portal activity, roster management, eligibility
+- Realignment: Conference changes, media rights, membership moves
+
+Severity:
 - critical: Requires immediate institutional action or attention (new enforcement, court orders, imminent deadlines)
 - important: Significant development that affects strategy (new bills, major filings, policy changes)
 - routine: Noteworthy but no immediate action needed (commentary, minor updates, general news)
 
-CRITICAL DEDUPLICATION RULE: If multiple headlines cover the SAME real-world event, create only ONE event entry. Also, you will be given a list of already-tracked events — do NOT create duplicates of those. Only return genuinely new events.
-
 Return ONLY valid JSON, no other text.`;
 
-  // Limit to 40 headlines to keep prompt size manageable
-  const topHeadlines = headlines.slice(0, 40);
-  const headlineList = topHeadlines.map(h =>
-    `[${h.category}] ${h.source}: ${h.title}\n  Published: ${h.published_at}\n  URL: ${h.url}`
+  const headlineList = untagged.map(h =>
+    `ID ${h.id}: [${h.source}] ${h.title}`
   ).join('\n');
 
-  const caseList = caseUpdates.map(c =>
-    `[Case Update] ${c.name} (${c.court}) — Status: ${c.status}, Last filing: ${c.last_filing_date}, Filings: ${c.filing_count}, Updated: ${c.updated_at}`
-  ).join('\n');
+  const userContent = `Tag each headline with a category and severity.
 
-  const existingList = existingEvents.length > 0
-    ? existingEvents.map(e => `- ${e.text}`).join('\n')
-    : 'None';
-
-  const userContent = `Extract discrete events from these items. Only include items where something concrete happened — skip opinion pieces and general commentary.
-
-Each item has a "Published" or "Updated" timestamp — return that timestamp as "event_time" so events are ordered by when they actually happened, not when we processed them.
-
-HEADLINES (${topHeadlines.length}):
-${headlineList || 'None'}
-
-CASE UPDATES (${caseUpdates.length}):
-${caseList || 'None'}
-
-ALREADY TRACKED EVENTS (do NOT create duplicates of these):
-${existingList}
+HEADLINES:
+${headlineList}
 
 Return JSON:
 {
-  "events": [
-    {
-      "text": "One-sentence description of what happened",
-      "category": "Legislation|Litigation|NCAA Governance|CSC / Enforcement|Revenue Sharing|Roster / Portal|Realignment",
-      "severity": "routine|important|critical",
-      "source": "Source name",
-      "source_url": "URL",
-      "event_time": "ISO 8601 timestamp from the source item's Published/Updated field"
-    }
+  "tags": [
+    { "id": ${untagged[0].id}, "category": "Category Name", "severity": "routine|important|critical" }
   ]
 }`;
 
   try {
     const result = await callClaude(env, system, userContent);
-    return result.events || [];
+    const tags = result.tags || [];
+    let count = 0;
+    for (const tag of tags) {
+      try {
+        await db.prepare(
+          'UPDATE headlines SET category = ?, severity = ? WHERE id = ?'
+        ).bind(tag.category, tag.severity, tag.id).run();
+        count++;
+      } catch (err) {
+        // Skip errors
+      }
+    }
+    return count;
   } catch (err) {
-    console.error('Event extraction failed:', err.message);
-    PIPELINE_ERRORS.push(`events: ${err.message}`);
-    return [];
+    console.error('Headline tagging failed:', err.message);
+    PIPELINE_ERRORS.push(`tagging: ${err.message}`);
+    return 0;
   }
 }
 
@@ -303,20 +289,16 @@ If none of these are actually NEW CSC activity (not already tracked), return: {"
 
 // ── Task 4: Daily Briefing ───────────────────────────────────────
 async function generateBriefing(env, db, isAfternoon = false) {
-  // Get today's events + recent headlines for context
-  const { results: events } = await db.prepare(
-    "SELECT * FROM events WHERE date(event_time) >= date('now', '-1 day') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, event_time DESC LIMIT 20"
-  ).all();
-
+  // Get recent tagged headlines (with category/severity) for context
   const { results: headlines } = await db.prepare(
-    "SELECT * FROM headlines WHERE date(published_at) >= date('now', '-1 day') ORDER BY published_at DESC LIMIT 30"
+    "SELECT * FROM headlines WHERE category IS NOT NULL AND date(published_at) >= date('now', '-1 day') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 30"
   ).all();
 
   const { results: deadlines } = await db.prepare(
     "SELECT * FROM deadlines WHERE date >= date('now') AND date <= date('now', '+14 days') ORDER BY date ASC"
   ).all();
 
-  if (events.length === 0 && headlines.length === 0) {
+  if (headlines.length === 0) {
     return null; // Nothing to brief on
   }
 
@@ -332,12 +314,8 @@ STRICT FORMAT RULES:
 
 Return ONLY valid JSON, no other text.`;
 
-  const eventList = events.map(e =>
-    `[${e.severity?.toUpperCase()}] [${e.category}] ${e.text} (via ${e.source})`
-  ).join('\n');
-
-  const headlineList = headlines.slice(0, 20).map(h =>
-    `[${h.category}] ${h.source}: ${h.title}`
+  const headlineList = headlines.map(h =>
+    `[${h.severity?.toUpperCase()}] [${h.category}] ${h.source}: ${h.title}`
   ).join('\n');
 
   const deadlineList = deadlines.map(d =>
@@ -365,10 +343,7 @@ ${morningText || 'No morning briefing was generated.'}
 Now summarize only NEW developments since then. Do not repeat anything already covered in the morning briefing.
 If nothing new has happened, return: {"sections": []}
 
-EVENTS (last 24 hours):
-${eventList || 'No new events.'}
-
-RECENT HEADLINES:
+RECENT HEADLINES (tagged by severity):
 ${headlineList || 'No recent headlines.'}
 
 UPCOMING DEADLINES (next 14 days):
@@ -386,10 +361,7 @@ Return JSON (max 4 sections, each headline is ONE sentence, each body is MAX 2 s
   } else {
     userContent = `Summarize the most significant developments in the last 24 hours for ${today}.
 
-EVENTS (last 24 hours):
-${eventList || 'No new events extracted yet.'}
-
-RECENT HEADLINES:
+RECENT HEADLINES (tagged by severity):
 ${headlineList || 'No recent headlines.'}
 
 UPCOMING DEADLINES (next 14 days):
@@ -417,37 +389,6 @@ Return JSON (max 4 sections, each headline is ONE sentence, each body is MAX 2 s
 }
 
 // ── Write results to D1 ─────────────────────────────────────────
-async function writeEvents(db, events) {
-  let count = 0;
-  for (const e of events) {
-    try {
-      // Skip if an event with the same source_url already exists
-      if (e.source_url) {
-        const existing = await db.prepare(
-          'SELECT id FROM events WHERE source_url = ?'
-        ).bind(e.source_url).first();
-        if (existing) continue;
-      }
-      // Also skip if very similar text already exists (first 40 chars match)
-      const textPrefix = e.text.substring(0, 40);
-      const similar = await db.prepare(
-        "SELECT id FROM events WHERE text LIKE ? || '%'"
-      ).bind(textPrefix).first();
-      if (similar) continue;
-
-      const eventTime = e.event_time || new Date().toISOString();
-      await db.prepare(
-        `INSERT INTO events (source, source_url, category, text, severity, event_time)
-         VALUES (?, ?, ?, ?, ?, ?)`
-      ).bind(e.source, e.source_url || null, e.category, e.text, e.severity, eventTime).run();
-      count++;
-    } catch (err) {
-      // Skip errors
-    }
-  }
-  return count;
-}
-
 async function writeDeadlines(db, deadlines) {
   let count = 0;
   for (const d of deadlines) {
@@ -537,10 +478,9 @@ export async function runAIPipeline(env, options = {}) {
 
   console.log(`AI Pipeline: ${headlines.length} new headlines, ${caseUpdates.length} case updates`);
 
-  // 3. Extract events
-  const events = await extractEvents(env, headlines, caseUpdates, db);
-  const eventsWritten = await writeEvents(db, events);
-  console.log(`AI Pipeline: extracted ${events.length} events, wrote ${eventsWritten}`);
+  // 3. Tag untagged headlines with category + severity
+  const headlinesTagged = await tagHeadlines(env, db);
+  console.log(`AI Pipeline: tagged ${headlinesTagged} headlines`);
 
   // 4. Extract deadlines
   const deadlines = await extractDeadlines(env, headlines, caseUpdates, db);
@@ -594,7 +534,7 @@ export async function runAIPipeline(env, options = {}) {
   await db.prepare(
     `INSERT INTO pipeline_runs (items_processed, events_created, deadlines_created, csc_items_created, briefing_generated)
      VALUES (?, ?, ?, ?, ?)`
-  ).bind(totalNew, eventsWritten, deadlinesWritten, cscWritten, briefingWritten).run();
+  ).bind(totalNew, headlinesTagged, deadlinesWritten, cscWritten, briefingWritten).run();
 
   console.log('AI Pipeline: complete');
   if (PIPELINE_ERRORS.length > 0) {

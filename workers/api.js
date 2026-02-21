@@ -82,20 +82,6 @@ export async function handleApi(request, env) {
       return json(row || { date: null, content: null });
     }
 
-    // Events (Phase 3 — empty for now)
-    if (path === '/api/events') {
-      const limit = parseInt(url.searchParams.get('limit') || '50');
-      const cat = url.searchParams.get('cat');
-      let query = 'SELECT * FROM events ORDER BY event_time DESC LIMIT ?';
-      const params = [limit];
-      if (cat && cat !== 'All') {
-        query = 'SELECT * FROM events WHERE category = ? ORDER BY event_time DESC LIMIT ?';
-        params.unshift(cat);
-      }
-      const { results } = await env.DB.prepare(query).bind(...params).all();
-      return json(results);
-    }
-
     // Bills
     if (path === '/api/bills') {
       const state = url.searchParams.get('state');
