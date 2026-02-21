@@ -297,8 +297,9 @@ If none of these are actually NEW CSC activity (not already tracked), return: {"
 // ── Task 4: Daily Briefing ───────────────────────────────────────
 async function generateBriefing(env, db, isAfternoon = false) {
   // Get recent tagged headlines (with category/severity) for context
+  // 2-day window ensures enough material for 4 briefing sections even on slow news days
   const { results: headlines } = await db.prepare(
-    "SELECT * FROM headlines WHERE category IS NOT NULL AND date(published_at) >= date('now', '-1 day') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 30"
+    "SELECT * FROM headlines WHERE category IS NOT NULL AND date(published_at) >= date('now', '-2 days') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 50"
   ).all();
 
   const { results: deadlines } = await db.prepare(
@@ -312,12 +313,12 @@ async function generateBriefing(env, db, isAfternoon = false) {
   const system = `You are a sharp deputy AD briefing your boss. Be direct — no throat-clearing, no filler.
 
 STRICT FORMAT RULES:
-- Maximum 4 sections. Fewer is better if the news warrants it.
+- Always produce EXACTLY 4 sections. No more, no fewer.
 - Each section: ONE bold opening sentence stating what happened + TWO sentences max of detail/context/action items.
 - Lead with the most important item. Group related developments.
 - Cite sources parenthetically (e.g., "per ESPN" or "(CourtListener)").
 - If something requires institutional action, say so explicitly.
-- Total output should be ~150-200 words. Half the length you'd normally write.
+- Total output should be ~200-300 words.
 
 Return ONLY valid JSON, no other text.`;
 
@@ -342,13 +343,15 @@ Return ONLY valid JSON, no other text.`;
       .map(s => `• ${s.headline} ${s.body}`)
       .join('\n');
 
-    userContent = `Generate the afternoon briefing for ${today}.
+    userContent = `Generate the afternoon update for ${today}. You must return EXACTLY 4 sections.
 
 Here is this morning's briefing:
 ${morningText || 'No morning briefing was generated.'}
 
-Now summarize only NEW developments since then. Do not repeat anything already covered in the morning briefing.
-If nothing new has happened, return: {"sections": []}
+Produce a complete 4-section briefing that combines the day's most important stories.
+- If there are new developments since this morning, lead with those and include the most important morning items that still matter.
+- If there are no new developments, keep the morning items but refresh/update their context with any new information.
+- Never return fewer than 4 sections.
 
 RECENT HEADLINES (tagged by severity):
 ${headlineList || 'No recent headlines.'}
@@ -356,7 +359,7 @@ ${headlineList || 'No recent headlines.'}
 UPCOMING DEADLINES (next 14 days):
 ${deadlineList || 'No imminent deadlines.'}
 
-Return JSON (max 4 sections, each headline is ONE sentence, each body is MAX 2 sentences):
+Return JSON (EXACTLY 4 sections, each headline is ONE sentence, each body is MAX 2 sentences):
 {
   "sections": [
     {
@@ -366,7 +369,7 @@ Return JSON (max 4 sections, each headline is ONE sentence, each body is MAX 2 s
   ]
 }`;
   } else {
-    userContent = `Summarize the most significant developments in the last 24 hours for ${today}.
+    userContent = `Summarize the most significant developments in the last 24 hours for ${today}. You must return EXACTLY 4 sections.
 
 RECENT HEADLINES (tagged by severity):
 ${headlineList || 'No recent headlines.'}
@@ -374,7 +377,7 @@ ${headlineList || 'No recent headlines.'}
 UPCOMING DEADLINES (next 14 days):
 ${deadlineList || 'No imminent deadlines.'}
 
-Return JSON (max 4 sections, each headline is ONE sentence, each body is MAX 2 sentences):
+Return JSON (EXACTLY 4 sections, each headline is ONE sentence, each body is MAX 2 sentences):
 {
   "sections": [
     {
@@ -503,17 +506,11 @@ export async function runAIPipeline(env, options = {}) {
   let briefingWritten = 0;
   if (includeBriefing) {
     const briefingSections = await generateBriefing(env, db, isAfternoon);
-    // If afternoon returns empty sections, keep the morning briefing
-    if (isAfternoon && (!briefingSections || briefingSections.length === 0)) {
-      // Nothing new — keep morning content but stamp the time so title shows PM
-      const today = new Date().toISOString().split('T')[0];
-      await db.prepare(
-        `UPDATE briefings SET generated_at = datetime('now') WHERE date = ?`
-      ).bind(today).run();
-      console.log('AI Pipeline: afternoon briefing empty, kept morning content, updated timestamp');
-    } else {
+    if (briefingSections && briefingSections.length > 0) {
       briefingWritten = await writeBriefing(db, briefingSections);
-      console.log(`AI Pipeline: briefing ${briefingWritten ? 'generated' : 'skipped'}`);
+      console.log(`AI Pipeline: briefing generated (${briefingSections.length} sections)`);
+    } else {
+      console.log('AI Pipeline: briefing generation returned no sections');
     }
   } else {
     console.log('AI Pipeline: briefing skipped (non-briefing run)');
