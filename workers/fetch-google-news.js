@@ -13,6 +13,7 @@ import { getETHour, shouldRun, recordRun, categorizeByKeyword } from './fetcher-
 const FETCHER = 'google-news';
 
 const QUERIES = [
+  // ── Original broad queries ──
   '"NIL" college sports',
   'NCAA governance rules',
   '"college sports commission" OR "CSC enforcement"',
@@ -20,6 +21,68 @@ const QUERIES = [
   'college athlete lawsuit OR "NCAA litigation"',
   'NIL legislation OR "college athlete" bill',
   'conference realignment college sports',
+
+  // ── Legislation ──
+  '"NIL legislation"',
+  '"NIL bill" state',
+  '"college athlete bill"',
+  '"student athlete compensation" law',
+  '"NIL agent registration"',
+  '"name image likeness" law',
+  '"SPARTA Act" college',
+
+  // ── Litigation ──
+  '"House v NCAA"',
+  '"NCAA lawsuit"',
+  '"NCAA antitrust"',
+  '"college athlete lawsuit"',
+  '"NIL contract dispute"',
+  '"NLRB college athlete"',
+  '"college athlete union"',
+  '"Dartmouth union" NCAA',
+
+  // ── NCAA Governance ──
+  '"NCAA governance"',
+  '"NCAA rule change"',
+  '"NCAA restructuring"',
+  '"NCAA enforcement"',
+  '"NCAA waiver"',
+  '"D-I council" NCAA',
+
+  // ── CSC / Enforcement ──
+  '"College Sports Commission"',
+  '"NIL compliance"',
+  '"NIL enforcement"',
+  '"NIL investigation"',
+  '"NIL disclosure requirements"',
+
+  // ── Revenue Sharing ──
+  '"revenue sharing" college sports',
+  '"college athlete salary cap"',
+  '"college athlete pay"',
+  '"NIL collective"',
+  '"NIL deal"',
+  '"Title IX" "revenue sharing"',
+  '"college athlete compensation"',
+
+  // ── Roster / Portal ──
+  '"transfer portal" NCAA',
+  '"transfer portal" college football',
+  '"roster limits" NCAA',
+  '"portal window" college',
+
+  // ── Realignment ──
+  '"conference realignment"',
+  '"conference expansion" college',
+  '"college sports" "media rights"',
+  '"college sports" "media deal"',
+
+  // ── General ──
+  '"college sports business"',
+  '"college sports reform"',
+  '"athletic director" NIL',
+  '"college sports commission" enforcement',
+  '"Sports Business Journal" college',
 ];
 
 function getCooldown() {

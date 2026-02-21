@@ -12,6 +12,8 @@ import { fetchNCAANews } from './fetch-ncaa-rss.js';
 import { fetchNewsData } from './fetch-newsdata.js';
 import { fetchCongress } from './fetch-congress.js';
 import { fetchNILRevolution } from './fetch-nil-revolution.js';
+import { fetchNILEdu } from './fetch-niledu.js';
+import { fetchExtraPoints } from './fetch-extrapoints.js';
 import { runAIPipeline } from './ai-pipeline.js';
 
 export default {
@@ -37,6 +39,8 @@ export default {
           fetchCongress(env).catch(e => console.error('congress:', e.message)),
           fetchCourtListener(env).catch(e => console.error('courtlistener:', e.message)),
           fetchNILRevolution(env).catch(e => console.error('nil-revolution:', e.message)),
+          fetchNILEdu(env).catch(e => console.error('niledu:', e.message)),
+          fetchExtraPoints(env).catch(e => console.error('extra-points:', e.message)),
         ])
       );
     }

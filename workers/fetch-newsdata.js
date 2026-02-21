@@ -1,10 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════
 //  NewsData.io Fetcher
-//  Self-governing cooldown (~105 credits/day of 200):
-//    6 AM–12 PM ET: every 30 min  (12 runs × 5 = 60 credits)
-//    12–5 PM ET:    every 60 min  (5 runs × 5 = 25 credits)
-//    5–10 PM ET:    every 120 min (2-3 runs × 5 = 12 credits)
-//    10 PM–6 AM ET: once (~2 AM)  (1 run × 5 = 5 credits)
+//  Self-governing cooldown (~195 credits/day of 200):
+//    6 AM–12 PM ET: every 30 min  (12 runs × 13 = 156 credits)
+//    12–5 PM ET:    skip (budget consumed by morning runs)
+//    5–10 PM ET:    every 180 min (1-2 runs × 13 = 16 credits)
+//    10 PM–6 AM ET: once (~2 AM)  (1 run × 13 = 13 credits)
 //  Requires secret: wrangler secret put NEWSDATA_KEY
 // ═══════════════════════════════════════════════════════════════════
 
@@ -19,14 +19,22 @@ const QUERIES = [
   'college sports commission OR CSC enforcement',
   'college athlete lawsuit OR NCAA litigation',
   'NIL legislation OR college athlete bill',
+  'transfer portal college',
+  'College Sports Commission',
+  'NIL enforcement',
+  'NCAA antitrust',
+  'conference realignment college',
+  'college athlete union',
+  'revenue sharing NCAA',
+  'House v NCAA settlement',
 ];
 
 function getCooldown() {
   const h = getETHour();
-  if (h >= 6 && h < 12) return 30;
-  if (h >= 12 && h < 17) return 60;
-  if (h >= 17 && h < 22) return 120;
-  return 300; // overnight: ~5 hours → runs once around 2 AM
+  if (h >= 6 && h < 12) return 30;    // 12 runs × 13 = 156 credits
+  if (h >= 12 && h < 17) return null;  // skip — budget consumed by AM
+  if (h >= 17 && h < 22) return 180;   // 1-2 runs × 13 = 16 credits
+  return 480; // overnight: ~8 hours → runs once around 2 AM (13 credits)
 }
 
 function buildUrl(apiKey, query) {
