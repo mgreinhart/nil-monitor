@@ -139,9 +139,7 @@ const MOCK = {
 const X_LIST_URL = "https://x.com/i/lists/2024695913898528822";
 const NIL_PODCASTS = [
   { name: "Highway to NIL", id: "1Pju07vvKyIqEZOGDNaMMD" },
-  { name: "Business of College Sports", id: "2nzS5WfKHRlrAuP0uQfuK1" },
-  { name: "Airtime", id: "57luADo86jWEeU3DOy2YsR" },
-  { name: "The Official NIL Podcast", id: "2cGm7gusvANSdBtJ64E5Ul" },
+  { name: "College Football Enquirer", id: "0x30kB7Vc7T7WAK7ExXzRi" },
 ];
 // ── State Grid Cartogram ───────────────────────────────────────────
 const SG = {
@@ -280,18 +278,20 @@ const XListEmbed = () => (
 
 const PodcastsSection = () => (
   <Panel title="Podcasts" accent={T.purple} noPad>
-    {NIL_PODCASTS.map((p, i) => (
-      <iframe
-        key={p.id}
-        src={`https://open.spotify.com/embed/show/${p.id}?utm_source=generator&theme=0`}
-        width="100%"
-        height="152"
-        frameBorder="0"
-        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-        loading="lazy"
-        style={{ display: "block", borderBottom: i < NIL_PODCASTS.length - 1 ? `1px solid ${T.borderLight}` : "none" }}
-      />
-    ))}
+    <div style={{ display: "flex", flexDirection: "column", gap: 4, padding: 4 }}>
+      {NIL_PODCASTS.map((p) => (
+        <iframe
+          key={p.id}
+          src={`https://open.spotify.com/embed/show/${p.id}?utm_source=generator&theme=0`}
+          width="100%"
+          height="80"
+          frameBorder="0"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"
+          style={{ display: "block", borderRadius: 8 }}
+        />
+      ))}
+    </div>
   </Panel>
 );
 
