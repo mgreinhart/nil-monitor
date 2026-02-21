@@ -1,10 +1,12 @@
 // ═══════════════════════════════════════════════════════════════════
-//  CourtListener Fetcher
+//  CourtListener Fetcher — Unauthenticated Public API
 //  Self-governing cooldown:
 //    6 AM–5 PM ET:  every 2 hours
 //    5–10 PM ET:    every 4 hours
 //    10 PM–6 AM ET: skip
-//  Optional: wrangler secret put COURTLISTENER_TOKEN
+//  For each tracked case with a numeric source_id (CL docket ID),
+//  fetches latest docket entries and updates D1. Setting updated_at
+//  on change flags the case for the next AI pipeline run.
 // ═══════════════════════════════════════════════════════════════════
 
 import { getETHour, shouldRun, recordRun } from './fetcher-utils.js';
@@ -19,14 +21,18 @@ function getCooldown() {
   return null;
 }
 
-async function clFetch(path, token) {
-  const headers = { 'User-Agent': 'NILMonitor/1.0' };
-  if (token) {
-    headers['Authorization'] = `Token ${token}`;
-  }
-  const resp = await fetch(`${CL_BASE}${path}`, { headers });
+async function clFetch(path) {
+  const resp = await fetch(`${CL_BASE}${path}`, {
+    headers: { 'User-Agent': 'NILMonitor/1.0' },
+  });
   if (!resp.ok) throw new Error(`CourtListener ${path}: ${resp.status}`);
   return resp.json();
+}
+
+// Strip HTML tags from docket entry descriptions
+function stripHtml(str) {
+  if (!str) return null;
+  return str.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').trim();
 }
 
 export async function fetchCourtListener(env) {
@@ -40,71 +46,64 @@ export async function fetchCourtListener(env) {
     return;
   }
 
-  const token = env.COURTLISTENER_TOKEN || null;
   console.log('Fetching CourtListener updates...');
 
-  // Get all tracked cases that have a source_id
+  // Get all tracked cases with a numeric source_id (CourtListener docket ID)
   const { results: cases } = await env.DB.prepare(
-    'SELECT id, source_id, name FROM cases'
+    'SELECT id, source_id, name, last_filing_date, filing_count FROM cases'
   ).all();
 
+  let totalUpdated = 0;
+
   for (const c of cases) {
+    // Skip cases without numeric CL docket IDs
+    if (!/^\d+$/.test(c.source_id)) {
+      console.log(`CourtListener: skipping "${c.name}" (no CL docket ID)`);
+      continue;
+    }
+
     try {
-      // Step 1: Search for the case if we don't have a CourtListener docket ID
-      let docketId = c.source_id;
-
-      if (!/^\d+$/.test(docketId)) {
-        const search = await clFetch(
-          `/search/?type=d&q=${encodeURIComponent(c.name)}&order_by=score+desc`,
-          token
-        );
-        if (search.results && search.results.length > 0) {
-          docketId = search.results[0].docket_id;
-          await env.DB.prepare(
-            'UPDATE cases SET source_id = ? WHERE id = ?'
-          ).bind(String(docketId), c.id).run();
-          console.log(`Mapped "${c.name}" → CL docket ${docketId}`);
-        } else {
-          console.log(`No CL docket found for "${c.name}"`);
-          continue;
-        }
-      }
-
-      // Step 2: Fetch docket details
-      const docket = await clFetch(`/dockets/${docketId}/`, token);
-
-      // Step 3: Fetch recent docket entries (latest 5)
+      // Fetch latest docket entries (most recent 5)
       const entries = await clFetch(
-        `/docket-entries/?docket=${docketId}&order_by=-date_filed&page_size=5`,
-        token
+        `/docket-entries/?docket=${c.source_id}&order_by=-date_filed&page_size=5`
       );
 
-      // Step 4: Update the case in D1
       const filingCount = entries.count || 0;
-      const lastFilingDate = docket.date_last_filing || null;
-      const judge = docket.assigned_to_str || null;
-      const court = docket.court_id || null;
-      const clUrl = docket.absolute_url
-        ? `https://www.courtlistener.com${docket.absolute_url}`
-        : null;
+      const latest = entries.results?.[0];
+      const lastFilingDate = latest?.date_filed || null;
+      const lastAction = stripHtml(latest?.description) || null;
+      const clUrl = `https://www.courtlistener.com/docket/${c.source_id}/`;
 
-      await env.DB.prepare(
-        `UPDATE cases SET
-          court = COALESCE(?, court),
-          judge = COALESCE(?, judge),
-          last_filing_date = COALESCE(?, last_filing_date),
-          filing_count = ?,
-          courtlistener_url = COALESCE(?, courtlistener_url),
-          updated_at = datetime('now')
-        WHERE id = ?`
-      ).bind(court, judge, lastFilingDate, filingCount, clUrl, c.id).run();
+      // Detect changes
+      const hasNewFiling = lastFilingDate && lastFilingDate !== c.last_filing_date;
+      const countChanged = filingCount !== (c.filing_count || 0);
 
-      console.log(`Updated "${c.name}": ${filingCount} filings, last ${lastFilingDate}`);
+      if (hasNewFiling || countChanged) {
+        // Update case — setting updated_at flags it for the AI pipeline
+        await env.DB.prepare(
+          `UPDATE cases SET
+            last_filing_date = COALESCE(?, last_filing_date),
+            filing_count = ?,
+            last_action = COALESCE(?, last_action),
+            courtlistener_url = ?,
+            updated_at = datetime('now')
+          WHERE id = ?`
+        ).bind(lastFilingDate, filingCount, lastAction, clUrl, c.id).run();
+
+        totalUpdated++;
+        if (hasNewFiling) {
+          console.log(`CourtListener: NEW FILING "${c.name}" (${lastFilingDate}): ${lastAction?.substring(0, 100)}`);
+        } else {
+          console.log(`CourtListener: "${c.name}" count ${c.filing_count || 0} → ${filingCount}`);
+        }
+      } else {
+        console.log(`CourtListener: "${c.name}" — no changes`);
+      }
     } catch (err) {
       console.error(`CourtListener error for "${c.name}":`, err.message);
     }
   }
 
   await recordRun(env.DB, FETCHER);
-  console.log('CourtListener update complete');
+  console.log(`CourtListener: done, ${totalUpdated} cases updated`);
 }
