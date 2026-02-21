@@ -26,8 +26,8 @@ const T = {
   text: "#0f1729",
   textMid: "#3d4a5c",
   textDim: "#7c8698",
-  border: "#e2e5ec",
-  borderLight: "#edf0f4",
+  border: "#edf0f4",
+  borderLight: "#f0f2f6",
   mono: "'JetBrains Mono', 'Fira Code', 'SF Mono', monospace",
   sans: "'DM Sans', 'Inter', system-ui, sans-serif",
   radius: 5,
@@ -128,25 +128,25 @@ const Badge = ({ children, color = T.accent, small }) => (
 
 const Pill = ({ active, children, onClick }) => (
   <button onClick={onClick} style={{
-    fontFamily: T.mono, fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 3,
-    border: `1px solid ${active ? T.accent : T.border}`,
-    background: active ? T.accentDim : "transparent",
-    color: active ? T.accent : T.textDim, cursor: "pointer", whiteSpace: "nowrap", letterSpacing: ".3px",
+    fontFamily: T.mono, fontSize: 10, fontWeight: 700, padding: "5px 12px", borderRadius: 3,
+    border: `1px solid ${active ? T.accent : "#9ca3af"}`,
+    background: active ? T.accent : "transparent",
+    color: active ? "#fff" : "#3d4a5c", cursor: "pointer", whiteSpace: "nowrap", letterSpacing: ".3px",
   }}>{children}</button>
 );
 
 const Panel = ({ title, accent, children, style, right, noPad, className }) => (
   <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius, overflow: "hidden", display: "flex", flexDirection: "column", ...style }}>
     {title && (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", borderBottom: `1px solid ${T.border}`, background: T.surfaceAlt, minHeight: 30 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: `1px solid ${T.border}`, minHeight: 32 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {accent && <div style={{ width: 3, height: 12, borderRadius: 1.5, background: accent, flexShrink: 0 }} />}
-          <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: T.textDim }}>{title}</Mono>
+          {accent && <div style={{ width: 4, height: 14, borderRadius: 2, background: accent, flexShrink: 0 }} />}
+          <Mono style={{ fontSize: 12, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: accent || T.accent }}>{title}</Mono>
         </div>
         {right}
       </div>
     )}
-    <div style={{ padding: noPad ? 0 : "8px 10px", flex: 1, minHeight: 0 }}>{children}</div>
+    <div style={{ padding: noPad ? 0 : "10px 14px", flex: 1, minHeight: 0 }}>{children}</div>
   </div>
 );
 
@@ -334,9 +334,9 @@ const MonitorPage = () => {
   const hlPageItems = hlFiltered.slice(hlPageClamped * HL_PER_PAGE, (hlPageClamped + 1) * HL_PER_PAGE);
 
   return (
-    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+    <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
       {/* ══ MAIN COLUMN ══ */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 14 }}>
 
         {/* ══════════════════════════════════════════════════════════
             ABOVE THE FOLD — Briefing + Headlines (stacked)
@@ -497,7 +497,7 @@ const MonitorPage = () => {
       </div>
 
       {/* ══ SIDEBAR ══ */}
-      <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 10, position: "sticky", top: 56 }}>
+      <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 56 }}>
         <XListEmbed />
         <PodcastsSection />
       </div>
@@ -636,6 +636,7 @@ export default function NILMonitor() {
         ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 2px; }
         button { outline: none; }
         button:hover { filter: brightness(0.95); }
+        @keyframes pulse-live { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
       `}</style>
 
       {/* ── Navigation ── */}
@@ -644,15 +645,23 @@ export default function NILMonitor() {
         padding: "0 16px", display: "flex", alignItems: "center", height: 44,
         borderBottom: `1px solid ${T.navySoft}`,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 24 }}>
-          <Mono style={{ fontSize: 14, fontWeight: 700, color: "#fff", letterSpacing: ".6px" }}>NIL MONITOR</Mono>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 16 }}>
+          <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: "#fff", background: T.accent, padding: "2px 7px", borderRadius: 4, letterSpacing: ".5px" }}>NIL</span>
+          <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 400, color: "#fff", letterSpacing: "1.5px" }}>MONITOR</span>
         </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 20 }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, display: "inline-block", animation: "pulse-live 2s ease-in-out infinite" }} />
+          <Mono style={{ fontSize: 9, fontWeight: 700, color: T.green, letterSpacing: ".5px" }}>LIVE</Mono>
+        </div>
+        <Mono style={{ fontSize: 10, color: "rgba(255,255,255,.35)", marginRight: 20 }}>
+          {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+        </Mono>
         <div style={{ display: "flex", gap: 0 }}>
           {PAGES.map(p => (
             <button key={p} onClick={() => setPage(p)} style={{
-              fontFamily: T.sans, fontSize: 14, fontWeight: page === p ? 700 : 500,
+              fontFamily: T.sans, fontSize: 13, fontWeight: page === p ? 700 : 500,
               padding: "11px 12px", background: "transparent",
-              color: page === p ? "#fff" : "rgba(255,255,255,.5)",
+              color: page === p ? "#fff" : "rgba(255,255,255,.45)",
               border: "none", cursor: "pointer",
               borderBottom: page === p ? `2px solid ${T.accent}` : "2px solid transparent",
               transition: "all .12s",
