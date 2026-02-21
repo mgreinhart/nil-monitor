@@ -375,8 +375,6 @@ const formatDate = (dateStr) => {
 };
 
 const MonitorPage = () => {
-  const [timeFilt, setTimeFilt] = useState("3d");
-  const [catFilt, setCatFilt] = useState("All");
   const [selState, setSelState] = useState(null);
   const [expCase, setExpCase] = useState(null);
   const [headlinesExpanded, setHeadlinesExpanded] = useState(false);
@@ -437,23 +435,6 @@ const MonitorPage = () => {
     optedIn: h.opted_in, cscActions: "—",
   } : MOCK.house;
 
-  // Tagged headlines for Events Timeline (only those with category + severity)
-  const taggedHeadlines = headlines
-    ? headlines.filter(h => h.category && h.severity).map(h => ({
-        time: timeAgo(h.published_at), rawTime: h.published_at, cat: h.category,
-        src: h.source, text: h.title, sev: h.severity, url: h.url,
-      }))
-    : MOCK.timeline;
-
-  // Time filter: compute cutoff in ms
-  const timeFilterMs = { "24h": 86400000, "3d": 3*86400000, "7d": 7*86400000, "30d": 30*86400000, "All": Infinity };
-  const filtered = taggedHeadlines.filter(e => {
-    if (catFilt !== "All" && e.cat !== catFilt) return false;
-    if (!e.rawTime || timeFilt === "All") return true;
-    const normalized = e.rawTime.includes("T") ? e.rawTime : e.rawTime.replace(" ", "T") + "Z";
-    return (Date.now() - new Date(normalized).getTime()) <= timeFilterMs[timeFilt];
-  });
-
   // Normalize API CSC or use mock
   const cscSource = cscFeed ? cscFeed.map(c => ({
     time: timeAgo(c.activity_time), tag: c.tag, text: c.text,
@@ -483,12 +464,10 @@ const MonitorPage = () => {
     return days;
   })();
 
-  const times = ["24h", "3d", "7d", "30d", "All"];
-  const cats = ["All", ...Object.keys(CAT_COLORS).slice(0, 7)];
 
-  // Headlines: normalize for feed
+  // Headlines: normalize for feed (include severity when AI-tagged)
   const hlSource = headlines ? headlines.map(h => ({
-    src: h.source, title: h.title, cat: h.category,
+    src: h.source, title: h.title, cat: h.category, sev: h.severity,
     time: timeAgo(h.published_at), url: h.url,
   })) : MOCK.headlines;
   const hlFiltered = headlinesExpanded
@@ -547,11 +526,12 @@ const MonitorPage = () => {
             ) : hlFiltered.map((h, i) => (
               <a key={i} href={h.url} target="_blank" rel="noopener noreferrer"
                 style={{ display: "flex", gap: 8, padding: "6px 10px", borderBottom: `1px solid ${T.borderLight}`, alignItems: "center", textDecoration: "none" }}>
+                {h.sev && <SevDot s={h.sev} />}
                 <div style={{ flex: "0 0 50px" }}>
                   <Mono style={{ fontSize: 11, fontWeight: 700, color: T.accent, display: "block" }}>{h.src}</Mono>
                   <Mono style={{ fontSize: 10, color: T.textDim }}>{h.time}</Mono>
                 </div>
-                <Badge color={CAT_COLORS[h.cat]} small>{h.cat}</Badge>
+                {h.cat && <Badge color={CAT_COLORS[h.cat]} small>{h.cat}</Badge>}
                 <div style={{ flex: 1, fontFamily: T.sans, fontSize: 13, color: T.text, lineHeight: 1.3 }}>{h.title}</div>
                 <Mono style={{ fontSize: 11, color: T.accent, flexShrink: 0 }}>→</Mono>
               </a>
@@ -570,31 +550,6 @@ const MonitorPage = () => {
         {/* ══════════════════════════════════════════════════════════
             BELOW THE FOLD — Detail Sections
            ══════════════════════════════════════════════════════════ */}
-
-        {/* ── Events Timeline ── */}
-        <Panel title="Events Timeline" accent={T.accent} right={
-          <div style={{ display: "flex", gap: 3 }}>
-            {times.map(t => <Pill key={t} active={timeFilt === t} onClick={() => setTimeFilt(t)}>{t}</Pill>)}
-          </div>
-        }>
-          <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginBottom: 8 }}>
-            {cats.map(c => <Pill key={c} active={catFilt === c} onClick={() => setCatFilt(c)}>{c}</Pill>)}
-          </div>
-          {filtered.length === 0 ? (
-            <Mono style={{ fontSize: 12, color: T.textDim, padding: "12px 0" }}>
-              {headlines ? "No headlines in this time range / category" : "Timeline populates when AI pipeline tags headlines"}
-            </Mono>
-          ) : filtered.map((e, i) => (
-            <a key={i} href={e.url} target="_blank" rel="noopener noreferrer"
-              style={{ display: "flex", gap: 8, padding: "5px 0", borderBottom: `1px solid ${T.borderLight}`, alignItems: "flex-start", textDecoration: "none" }}>
-              <SevDot s={e.sev} />
-              <Mono style={{ fontSize: 11, color: T.textDim, minWidth: 28, flexShrink: 0 }}>{e.time}</Mono>
-              <Badge color={CAT_COLORS[e.cat]} small>{e.cat}</Badge>
-              <span style={{ fontFamily: T.sans, fontSize: 14, color: T.text, flex: 1, lineHeight: 1.35 }}>{e.text}</span>
-              <Mono style={{ fontSize: 10, color: T.textDim, flexShrink: 0 }}>{e.src}</Mono>
-            </a>
-          ))}
-        </Panel>
 
         {/* ── CSC Activity Feed ── */}
         <Panel title="CSC Activity Feed" accent={T.red}>
