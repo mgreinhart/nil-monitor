@@ -38,6 +38,7 @@ export async function fetchNILRevolution(env) {
     });
     if (!resp.ok) {
       console.error(`NIL Revolution RSS failed: ${resp.status}`);
+      await recordRun(env.DB, FETCHER);
       return;
     }
 
