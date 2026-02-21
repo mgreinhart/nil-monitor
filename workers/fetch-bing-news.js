@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════
-//  Google News RSS Fetcher
+//  Bing News RSS Fetcher
+//  Different index than Google News — surfaces different articles.
 //  Self-governing cooldown:
-//    6 AM–12 PM ET: every 15 min
-//    12–5 PM ET:    every 15 min
+//    6 AM–5 PM ET:  every 15 min
 //    5–10 PM ET:    every 30 min
 //    10 PM–6 AM ET: skip
 // ═══════════════════════════════════════════════════════════════════
@@ -10,59 +10,55 @@
 import { parseRSS } from './rss-parser.js';
 import { getETHour, shouldRun, recordRun, categorizeByKeyword } from './fetcher-utils.js';
 
-const FETCHER = 'google-news';
+const FETCHER = 'bing-news';
 
-// 15 diverse queries — each targets a distinct topic to minimize overlap.
-// Bing News covers the same space with its own index, so no need to
-// duplicate every permutation here.
 const QUERIES = [
   '"NIL" college sports',
+  '"NCAA governance"',
   '"House v NCAA" OR "House settlement"',
-  '"NCAA governance" OR "NCAA rule change"',
-  '"College Sports Commission" OR "CSC enforcement"',
-  '"revenue sharing" college athlete',
+  '"college athlete" lawsuit OR antitrust',
+  '"College Sports Commission"',
+  '"revenue sharing" college sports',
   '"transfer portal" NCAA',
-  '"conference realignment" OR "media rights" college',
-  'NIL legislation OR "college athlete bill"',
-  '"NCAA antitrust" OR "college athlete lawsuit"',
+  '"conference realignment"',
+  '"NIL legislation" OR "NIL bill"',
   '"NIL collective" OR "NIL deal"',
-  '"college athlete union" OR "NLRB" college',
-  '"NIL compliance" OR "NIL enforcement"',
-  '"college sports" reform OR restructuring',
-  '"athletic director" NIL OR "revenue sharing"',
-  '"Sports Business Journal" college OR NCAA',
+  '"college athlete" union OR employment',
+  '"NCAA enforcement" OR "NCAA investigation"',
 ];
 
 function getCooldown() {
   const h = getETHour();
   if (h >= 6 && h < 17) return 15;
   if (h >= 17 && h < 22) return 30;
-  return null; // skip overnight
+  return null;
 }
 
-function buildGoogleNewsUrl(query) {
-  return `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
+function buildBingNewsUrl(query) {
+  return `https://www.bing.com/news/search?q=${encodeURIComponent(query)}&format=rss`;
 }
 
-export async function fetchGoogleNews(env) {
+export async function fetchBingNews(env) {
   const cooldown = getCooldown();
   if (cooldown === null) {
-    console.log('Google News: outside active hours, skipping');
+    console.log('Bing News: outside active hours, skipping');
     return;
   }
   if (!await shouldRun(env.DB, FETCHER, cooldown)) {
-    console.log(`Google News: cooldown (${cooldown}m) not elapsed, skipping`);
+    console.log(`Bing News: cooldown (${cooldown}m) not elapsed, skipping`);
     return;
   }
 
-  console.log('Fetching Google News RSS...');
+  console.log('Fetching Bing News RSS...');
   let totalInserted = 0;
 
   for (const q of QUERIES) {
     try {
-      const resp = await fetch(buildGoogleNewsUrl(q));
+      const resp = await fetch(buildBingNewsUrl(q), {
+        headers: { 'User-Agent': 'NILMonitor/1.0 (RSS Reader)' },
+      });
       if (!resp.ok) {
-        console.error(`Google News fetch failed for "${q}": ${resp.status}`);
+        console.error(`Bing News fetch failed for "${q}": ${resp.status}`);
         continue;
       }
 
@@ -72,7 +68,9 @@ export async function fetchGoogleNews(env) {
       for (const item of items.slice(0, 15)) {
         if (!item.title || !item.link) continue;
 
-        const source = item.sourceName || 'Google News';
+        // Bing wraps links in a redirect — extract the actual URL
+        const url = extractBingUrl(item.link) || item.link;
+        const source = item.sourceName || 'Bing News';
         const published = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString();
         const category = categorizeByKeyword(item.title);
 
@@ -80,17 +78,31 @@ export async function fetchGoogleNews(env) {
           await env.DB.prepare(
             `INSERT OR IGNORE INTO headlines (source, title, url, category, published_at)
              VALUES (?, ?, ?, ?, ?)`
-          ).bind(source, item.title, item.link, category, published).run();
+          ).bind(source, item.title, url, category, published).run();
           totalInserted++;
         } catch (e) {
           // UNIQUE constraint on url — skip duplicates silently
         }
       }
     } catch (err) {
-      console.error(`Google News error for "${q}":`, err.message);
+      console.error(`Bing News error for "${q}":`, err.message);
     }
   }
 
   await recordRun(env.DB, FETCHER);
-  console.log(`Google News: inserted ${totalInserted} headlines`);
+  console.log(`Bing News: processed ${QUERIES.length} queries, inserted ${totalInserted} headlines`);
+}
+
+/**
+ * Bing News RSS wraps article links in redirect URLs like:
+ * https://www.bing.com/news/apiclick.aspx?...&url=https%3A%2F%2Fwww.sportico.com%2F...
+ * Extract the actual destination URL for proper deduplication.
+ */
+function extractBingUrl(link) {
+  try {
+    const u = new URL(link);
+    const dest = u.searchParams.get('url');
+    if (dest) return dest;
+  } catch {}
+  return null;
 }
