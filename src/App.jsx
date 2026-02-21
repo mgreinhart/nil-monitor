@@ -377,8 +377,8 @@ const formatDate = (dateStr) => {
 const MonitorPage = () => {
   const [selState, setSelState] = useState(null);
   const [expCase, setExpCase] = useState(null);
-  const [headlinesExpanded, setHeadlinesExpanded] = useState(false);
   const [headlineCatFilt, setHeadlineCatFilt] = useState("All");
+  const [hlPage, setHlPage] = useState(0);
 
   // Live data state
   const [briefing, setBriefing] = useState(null);
@@ -470,9 +470,11 @@ const MonitorPage = () => {
     src: h.source, title: h.title, cat: h.category, sev: h.severity,
     time: timeAgo(h.published_at), url: h.url,
   })) : MOCK.headlines;
-  const hlFiltered = headlinesExpanded
-    ? hlSource.filter(h => headlineCatFilt === "All" || h.cat === headlineCatFilt)
-    : hlSource.slice(0, 10);
+  const hlFiltered = hlSource.filter(h => headlineCatFilt === "All" || h.cat === headlineCatFilt);
+  const HL_PER_PAGE = 8;
+  const hlTotalPages = Math.max(1, Math.ceil(hlFiltered.length / HL_PER_PAGE));
+  const hlPageClamped = Math.min(hlPage, hlTotalPages - 1);
+  const hlPageItems = hlFiltered.slice(hlPageClamped * HL_PER_PAGE, (hlPageClamped + 1) * HL_PER_PAGE);
 
   return (
     <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
@@ -510,39 +512,40 @@ const MonitorPage = () => {
 
           {/* ── Latest Headlines ── */}
           <Panel title="Latest Headlines" accent={T.accent} noPad>
-            {headlinesExpanded && (
-              <div style={{ display: "flex", gap: 3, flexWrap: "wrap", padding: "8px 10px 0" }}>
-                {["All", ...Object.keys(CAT_COLORS).slice(0, 7)].map(c => (
-                  <Pill key={c} active={headlineCatFilt === c} onClick={() => setHeadlineCatFilt(c)}>{c}</Pill>
-                ))}
-              </div>
-            )}
-            {hlFiltered.length === 0 ? (
-              <div style={{ padding: "20px 10px", textAlign: "center" }}>
-                <Mono style={{ fontSize: 12, color: T.textDim }}>
-                  {headlines ? "No headlines in this category" : "Headlines populate when data pipeline runs"}
-                </Mono>
-              </div>
-            ) : hlFiltered.map((h, i) => (
-              <a key={i} href={h.url} target="_blank" rel="noopener noreferrer"
-                style={{ display: "flex", gap: 8, padding: "6px 10px", borderBottom: `1px solid ${T.borderLight}`, alignItems: "center", textDecoration: "none" }}>
-                {h.sev && <SevDot s={h.sev} />}
-                <div style={{ flex: "0 0 50px" }}>
-                  <Mono style={{ fontSize: 11, fontWeight: 700, color: T.accent, display: "block" }}>{h.src}</Mono>
-                  <Mono style={{ fontSize: 10, color: T.textDim }}>{h.time}</Mono>
+            <div style={{ display: "flex", gap: 3, flexWrap: "wrap", padding: "8px 10px", borderBottom: `1px solid ${T.borderLight}` }}>
+              {["All", ...Object.keys(CAT_COLORS).slice(0, 7)].map(c => (
+                <Pill key={c} active={headlineCatFilt === c} onClick={() => { setHeadlineCatFilt(c); setHlPage(0); }}>{c}</Pill>
+              ))}
+            </div>
+            <div style={{ minHeight: 320 }}>
+              {hlPageItems.length === 0 ? (
+                <div style={{ padding: "20px 10px", textAlign: "center" }}>
+                  <Mono style={{ fontSize: 12, color: T.textDim }}>
+                    {headlines ? "No headlines in this category" : "Headlines populate when data pipeline runs"}
+                  </Mono>
                 </div>
-                {h.cat && <Badge color={CAT_COLORS[h.cat]} small>{h.cat}</Badge>}
-                <div style={{ flex: 1, fontFamily: T.sans, fontSize: 13, color: T.text, lineHeight: 1.3 }}>{h.title}</div>
-                <Mono style={{ fontSize: 11, color: T.accent, flexShrink: 0 }}>→</Mono>
-              </a>
-            ))}
-            <div style={{ padding: "6px 10px", textAlign: "center", borderTop: `1px solid ${T.borderLight}` }}>
-              <button onClick={() => setHeadlinesExpanded(!headlinesExpanded)} style={{
-                fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: T.accent,
-                background: "transparent", border: "none", cursor: "pointer", padding: "2px 8px",
-              }}>
-                {headlinesExpanded ? "Show less" : "View all headlines →"}
-              </button>
+              ) : hlPageItems.map((h, i) => (
+                <a key={i} href={h.url} target="_blank" rel="noopener noreferrer"
+                  style={{ display: "flex", gap: 8, padding: "6px 10px", borderBottom: `1px solid ${T.borderLight}`, alignItems: "center", textDecoration: "none" }}>
+                  {h.sev && <SevDot s={h.sev} />}
+                  <div style={{ flex: "0 0 50px" }}>
+                    <Mono style={{ fontSize: 11, fontWeight: 700, color: T.accent, display: "block" }}>{h.src}</Mono>
+                    <Mono style={{ fontSize: 10, color: T.textDim }}>{h.time}</Mono>
+                  </div>
+                  {h.cat && <Badge color={CAT_COLORS[h.cat]} small>{h.cat}</Badge>}
+                  <div style={{ flex: 1, fontFamily: T.sans, fontSize: 13, color: T.text, lineHeight: 1.3 }}>{h.title}</div>
+                  <Mono style={{ fontSize: 11, color: T.accent, flexShrink: 0 }}>→</Mono>
+                </a>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", borderTop: `1px solid ${T.borderLight}` }}>
+              {hlPageClamped > 0 ? (
+                <button onClick={() => setHlPage(hlPageClamped - 1)} style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: T.accent, background: "transparent", border: "none", cursor: "pointer" }}>← Previous</button>
+              ) : <span />}
+              <Mono style={{ fontSize: 10, color: T.textDim }}>{hlPageClamped + 1} of {hlTotalPages}</Mono>
+              {hlPageClamped < hlTotalPages - 1 ? (
+                <button onClick={() => setHlPage(hlPageClamped + 1)} style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: T.accent, background: "transparent", border: "none", cursor: "pointer" }}>Next →</button>
+              ) : <span />}
             </div>
           </Panel>
         </div>
