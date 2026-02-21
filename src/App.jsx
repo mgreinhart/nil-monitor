@@ -140,7 +140,7 @@ const Panel = ({ title, accent, children, style, right, noPad, className }) => (
     {title && (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: `1px solid ${T.border}`, minHeight: 32 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {accent && <div style={{ width: 4, height: 14, borderRadius: 2, background: accent, flexShrink: 0 }} />}
+          <div style={{ width: 4, height: 14, borderRadius: 2, background: T.accent, flexShrink: 0 }} />
           <Mono style={{ fontSize: 12, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: T.accent }}>{title}</Mono>
         </div>
         {right}
