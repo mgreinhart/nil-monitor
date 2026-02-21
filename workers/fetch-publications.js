@@ -18,9 +18,15 @@ const FETCHER = 'publications';
 // Curated: sports business focus — most content is relevant
 // General: firehose feeds — only insert keyword-matched articles
 const FEEDS = [
-  // ── Curated (insert all) ──
+  // ── Curated (insert all — sports business focus) ──
   { url: 'https://www.sportico.com/feed/', source: 'Sportico', curated: true },
   { url: 'https://frontofficesports.com/feed/', source: 'Front Office Sports', curated: true },
+  { url: 'https://businessofcollegesports.com/feed/', source: 'Business of College Sports', curated: true },
+  { url: 'https://athleticdirectoru.com/feed/', source: 'AthleticDirectorU', curated: true },
+
+  // ── Light filter (sports law — skip pure pro-sports articles) ──
+  { url: 'https://sportslitigationalert.com/feed/', source: 'Sports Litigation Alert', curated: false,
+    filter: /\bcollege|\bncaa|\bnil\b|\bathlet|\buniversit/i },
 
   // ── General (keyword-filter) ──
   { url: 'https://www.cbssports.com/rss/headlines/college-football/', source: 'CBS Sports', curated: false },
@@ -71,10 +77,13 @@ export async function fetchPublications(env) {
       for (const item of items.slice(0, 20)) {
         if (!item.title || !item.link) continue;
 
-        // General feeds: skip articles that don't match college sports keywords
-        if (!feed.curated && !RELEVANCE_RE.test(item.title)) {
-          totalSkipped++;
-          continue;
+        // Non-curated feeds: skip articles that don't match keywords
+        if (!feed.curated) {
+          const re = feed.filter || RELEVANCE_RE;
+          if (!re.test(item.title)) {
+            totalSkipped++;
+            continue;
+          }
         }
 
         const published = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString();

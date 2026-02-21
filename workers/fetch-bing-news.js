@@ -25,6 +25,9 @@ const QUERIES = [
   '"NIL collective" OR "NIL deal"',
   '"college athlete" union OR employment',
   '"NCAA enforcement" OR "NCAA investigation"',
+  '"College Sports Commission" enforcement',
+  '"NCAA revenue sharing" compliance',
+  '"college athlete" employment classification',
 ];
 
 function getCooldown() {
