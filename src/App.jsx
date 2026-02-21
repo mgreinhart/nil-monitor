@@ -301,6 +301,7 @@ const MonitorPage = () => {
     name: c.name, court: c.court, judge: c.judge, status: c.status,
     cat: c.category, lastFiling: c.last_filing_date, filings: c.filing_count,
     next: c.next_action_date ? `${formatDate(c.next_action_date)} — ${c.next_action || ""}` : null,
+    nextDate: c.next_action_date || null,
     desc: c.description, clUrl: c.courtlistener_url, pacerUrl: c.pacer_url,
   })) : MOCK.cases;
 
@@ -436,37 +437,47 @@ const MonitorPage = () => {
            ══════════════════════════════════════════════════════════ */}
 
         {/* ── Litigation ── */}
-        <Panel title="The Courtroom" accent={T.accent}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {caseSource.map((c, i) => (
-              <div key={i} onClick={() => setExpCase(expCase === i ? null : i)} style={{
-                border: `1px solid ${T.borderLight}`, borderRadius: 4, padding: "8px 10px",
-                cursor: "pointer", background: expCase === i ? T.surfaceAlt : "transparent", transition: "background .1s",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 700, color: T.text }}>{c.name}</span>
-                  <Badge color={T.amber}>{c.status}</Badge>
-                  <Badge color={CAT_COLORS[c.cat]} small>{c.cat}</Badge>
+        <Panel title="The Courtroom" accent={T.accent} noPad>
+          {caseSource.map((c, i) => {
+            const isOpen = expCase === i;
+            const nextSoon = c.nextDate && (new Date(c.nextDate) - Date.now()) / 86400000 <= 30;
+            return (
+              <div key={i} style={{ borderBottom: i < caseSource.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
+                <div
+                  onClick={() => setExpCase(isOpen ? null : i)}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", cursor: "pointer", flexWrap: "wrap" }}
+                  onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <Mono style={{ fontSize: 11, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>
+                  <strong style={{ fontFamily: T.sans, fontSize: 13, color: T.text }}>{c.name}</strong>
+                  <Badge color={T.amber} small>{c.status}</Badge>
+                  {c.cat && <Badge color={CAT_COLORS[c.cat]} small>{c.cat}</Badge>}
+                  <div style={{ flex: 1 }} />
+                  {c.next && <Mono style={{ fontSize: 10, fontWeight: 600, color: nextSoon ? T.red : T.textDim, flexShrink: 0 }}>→ {c.next}</Mono>}
                 </div>
-                <div style={{ display: "flex", gap: 12, marginTop: 3, fontFamily: T.mono, fontSize: 11, color: T.textDim, flexWrap: "wrap" }}>
-                  <span>Court: {c.court}</span>
-                  <span>Judge: {c.judge}</span>
-                  <span>Filings: {c.filings}</span>
-                  <span>Last: {c.lastFiling}</span>
-                </div>
-                {c.next && <div style={{ marginTop: 3, fontFamily: T.sans, fontSize: 13, color: T.red, fontWeight: 600 }}>→ {c.next}</div>}
-                {expCase === i && (
-                  <div style={{ marginTop: 7, paddingTop: 7, borderTop: `1px solid ${T.border}` }}>
-                    <div style={{ fontFamily: T.sans, fontSize: 14, color: T.textMid, lineHeight: 1.55, marginBottom: 8 }}>{c.desc}</div>
+                <div style={{
+                  maxHeight: isOpen ? 300 : 0, overflow: "hidden",
+                  transition: "max-height .2s ease, opacity .2s ease",
+                  opacity: isOpen ? 1 : 0,
+                }}>
+                  <div style={{ padding: "0 10px 10px 25px" }}>
+                    <Mono style={{ fontSize: 10, color: T.textDim, display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
+                      {c.court && <span>{c.court}</span>}
+                      {c.judge && <span>Judge {c.judge}</span>}
+                      {c.filings != null && <span>{c.filings} filings</span>}
+                      {c.lastFiling && <span>Last filed {formatDate(c.lastFiling)}</span>}
+                    </Mono>
+                    {c.desc && <div style={{ fontFamily: T.sans, fontSize: 12, color: T.textMid, lineHeight: 1.5, marginBottom: 6 }}>{c.desc}</div>}
                     <div style={{ display: "flex", gap: 10 }}>
-                      {c.clUrl && <a href={c.clUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}><Mono style={{ fontSize: 12, color: T.accent }}>CourtListener →</Mono></a>}
-                      {c.pacerUrl && <a href={c.pacerUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}><Mono style={{ fontSize: 12, color: T.accent }}>PACER Docket →</Mono></a>}
+                      {c.clUrl && <a href={c.clUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}><Mono style={{ fontSize: 10, fontWeight: 600, color: T.accent }}>CourtListener →</Mono></a>}
+                      {c.pacerUrl && <a href={c.pacerUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}><Mono style={{ fontSize: 10, fontWeight: 600, color: T.accent }}>PACER →</Mono></a>}
                     </div>
                   </div>
-                )}
+                </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </Panel>
 
         {/* ── Outside View ── */}
