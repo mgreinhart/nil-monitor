@@ -254,8 +254,15 @@ const KalshiSection = () => (
   </div>
 );
 
-// ── Pages ──────────────────────────────────────────────────────────
-const PAGES = ["Monitor", "About"];
+// ── Nav Resources ────────────────────────────────────────────────
+const RESOURCES = [
+  { label: "Saul Ewing NIL Tracker", href: "https://www.saul.com/nil-tracker" },
+  { label: "CourtListener", href: "https://www.courtlistener.com" },
+  { label: "LegiScan", href: "https://legiscan.com" },
+  { label: "NCAA.org", href: "https://www.ncaa.org" },
+  { label: "NIL Revolution", href: "https://www.nilrevolution.com" },
+  { label: "Congress.gov", href: "https://www.congress.gov" },
+];
 
 // ╔═══════════════════════════════════════════════════════════════════
 //  MONITOR PAGE — The Dashboard (live from D1, falls back to mock)
@@ -505,9 +512,6 @@ const MonitorPage = () => {
   );
 };
 
-// ╔═══════════════════════════════════════════════════════════════════
-//  HEADLINES PAGE — Live from D1, falls back to mock
-// ╚═══════════════════════════════════════════════════════════════════
 const timeAgo = (dateStr) => {
   if (!dateStr) return "";
   // Normalize D1 datetime format "YYYY-MM-DD HH:MM:SS" → ISO for reliable parsing
@@ -523,106 +527,83 @@ const timeAgo = (dateStr) => {
   return new Date(normalized).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
-const HeadlinesPage = () => {
-  const [cat, setCat] = useState("All");
-  const [headlines, setHeadlines] = useState(null);
-  const [error, setError] = useState(false);
-  const allCats = ["All", ...Object.keys(CAT_COLORS).slice(0, 7)];
-
-  useEffect(() => {
-    fetch("/api/headlines?limit=100")
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => setHeadlines(data))
-      .catch(() => setError(true));
-  }, []);
-
-  const normalize = (h) => ({
-    src: h.source, title: h.title, cat: h.category,
-    time: timeAgo(h.published_at), url: h.url,
-  });
-
-  const source = headlines ? headlines.map(normalize) : MOCK.headlines;
-  const filtered = source.filter(h => cat === "All" || h.cat === cat);
-
-  return (
-    <div>
-      {error && <Mono style={{ fontSize: 11, color: T.amber, display: "block", marginBottom: 8 }}>Using cached data — API unavailable</Mono>}
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 12 }}>
-        {allCats.map(c => <Pill key={c} active={cat === c} onClick={() => setCat(c)}>{c}</Pill>)}
-      </div>
-      <Panel noPad>
-        {filtered.length === 0 ? (
-          <div style={{ padding: "20px 14px", textAlign: "center" }}>
-            <Mono style={{ fontSize: 12, color: T.textDim }}>No headlines in this category</Mono>
-          </div>
-        ) : filtered.map((h, i) => (
-          <a key={i} href={h.url} target="_blank" rel="noopener noreferrer"
-            style={{ display: "flex", gap: 10, padding: "10px 14px", borderBottom: `1px solid ${T.borderLight}`, alignItems: "center", textDecoration: "none", cursor: "pointer" }}>
-            <div style={{ flex: "0 0 64px" }}>
-              <Mono style={{ fontSize: 12, fontWeight: 700, color: T.accent, display: "block" }}>{h.src}</Mono>
-              <Mono style={{ fontSize: 10, color: T.textDim }}>{h.time}</Mono>
-            </div>
-            <Badge color={CAT_COLORS[h.cat]} small>{h.cat}</Badge>
-            <div style={{ flex: 1, fontFamily: T.sans, fontSize: 15, color: T.text, lineHeight: 1.35 }}>{h.title}</div>
-            <Mono style={{ fontSize: 12, color: T.accent }}>→</Mono>
-          </a>
-        ))}
-      </Panel>
-    </div>
-  );
-};
-
 // ╔═══════════════════════════════════════════════════════════════════
-//  ABOUT PAGE
+//  INFO MODAL — About content (data sources, methodology)
 // ╚═══════════════════════════════════════════════════════════════════
-const AboutPage = () => (
-  <div style={{ maxWidth: 680 }}>
-    <Panel>
-      <h2 style={{ fontFamily: T.sans, fontSize: 24, fontWeight: 700, color: T.text, margin: "0 0 10px" }}>What is NIL Monitor?</h2>
-      <p style={{ fontFamily: T.sans, fontSize: 16, lineHeight: 1.7, color: T.textMid, margin: "0 0 12px" }}>
+const InfoModal = ({ onClose }) => (
+  <div onClick={onClose} style={{
+    position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,.5)",
+    display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+  }}>
+    <div onClick={e => e.stopPropagation()} style={{
+      background: T.surface, borderRadius: T.radius, maxWidth: 680, width: "100%",
+      maxHeight: "85vh", overflow: "auto", padding: "24px 28px",
+      boxShadow: "0 20px 60px rgba(0,0,0,.3)",
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+        <h2 style={{ fontFamily: T.sans, fontSize: 22, fontWeight: 700, color: T.text, margin: 0 }}>What is NIL Monitor?</h2>
+        <button onClick={onClose} style={{
+          fontFamily: T.mono, fontSize: 18, color: T.textDim, background: "transparent",
+          border: "none", cursor: "pointer", padding: "0 4px", lineHeight: 1,
+        }}>&times;</button>
+      </div>
+      <p style={{ fontFamily: T.sans, fontSize: 15, lineHeight: 1.7, color: T.textMid, margin: "0 0 10px" }}>
         A live dashboard that gives college athletics decision-makers a single place to answer: <strong style={{ color: T.text }}>did anything change overnight that I need to know about?</strong>
       </p>
-      <p style={{ fontFamily: T.sans, fontSize: 16, lineHeight: 1.7, color: T.textMid, margin: "0 0 12px" }}>
+      <p style={{ fontFamily: T.sans, fontSize: 15, lineHeight: 1.7, color: T.textMid, margin: "0 0 10px" }}>
         We track the regulatory, legal, and governance landscape across five domains: state and federal legislation, active litigation, NCAA governance, College Sports Commission enforcement, and the news environment that shapes institutional attention.
       </p>
-      <p style={{ fontFamily: T.sans, fontSize: 16, lineHeight: 1.7, color: T.textMid, margin: "0 0 20px" }}>
-        We don't compete with D1.ticker (editorial), Teamworks (operations), or Troutman Pepper (legal analysis). We are the <strong style={{ color: T.text }}>first screen</strong> — the check that determines how you spend the rest of your morning.
+      <p style={{ fontFamily: T.sans, fontSize: 15, lineHeight: 1.7, color: T.textMid, margin: "0 0 18px" }}>
+        We are the <strong style={{ color: T.text }}>first screen</strong> — the check that determines how you spend the rest of your morning.
       </p>
-      <h3 style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 700, color: T.text, margin: "0 0 8px" }}>Data Sources</h3>
-      <div style={{ marginBottom: 18 }}>
+      <h3 style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, color: T.text, margin: "0 0 6px" }}>Data Sources</h3>
+      <div style={{ marginBottom: 16 }}>
         {[
-          ["X (Twitter) List", "Real-time curated feed", "Free embed"],
-          ["LegiScan", "50-state + federal bill tracking", "Free API"],
-          ["CourtListener / RECAP", "Federal court filings + alerts", "Free API"],
-          ["NCAA.org", "Governance + rule changes", "RSS"],
-          ["NewsData.io", "News aggregation (87K+ sources)", "Free API"],
-          ["Google News RSS", "Supplemental headlines", "Free"],
-          ["Congress.gov", "Federal bill detail", "Free API"],
-          ["Google Trends", "Search interest", "Free embed"],
-          ["Polymarket", "Prediction market odds", "Free API"],
-          ["Spotify", "Highway to NIL podcast", "Free embed"],
+          ["Google News RSS", "News aggregation (15 targeted queries)", "Free"],
+          ["Bing News RSS", "News aggregation (12 targeted queries)", "Free"],
+          ["NewsData.io", "News aggregation (87K+ sources)", "API"],
+          ["Sportico", "Sports business journalism", "RSS"],
+          ["Front Office Sports", "Sports business journalism", "RSS"],
+          ["CBS Sports", "College football coverage", "RSS"],
+          ["ESPN", "College football coverage", "RSS"],
+          ["On3", "College sports + recruiting", "RSS"],
+          ["NYT Sports", "National sports coverage", "RSS"],
           ["NIL Revolution", "Legal analysis (Troutman Pepper)", "RSS"],
+          ["NCAA.org", "Governance + rule changes", "RSS"],
+          ["CourtListener / RECAP", "Federal court filings + alerts", "API"],
+          ["LegiScan", "50-state + federal bill tracking", "API"],
+          ["Congress.gov", "Federal bill detail", "API"],
+          ["X (Twitter) List", "Real-time curated feed", "Embed"],
         ].map(([src, what, method], i) => (
-          <div key={i} style={{ display: "flex", padding: "4px 0", borderBottom: `1px solid ${T.borderLight}` }}>
-            <Mono style={{ fontSize: 12, fontWeight: 600, color: T.text, flex: "0 0 180px" }}>{src}</Mono>
-            <span style={{ fontFamily: T.sans, fontSize: 13, color: T.textDim, flex: 1 }}>{what}</span>
-            <Mono style={{ fontSize: 11, color: T.green }}>{method}</Mono>
+          <div key={i} style={{ display: "flex", padding: "3px 0", borderBottom: `1px solid ${T.borderLight}` }}>
+            <Mono style={{ fontSize: 11, fontWeight: 600, color: T.text, flex: "0 0 170px" }}>{src}</Mono>
+            <span style={{ fontFamily: T.sans, fontSize: 12, color: T.textDim, flex: 1 }}>{what}</span>
+            <Mono style={{ fontSize: 10, color: T.green }}>{method}</Mono>
           </div>
         ))}
       </div>
-      <h3 style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 700, color: T.text, margin: "0 0 8px" }}>Methodology</h3>
-      <p style={{ fontFamily: T.sans, fontSize: 16, lineHeight: 1.7, color: T.textMid, margin: 0 }}>
+      <h3 style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, color: T.text, margin: "0 0 6px" }}>Methodology</h3>
+      <p style={{ fontFamily: T.sans, fontSize: 15, lineHeight: 1.7, color: T.textMid, margin: 0 }}>
         All data is aggregated automatically from public sources. An AI processing pipeline reads, categorizes, and routes information — generating the daily briefing, extracting deadlines from filings, detecting new cases, and tagging CSC activity. No editorial judgment on inclusion. All content links to original sources. Zero manual maintenance after initial setup.
       </p>
-    </Panel>
+    </div>
   </div>
 );
 
 // ╔═══════════════════════════════════════════════════════════════════
-//  APP SHELL
+//  APP SHELL — Single-page dashboard
 // ╚═══════════════════════════════════════════════════════════════════
 export default function NILMonitor() {
-  const [page, setPage] = useState("Monitor");
+  const [showResources, setShowResources] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+
+  // Close dropdown on any outside click
+  useEffect(() => {
+    if (!showResources) return;
+    const close = () => setShowResources(false);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [showResources]);
 
   return (
     <div style={{ background: T.bg, minHeight: "100vh", fontFamily: T.sans }}>
@@ -645,6 +626,7 @@ export default function NILMonitor() {
         padding: "0 16px", display: "flex", alignItems: "center", height: 44,
         borderBottom: `1px solid ${T.navySoft}`,
       }}>
+        {/* Left: brand + live + date */}
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 16 }}>
           <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: "#fff", background: T.accent, padding: "2px 7px", borderRadius: 4, letterSpacing: ".5px" }}>NIL</span>
           <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 400, color: "#fff", letterSpacing: "1.5px" }}>MONITOR</span>
@@ -653,28 +635,62 @@ export default function NILMonitor() {
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, display: "inline-block", animation: "pulse-live 2s ease-in-out infinite" }} />
           <Mono style={{ fontSize: 9, fontWeight: 700, color: T.green, letterSpacing: ".5px" }}>LIVE</Mono>
         </div>
-        <Mono style={{ fontSize: 10, color: "rgba(255,255,255,.35)", marginRight: 20 }}>
+        <Mono style={{ fontSize: 10, color: "rgba(255,255,255,.35)" }}>
           {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
         </Mono>
-        <div style={{ display: "flex", gap: 0 }}>
-          {PAGES.map(p => (
-            <button key={p} onClick={() => setPage(p)} style={{
-              fontFamily: T.sans, fontSize: 13, fontWeight: page === p ? 700 : 500,
-              padding: "11px 12px", background: "transparent",
-              color: page === p ? "#fff" : "rgba(255,255,255,.45)",
-              border: "none", cursor: "pointer",
-              borderBottom: page === p ? `2px solid ${T.accent}` : "2px solid transparent",
-              transition: "all .12s",
-            }}>{p}</button>
-          ))}
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* Right: Resources dropdown + Info icon */}
+        <div style={{ position: "relative" }}>
+          <button
+            onClick={e => { e.stopPropagation(); setShowResources(prev => !prev); }}
+            style={{
+              fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,.6)",
+              background: "transparent", border: "none", cursor: "pointer",
+              padding: "6px 10px", letterSpacing: ".3px",
+            }}
+          >Resources ▾</button>
+          {showResources && (
+            <div onClick={e => e.stopPropagation()} style={{
+              position: "absolute", top: "100%", right: 0, marginTop: 4,
+              background: T.navy, border: `1px solid ${T.navySoft}`,
+              borderRadius: 4, padding: "4px 0", minWidth: 220, zIndex: 110,
+              boxShadow: "0 8px 24px rgba(0,0,0,.4)",
+            }}>
+              {RESOURCES.map((r, i) => (
+                <a key={i} href={r.href} target="_blank" rel="noopener noreferrer"
+                  style={{
+                    display: "block", padding: "7px 14px", textDecoration: "none",
+                    fontFamily: T.mono, fontSize: 11, color: "rgba(255,255,255,.8)",
+                    borderBottom: i < RESOURCES.length - 1 ? `1px solid ${T.navySoft}` : "none",
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = T.navySoft}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >{r.label}</a>
+              ))}
+            </div>
+          )}
         </div>
+        <button
+          onClick={() => setShowInfo(true)}
+          title="About NIL Monitor"
+          style={{
+            fontFamily: T.sans, fontSize: 15, color: "rgba(255,255,255,.4)",
+            background: "transparent", border: "none", cursor: "pointer",
+            padding: "6px 8px", marginLeft: 4,
+          }}
+        >&#9432;</button>
       </nav>
 
-      {/* ── Page Content ── */}
+      {/* ── Dashboard ── */}
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "12px 14px 40px" }}>
-        {page === "Monitor" && <MonitorPage />}
-        {page === "About" && <AboutPage />}
+        <MonitorPage />
       </main>
+
+      {/* ── Info Modal ── */}
+      {showInfo && <InfoModal onClose={() => setShowInfo(false)} />}
     </div>
   );
 }
