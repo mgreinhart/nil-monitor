@@ -10,8 +10,8 @@ import { useState, useEffect } from "react";
 const T = {
   navy: "#0f1729",
   navySoft: "#1a2237",
-  accent: "#3b82f6",
-  accentDim: "#3b82f620",
+  accent: "#DC4A2D",
+  accentDim: "#DC4A2D20",
   green: "#10b981",
   greenDim: "#10b98118",
   amber: "#f59e0b",
