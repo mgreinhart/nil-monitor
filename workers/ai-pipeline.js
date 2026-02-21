@@ -296,10 +296,9 @@ If none of these are actually NEW CSC activity (not already tracked), return: {"
 
 // ── Task 4: Daily Briefing ───────────────────────────────────────
 async function generateBriefing(env, db, isAfternoon = false) {
-  // Get recent tagged headlines (with category/severity) for context
-  // 2-day window ensures enough material for 4 briefing sections even on slow news days
+  // Get today's tagged headlines for the briefing
   const { results: headlines } = await db.prepare(
-    "SELECT * FROM headlines WHERE category IS NOT NULL AND date(published_at) >= date('now', '-2 days') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 50"
+    "SELECT * FROM headlines WHERE category IS NOT NULL AND date(published_at) >= date('now') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 50"
   ).all();
 
   const { results: deadlines } = await db.prepare(
@@ -319,6 +318,7 @@ STRICT FORMAT RULES:
 - Cite sources parenthetically (e.g., "per ESPN" or "(CourtListener)").
 - If something requires institutional action, say so explicitly.
 - Total output should be ~200-300 words.
+- If today's headlines don't fill 4 sections, use the remaining sections for forward-looking items: upcoming deadlines, pending actions, or developments to watch this week. NEVER pad with old news.
 
 Return ONLY valid JSON, no other text.`;
 
@@ -345,16 +345,13 @@ Return ONLY valid JSON, no other text.`;
 
     userContent = `Generate the afternoon update for ${today}. You must return EXACTLY 4 sections.
 
-Here is this morning's briefing:
+This morning's briefing covered:
 ${morningText || 'No morning briefing was generated.'}
 
-Produce a complete 4-section briefing that combines the day's most important stories.
-- If there are new developments since this morning, lead with those and include the most important morning items that still matter.
-- If there are no new developments, keep the morning items but refresh/update their context with any new information.
-- Never return fewer than 4 sections.
+Produce a fresh 4-section briefing for the afternoon. Lead with any NEW developments since this morning. Fill remaining sections with the most important morning items that still matter or upcoming deadlines/actions. Never pad with old news or repeat the morning wording verbatim.
 
-RECENT HEADLINES (tagged by severity):
-${headlineList || 'No recent headlines.'}
+TODAY'S HEADLINES (tagged by severity):
+${headlineList || 'No new headlines today.'}
 
 UPCOMING DEADLINES (next 14 days):
 ${deadlineList || 'No imminent deadlines.'}
@@ -369,10 +366,12 @@ Return JSON (EXACTLY 4 sections, each headline is ONE sentence, each body is MAX
   ]
 }`;
   } else {
-    userContent = `Summarize the most significant developments in the last 24 hours for ${today}. You must return EXACTLY 4 sections.
+    userContent = `Generate the morning briefing for ${today}. You must return EXACTLY 4 sections.
 
-RECENT HEADLINES (tagged by severity):
-${headlineList || 'No recent headlines.'}
+Lead with today's most important developments. If today's headlines don't fill all 4 sections, use remaining sections for upcoming deadlines or developments to watch — never drag in yesterday's news.
+
+TODAY'S HEADLINES (tagged by severity):
+${headlineList || 'No headlines yet today.'}
 
 UPCOMING DEADLINES (next 14 days):
 ${deadlineList || 'No imminent deadlines.'}
