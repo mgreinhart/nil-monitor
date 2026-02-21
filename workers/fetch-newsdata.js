@@ -8,7 +8,7 @@
 //  Requires secret: wrangler secret put NEWSDATA_KEY
 // ═══════════════════════════════════════════════════════════════════
 
-import { getETHour, shouldRun, recordRun, categorizeByKeyword } from './fetcher-utils.js';
+import { getETHour, shouldRun, recordRun, insertHeadline } from './fetcher-utils.js';
 
 const FETCHER = 'newsdata';
 const BASE_URL = 'https://newsdata.io/api/1/latest';
@@ -89,17 +89,11 @@ export async function fetchNewsData(env) {
         const published = article.pubDate
           ? new Date(article.pubDate).toISOString()
           : new Date().toISOString();
-        const category = categorizeByKeyword(article.title);
 
-        try {
-          await env.DB.prepare(
-            `INSERT OR IGNORE INTO headlines (source, title, url, category, published_at)
-             VALUES (?, ?, ?, ?, ?)`
-          ).bind(source, article.title, article.link, category, published).run();
-          totalInserted++;
-        } catch (e) {
-          // UNIQUE constraint on url — skip duplicates silently
-        }
+        const inserted = await insertHeadline(env.DB, {
+          source, title: article.title, url: article.link, published,
+        });
+        if (inserted) totalInserted++;
       }
     } catch (err) {
       console.error(`NewsData.io error for "${q}":`, err.message);

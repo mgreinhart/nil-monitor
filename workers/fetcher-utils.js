@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════
 //  Shared Fetcher Utilities
-//  Self-governing cooldowns, keyword tagging, run tracking.
+//  Self-governing cooldowns, keyword tagging, run tracking,
+//  entity decoding, URL normalization, noise filtering.
 // ═══════════════════════════════════════════════════════════════════
 
 /**
@@ -40,6 +41,122 @@ export async function recordRun(db, fetcherName) {
   ).bind(fetcherName).run();
 }
 
+// ── HTML Entity Decoding ────────────────────────────────────────────
+
+const NAMED_ENTITIES = {
+  '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&apos;': "'",
+  '&nbsp;': ' ', '&ndash;': '\u2013', '&mdash;': '\u2014',
+  '&lsquo;': '\u2018', '&rsquo;': '\u2019', '&ldquo;': '\u201C', '&rdquo;': '\u201D',
+  '&hellip;': '\u2026', '&bull;': '\u2022', '&middot;': '\u00B7',
+};
+
+/**
+ * Decode HTML entities — named (&amp;), decimal (&#8217;), hex (&#x2019;).
+ */
+export function decodeEntities(text) {
+  if (!text) return text;
+  return text
+    .replace(/&(?:amp|lt|gt|quot|apos|nbsp|ndash|mdash|lsquo|rsquo|ldquo|rdquo|hellip|bull|middot);/gi,
+      m => NAMED_ENTITIES[m.toLowerCase()] || m)
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)));
+}
+
+// ── URL Normalization ───────────────────────────────────────────────
+
+const STRIP_PARAMS = new Set([
+  'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+  'fbclid', 'gclid', 'msclkid', 'ref', 'ncid', 'cid', 'mc_cid', 'mc_eid',
+  '_ga', '_gid', 'ns_mchannel', 'ns_source', 'ns_campaign',
+]);
+
+/**
+ * Normalize a URL for better deduplication.
+ * Strips tracking params, fragments, trailing slashes, www prefix.
+ */
+export function normalizeUrl(rawUrl) {
+  try {
+    const u = new URL(rawUrl);
+    for (const p of [...u.searchParams.keys()]) {
+      if (STRIP_PARAMS.has(p)) u.searchParams.delete(p);
+    }
+    u.hash = '';
+    u.hostname = u.hostname.replace(/^www\./, '');
+    const path = u.pathname.replace(/\/+$/, '') || '/';
+    const search = u.search || '';
+    return u.origin.replace('://www.', '://') + path + search;
+  } catch {
+    return rawUrl;
+  }
+}
+
+// ── Game Noise Filter ───────────────────────────────────────────────
+
+const GAME_NOISE_RE = new RegExp([
+  // Tournament / bracket content
+  'bracket', 'march madness', 'final four', 'elite eight', 'sweet sixteen',
+  'round of \\d+', 'first round', 'second round',
+  'ncaa tournament(?!.*(?:revenue|nil|lawsuit|settlement|reform))',
+  'tournament (?:seed|bubble|bid|hopes|action|update)',
+  'top.(?:16|4|8)\\s+seed', '\\d-seed\\b', 'seed line',
+  'selection committee(?!.*(?:reform|governance|restructur))',
+  // Game coverage
+  'game recap', 'game preview', 'game day', 'gameday', 'tipoff', 'tip-off',
+  'kickoff', 'kick-off', 'halftime', 'overtime', 'final score',
+  'box score', 'highlights', 'full replay', 'live updates?:? track',
+  'buzzer.beater',
+  // Scores / results
+  '\\d{1,3}-\\d{1,3}\\s+(?:win|loss|victory|defeat)',
+  // Predictions / betting
+  'picks? (?:and|&) predictions?', 'betting odds', 'point spread',
+  'over.under', 'moneyline', 'parlay', 'prop bet',
+  'fantasy (?:football|basketball)',
+  // Draft
+  'mock draft', 'nfl draft', 'nba draft', 'draft pick',
+  // Recruiting / commitments (game context, not policy)
+  '(?:4|5)-star (?:recruit|prospect)', 'national signing day',
+  'recruiting (?:class|rank)', 'commitment tracker',
+  'landed a commitment', 'commits? to\\b', 'decommit',
+  'players? still available',
+  // Coaching carousel (not governance)
+  'coaching (?:search|carousel|hire[ds]?|fired)',
+  // Player / game specifics
+  'injury (?:report|update)', 'depth chart',
+  'projected (?:starter|lineup)', 'stat line',
+  'all-american team', 'player of the (?:year|week)',
+  'heisman (?:watch|odds|winner|race|trophy|contender)',
+  // How-to-watch
+  'how to watch', 'where to watch', 'what channel', 'live stream',
+  'watch (?:list|party)',
+  // Practice / camp
+  'spring (?:game|practice)', 'fall camp', 'preseason (?:poll|rank)',
+  // Poll rankings
+  'ap poll', 'coaches poll', '(?:moved|moves) up.*(?:poll|rank)',
+  'dropped out.*(?:poll|rank)',
+  // Bowl / playoff matchup content
+  'bowl (?:game|matchup)', 'playoff (?:game|matchup|bracket|picture|seeding)',
+  // Schedule / scores roundups
+  'championship (?:game|schedule)', 'schedule release', 'scores? (?:from|of|recap)',
+  'when does the \\d+ (?:college|ncaa)',
+].join('|'), 'i');
+
+/**
+ * Business/regulatory signals — if present, never filter the headline.
+ */
+const BUSINESS_SIGNAL_RE = /\bnil\b|name.image.likeness|ncaa\s*(?:governance|rule|board|enforce|investigat|reform|restructur|commission|settlement|antitrust)|college sports commission|\bcsc\b|revenue.shar|salary.cap|legislation|congress|senate|house bill|\bbill\b.*(?:athlete|sport|college)|compliance|collective|waiver|title ix.*(?:nil|revenue|athlete)|transfer portal.*(?:rule|window|policy)|realignment|media rights|athlete.*(?:pay|compensat|employ|union|rights)|lawsuit|settlement|litigation|antitrust/i;
+
+/**
+ * Returns true if the title is game/tournament noise (not business/regulatory).
+ * Headlines with business signals always pass through.
+ */
+export function isGameNoise(title) {
+  if (!title) return false;
+  if (BUSINESS_SIGNAL_RE.test(title)) return false;
+  return GAME_NOISE_RE.test(title);
+}
+
+// ── Keyword Categorization ──────────────────────────────────────────
+
 /**
  * Instant keyword tagging — assign a category based on title keywords.
  * Returns null if no keywords match (AI pipeline will tag later).
@@ -49,15 +166,53 @@ export function categorizeByKeyword(title) {
 
   // Order matters: more specific patterns first
   if (/\bcsc\b|college sports commission|tip line/.test(t)) return 'CSC / Enforcement';
-  if (/\bncaa governance\b|ncaa board|d-i council|rule change|bylaw|waiver/.test(t)) return 'NCAA Governance';
+  if (/\bncaa\s+governance\b|ncaa\s+board|d-i council|\brule change\b|\bbylaw\b|\bwaiver\b/.test(t)) return 'NCAA Governance';
   if (/\bbill\b|legislation|committee hearing|senate|house bill|\blaw\b|statute|governor sign/.test(t)) return 'Legislation';
   if (/lawsuit|court|settlement|ruling|\bjudge\b|\bfiled\b|\bv\.\s|plaintiff|defendant/.test(t)) return 'Litigation';
   if (/revenue.sharing|salary cap|compensation cap|\bnil deal\b|\bcollective\b/.test(t)) return 'Revenue Sharing';
-  if (/transfer portal|\broster\b|scholarship|eligibility|\bportal\b/.test(t)) return 'Roster / Portal';
-  if (/realignment|\bconference\b.*\b(move|join|leav|add)|expansion|media rights/.test(t)) return 'Realignment';
+  if (/transfer portal|\broster\s+limit\b|scholarship limit|eligibility\s+(?:rule|waiver|transfer)|\bportal\s+(?:window|rule|policy)\b/.test(t)) return 'Roster / Portal';
+  if (/realignment|\bconference\b.*\b(?:move|join|leav|add|expan)\b|media rights/.test(t)) return 'Realignment';
 
   // Broader enforcement/investigation patterns (after CSC check)
   if (/\benforcement\b|\binvestigation\b|\bcompliance\b/.test(t)) return 'CSC / Enforcement';
 
   return null;
+}
+
+// ── Shared Headline Insert ──────────────────────────────────────────
+
+/**
+ * Insert a headline with entity decoding, URL normalization,
+ * noise filtering, and title-based deduplication.
+ * Returns true if inserted, false if skipped/duplicate.
+ */
+export async function insertHeadline(db, { source, title, url, category, published }) {
+  const cleanTitle = decodeEntities(title);
+  if (!cleanTitle || !url) return false;
+
+  // Filter game/tournament noise
+  if (isGameNoise(cleanTitle)) return false;
+
+  // Normalize URL for better dedup
+  const cleanUrl = normalizeUrl(url);
+
+  // Categorize with cleaned title
+  const cat = category || categorizeByKeyword(cleanTitle);
+
+  // Title-based dedup — skip if exact title already exists in last 7 days
+  const dup = await db.prepare(
+    `SELECT 1 FROM headlines WHERE title = ? AND published_at >= date('now', '-7 days') LIMIT 1`
+  ).bind(cleanTitle).first();
+  if (dup) return false;
+
+  // Insert (URL UNIQUE constraint still catches remaining dupes)
+  try {
+    await db.prepare(
+      `INSERT OR IGNORE INTO headlines (source, title, url, category, published_at)
+       VALUES (?, ?, ?, ?, ?)`
+    ).bind(source, cleanTitle, cleanUrl, cat, published).run();
+    return true;
+  } catch {
+    return false;
+  }
 }

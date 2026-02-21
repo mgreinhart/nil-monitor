@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { parseRSS } from './rss-parser.js';
-import { getETHour, shouldRun, recordRun, categorizeByKeyword } from './fetcher-utils.js';
+import { getETHour, shouldRun, recordRun, insertHeadline } from './fetcher-utils.js';
 
 const FETCHER = 'ncaa-rss';
 
@@ -57,17 +57,11 @@ export async function fetchNCAANews(env) {
 
         const source = item.sourceName || feed.fallbackSource;
         const published = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString();
-        const category = categorizeByKeyword(item.title);
 
-        try {
-          await env.DB.prepare(
-            `INSERT OR IGNORE INTO headlines (source, title, url, category, published_at)
-             VALUES (?, ?, ?, ?, ?)`
-          ).bind(source, item.title, item.link, category, published).run();
-          totalInserted++;
-        } catch (e) {
-          // Skip duplicates
-        }
+        const inserted = await insertHeadline(env.DB, {
+          source, title: item.title, url: item.link, published,
+        });
+        if (inserted) totalInserted++;
       }
     } catch (err) {
       console.error(`NCAA RSS error for ${feed.url}:`, err.message);
