@@ -125,6 +125,8 @@ const MOCK = {
 const X_LIST_URL = "https://x.com/i/lists/2024695913898528822";
 const NIL_PODCASTS = [
   { name: "Highway to NIL", id: "1Pju07vvKyIqEZOGDNaMMD" },
+  { name: "NIL Clubhouse", id: "3AbKOjnxZaBLs9VVfujToU" },
+  { name: "The Portal", id: "2Wr77m5yVBgANHkDS7NxI5" },
   { name: "College Football Enquirer", id: "0x30kB7Vc7T7WAK7ExXzRi" },
 ];
 // ── State Grid Cartogram ───────────────────────────────────────────
@@ -263,7 +265,7 @@ const XListEmbed = () => (
 );
 
 const PodcastsSection = () => (
-  <Panel title="Podcasts" accent={T.purple} noPad>
+  <Panel title="NIL Podcasts" accent={T.purple} noPad>
     <div style={{ display: "flex", flexDirection: "column", gap: 4, padding: 4 }}>
       {NIL_PODCASTS.map((p) => (
         <iframe
