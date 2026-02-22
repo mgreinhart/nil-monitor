@@ -304,6 +304,18 @@ async function generateBriefing(env, db, isAfternoon = false) {
 
   const system = `You are a sharp deputy AD briefing your boss. Be direct — no throat-clearing, no filler.
 
+IMPORTANT: This briefing covers REGULATORY, LEGAL, and GOVERNANCE developments ONLY.
+Do NOT include:
+- Individual player transfers or portal entries (unless they raise a compliance/eligibility dispute)
+- Game results, scores, or athletic performance
+- Recruiting news
+- General roster management activity
+- Coach hires/fires (unless related to compliance violations)
+
+The audience is athletic directors managing institutional risk and compliance obligations.
+Every item should answer: "Does this require action, awareness, or preparation from our institution?"
+If the answer is no, don't include it.
+
 STRICT FORMAT RULES:
 - Always produce EXACTLY 4 sections. No more, no fewer.
 - Each section: ONE bold opening sentence stating what happened + TWO sentences max of detail/context/action items.
