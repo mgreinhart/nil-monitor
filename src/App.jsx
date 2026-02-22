@@ -23,7 +23,7 @@ const T = {
   bg: "#f1f3f7",
   surface: "#ffffff",
   surfaceAlt: "#f7f8fb",
-  briefingBg: "#FFF9F5",
+  briefingBg: "#FFF3E8",
   text: "#0f1729",
   textMid: "#3d4a5c",
   textDim: "#7c8698",
@@ -148,7 +148,7 @@ const Panel = ({ title, accent, children, style, right, noPad, size }) => {
       overflow: "hidden",
       display: "flex",
       flexDirection: "column",
-      boxShadow: isLg ? "0 1px 4px rgba(0,0,0,.05)" : "none",
+      boxShadow: isLg ? "0 2px 8px rgba(0,0,0,.08)" : "none",
       ...style,
     }}>
       {title && (
@@ -393,7 +393,7 @@ const MonitorPage = ({ onRefresh }) => {
   return (
     <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
       {/* ══ MAIN COLUMN ══ */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
 
         {/* ══════════════════════════════════════════════════════════
             ABOVE THE FOLD — Briefing + Headlines (stacked)
@@ -459,7 +459,7 @@ const MonitorPage = ({ onRefresh }) => {
 
         {/* ── Latest Headlines ── */}
         <Panel title="Latest Headlines" accent={T.accent} noPad style={{ animation: "fadeIn 0.3s ease-in" }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "8px 16px", borderBottom: `1px solid ${T.borderLight}` }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "4px 16px", borderBottom: `1px solid ${T.borderLight}` }}>
             {["All", ...Object.keys(CAT_COLORS).slice(0, 7)].map(c => (
               <Pill key={c} active={headlineCatFilt === c} onClick={() => { setHeadlineCatFilt(c); setHlPage(0); }}>{c}</Pill>
             ))}
@@ -473,7 +473,7 @@ const MonitorPage = ({ onRefresh }) => {
           ) : hlPageItems.map((h, i) => (
             <a key={i} href={h.url} target="_blank" rel="noopener noreferrer"
               style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "8px 16px",
+                display: "flex", alignItems: "center", gap: 8, padding: "6px 16px",
                 borderBottom: `1px solid ${T.borderLight}`,
                 // severity borders: critical = coral, important = amber, routine/null = none
                 borderLeft: h.sev === "critical" ? `3px solid ${T.accent}` : h.sev === "important" ? `3px solid ${T.amber}` : "3px solid transparent",
