@@ -583,6 +583,7 @@ const MonitorPage = ({ onRefresh }) => {
   const [cases, setCases] = useState(null);
   const [headlines, setHeadlines] = useState(null);
   const [gdeltVolume, setGdeltVolume] = useState(null);
+  const [keyDates, setKeyDates] = useState(null);
 
   const fetchHeadlines = () => {
     fetch("/api/headlines?limit=100").then(r => r.ok ? r.json() : null).then(d => {
@@ -603,6 +604,9 @@ const MonitorPage = ({ onRefresh }) => {
     }).catch(() => {});
     fetch("/api/gdelt-volume").then(r => r.ok ? r.json() : null).then(d => {
       if (d) setGdeltVolume(d);
+    }).catch(() => {});
+    fetch("/api/cslt-key-dates").then(r => r.ok ? r.json() : null).then(d => {
+      if (d) setKeyDates(d);
     }).catch(() => {});
     fetchHeadlines();
 
@@ -814,6 +818,32 @@ const MonitorPage = ({ onRefresh }) => {
             <Mono style={{ fontSize: 9, color: T.textDim, letterSpacing: "0.3px" }}>
               <span style={{ color: T.accent }}>Coral dates</span> = upcoming actions &middot; <span style={{ color: T.textDim }}>Gray dates</span> = last activity
             </Mono>
+          </div>
+          {/* ── KEY DATES (curated by CSLT) ── */}
+          <div style={{ borderBottom: `1px solid ${T.border}` }}>
+            <div style={{ padding: "10px 16px 4px" }}>
+              <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
+                Key Dates{keyDates?.[0]?.month ? ` · ${keyDates[0].month}` : ""}
+              </Mono>
+            </div>
+            {keyDates && keyDates.length > 0 ? keyDates.map((d, i) => {
+              const isPast = d.date < new Date().toISOString().split("T")[0];
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "4px 16px", opacity: isPast ? 0.5 : 1 }}>
+                  <Mono style={{ fontSize: 13, fontWeight: 600, color: isPast ? T.textDim : T.accent, flexShrink: 0, width: 48 }}>
+                    {formatDate(d.date)}
+                  </Mono>
+                  <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 700, color: isPast ? T.textDim : T.text, flexShrink: 0 }}>{d.case_name}</strong>
+                  <Mono style={{ fontSize: 12, color: isPast ? T.textDim : T.textMid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {d.description}</Mono>
+                </div>
+              );
+            }) : (
+              <div style={{ padding: "6px 16px 8px" }}>
+                <a href="https://www.collegesportslitigationtracker.com/" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                  <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>View key dates on CSLT →</Mono>
+                </a>
+              </div>
+            )}
           </div>
           {courtroomGroups.length === 0 ? (
             <div style={{ padding: "20px 16px", textAlign: "center" }}>

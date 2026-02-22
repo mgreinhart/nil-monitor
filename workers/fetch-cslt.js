@@ -267,6 +267,125 @@ function parseCases(html) {
   return cases;
 }
 
+// ── CSLT Homepage Key Dates Parser ──────────────────────────────
+
+const CSLT_HOME_URL = 'https://www.collegesportslitigationtracker.com/';
+
+/**
+ * Parse the "Key Dates in Month Year" section from the CSLT homepage.
+ * HTML structure: <strong>Key Dates in February 2026:</strong> <ul><li>...</li></ul>
+ * Each <li>: <strong>February 4</strong>: Description in <em>Case Name</em>.
+ */
+function parseKeyDates(html) {
+  const headerMatch = html.match(/Key\s+Dates\s+in\s+(\w+)\s+(\d{4})/i);
+  if (!headerMatch) return { month: null, dates: [] };
+
+  const monthName = headerMatch[1];
+  const year = headerMatch[2];
+  const month = `${monthName} ${year}`;
+
+  // Find the <ul> after the header
+  const afterHeader = html.slice(html.indexOf(headerMatch[0]));
+  const ulMatch = afterHeader.match(/<ul[^>]*>([\s\S]*?)<\/ul>/i);
+  if (!ulMatch) return { month, dates: [] };
+
+  const dates = [];
+  const liRe = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+  let m;
+
+  while ((m = liRe.exec(ulMatch[1])) !== null) {
+    const liHtml = m[1];
+
+    // Date from <strong>
+    const dateMatch = liHtml.match(/<strong[^>]*>(.*?)<\/strong>/i);
+    if (!dateMatch) continue;
+    const dateText = dateMatch[1].replace(/<[^>]+>/g, '').trim();
+
+    // Convert "February 4" + year → ISO date
+    const d = new Date(`${dateText}, ${year}`);
+    const isoDate = !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : null;
+    if (!isoDate) continue;
+
+    // Case name from <em> or <i>
+    const caseMatch = liHtml.match(/<(?:em|i)[^>]*>(.*?)<\/(?:em|i)>/i);
+    const caseName = caseMatch ? caseMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+
+    // Description: strip HTML, remove date prefix, remove trailing "in CaseName."
+    let text = liHtml.replace(/<[^>]+>/g, '').trim();
+    const colonIdx = text.indexOf(':');
+    if (colonIdx !== -1) text = text.slice(colonIdx + 1).trim();
+    if (caseName) {
+      const escaped = caseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      text = text.replace(new RegExp('\\s+in\\s+' + escaped + '\\.?\\s*$', 'i'), '');
+    }
+    text = text.replace(/\.\s*$/, '').trim();
+
+    dates.push({ date: isoDate, case_name: caseName, description: text });
+  }
+
+  return { month, dates };
+}
+
+export async function fetchCSLTKeyDates(env, { force = false } = {}) {
+  if (!force) {
+    const cooldown = getCooldown();
+    if (cooldown === null) {
+      console.log('CSLT Key Dates: outside active hours, skipping');
+      return;
+    }
+    if (!await shouldRun(env.DB, 'cslt-keydates', cooldown)) {
+      console.log('CSLT Key Dates: cooldown not elapsed, skipping');
+      return;
+    }
+  }
+
+  console.log('Fetching CSLT homepage key dates...');
+
+  let html;
+  try {
+    const resp = await fetch(CSLT_HOME_URL, {
+      headers: { 'User-Agent': 'NILMonitor/1.0 (college athletics dashboard)' },
+    });
+    if (!resp.ok) {
+      console.error(`CSLT Key Dates: fetch failed: ${resp.status}`);
+      return;
+    }
+    html = await resp.text();
+  } catch (err) {
+    console.error('CSLT Key Dates: fetch error:', err.message);
+    return;
+  }
+
+  const { month, dates } = parseKeyDates(html);
+
+  if (!dates.length) {
+    console.log('CSLT Key Dates: no dates parsed (HTML structure may have changed)');
+    await recordRun(env.DB, 'cslt-keydates');
+    return;
+  }
+
+  // Clear and re-insert (whole section replaces monthly)
+  await env.DB.prepare('DELETE FROM cslt_key_dates').run();
+
+  let inserted = 0;
+  for (const d of dates) {
+    try {
+      await env.DB.prepare(
+        `INSERT INTO cslt_key_dates (date, case_name, description, month)
+         VALUES (?, ?, ?, ?)`
+      ).bind(d.date, d.case_name, d.description, month).run();
+      inserted++;
+    } catch (err) {
+      console.error(`CSLT Key Dates: insert error:`, err.message);
+    }
+  }
+
+  await recordRun(env.DB, 'cslt-keydates');
+  console.log(`CSLT Key Dates: ${inserted} dates stored for ${month}`);
+}
+
+// ── CSLT Tracker Full Scraper ──────────────────────────────────
+
 export async function fetchCSLT(env, { force = false } = {}) {
   if (!force) {
     const cooldown = getCooldown();

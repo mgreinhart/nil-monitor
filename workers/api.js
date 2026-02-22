@@ -165,6 +165,14 @@ export async function handleApi(request, env) {
       return json({ ran_at: row?.ran_at || null });
     }
 
+    // CSLT Key Dates (curated monthly litigation dates)
+    if (path === '/api/cslt-key-dates') {
+      const { results } = await env.DB.prepare(
+        'SELECT * FROM cslt_key_dates ORDER BY date ASC'
+      ).all();
+      return json(results);
+    }
+
     // CSC Activity
     if (path === '/api/csc') {
       const { results } = await env.DB.prepare(
@@ -209,7 +217,7 @@ export async function handleApi(request, env) {
       const { fetchCongress } = await import('./fetch-congress.js');
       const { fetchCourtListener } = await import('./fetch-courtlistener.js');
       const { fetchNILRevolution } = await import('./fetch-nil-revolution.js');
-      const { fetchCSLT } = await import('./fetch-cslt.js');
+      const { fetchCSLT, fetchCSLTKeyDates } = await import('./fetch-cslt.js');
       const { fetchPodcasts } = await import('./fetch-podcasts.js');
       const { fetchGDELT } = await import('./fetch-gdelt.js');
       const { runAIPipeline } = await import('./ai-pipeline.js');
@@ -227,6 +235,7 @@ export async function handleApi(request, env) {
             fetchCourtListener(env).then(() => log.push('courtlistener: ok')).catch(e => log.push(`courtlistener: ${e.message}`)),
             fetchNILRevolution(env).then(() => log.push('nil-revolution: ok')).catch(e => log.push(`nil-revolution: ${e.message}`)),
             fetchCSLT(env, { force: true }).then(() => log.push('cslt: ok')).catch(e => log.push(`cslt: ${e.message}`)),
+            fetchCSLTKeyDates(env, { force: true }).then(() => log.push('cslt-keydates: ok')).catch(e => log.push(`cslt-keydates: ${e.message}`)),
             fetchPodcasts(env, { force: true }).then(() => log.push('podcasts: ok')).catch(e => log.push(`podcasts: ${e.message}`)),
             fetchGDELT(env, { force: true }).then(() => log.push('gdelt: ok')).catch(e => log.push(`gdelt: ${e.message}`)),
           ]);

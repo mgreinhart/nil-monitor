@@ -128,6 +128,16 @@ CREATE TABLE IF NOT EXISTS podcast_episodes (
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
+-- CSLT Key Dates (curated monthly section from CSLT homepage)
+CREATE TABLE IF NOT EXISTS cslt_key_dates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  date TEXT NOT NULL,
+  case_name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  month TEXT NOT NULL,
+  fetched_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Fetcher self-governing cooldowns
 CREATE TABLE IF NOT EXISTS fetcher_runs (
   fetcher_name TEXT PRIMARY KEY,
