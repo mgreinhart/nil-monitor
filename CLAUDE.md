@@ -1,46 +1,19 @@
-# CLAUDE.md — NIL Monitor
+# NIL Monitor — Claude Code Instructions
 
-## What This Is
+Before answering any questions or making any changes, read `NIL-Monitor-Status.md` for current project state. That file is the source of truth for what's built, what's working, architecture decisions, and known issues.
 
-NIL Monitor is a live regulatory dashboard for college athletics decision-makers (ADs, compliance officers, sports lawyers). It answers: "Did anything change overnight that I need to know about?"
+If the status doc seems stale or you're unsure, audit the actual source files in `src/` and `workers/` before proceeding.
 
-## Current State
+## Project Overview
 
-Phase 1 (static shell) is complete. The entire app is in `src/App.jsx` — a single-file React component with mock data. Five pages: Monitor (dashboard), States, Cases, Headlines, About.
+Live dashboard at nilmonitor.com for college athletics decision-makers. Tracks NIL legislation, litigation, NCAA governance, and CSC enforcement.
 
-## Architecture
+## Key Files
 
-- **Frontend:** React + Vite. All in `src/App.jsx` right now.
-- **Backend (Phase 2):** Cloudflare Workers + D1. Workers fetch data on cron schedules, store in D1, serve via API.
-- **AI Pipeline (Phase 3):** Cloudflare Worker calls Anthropic API to generate briefings, extract events/deadlines, tag CSC activity.
-
-## Key Docs
-
-- `docs/NIL-Monitor-Revised-IA.md` — Full information architecture. Read this for product context, user personas, what each section does, and data source details.
-- `docs/NIL-Monitor-Build-Spec.md` — Phase 2-4 implementation plan. D1 schema, Worker patterns, API endpoints, AI prompt templates, deploy pipeline.
-
-## Design Tokens
-
-The app uses a Bloomberg-terminal-meets-news-app aesthetic. Key values are in the `T` object at the top of `App.jsx`:
-- Fonts: DM Sans (body) + JetBrains Mono (data/timestamps)
-- Colors: Navy nav, off-white bg, blue accent, green/amber/red status
-- Dense information layout — no decoration for decoration's sake
-
-## Development
-
-```bash
-npm run dev          # Vite dev server on localhost:5173
-npm run build        # Production build to dist/
-```
-
-## What Comes Next
-
-Phase 2A: Replace mock sidebar content with live embeds (X List, Spotify, Google Trends). These are just iframe embed codes — no backend needed.
-
-Phase 2B: Set up Cloudflare (wrangler, D1 database, schema from build spec).
-
-Phase 2C: Data fetch Workers (LegiScan, CourtListener, NewsData.io, etc.)
-
-Phase 2D: API Worker + connect frontend to real data.
-
-See the build spec for the full session-by-session sequence.
+- `NIL-Monitor-Status.md` — Current state, what works, what doesn't, all decisions
+- `NIL-Monitor-Build-Spec.md` — Original build specification
+- `NIL-Monitor-Revised-IA.md` — Information architecture
+- `NIL-Monitor-Schedule.md` — Fetch/pipeline architecture reference
+- `src/` — React frontend (Vite)
+- `workers/` — Cloudflare Workers (API, fetchers, AI pipeline)
+- `schema.sql` — D1 database schema
