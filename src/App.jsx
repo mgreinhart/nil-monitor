@@ -269,7 +269,7 @@ const KalshiSection = () => (
 
 // ── Nav Resources ────────────────────────────────────────────────
 const RESOURCES = [
-  { label: "NIL Legislation Tracker", href: "https://businessofcollegesports.com/tracker-name-image-and-likeness-legislation-by-state/" },
+  { label: "NIL Legislation Tracker", href: "https://www.troutman.com/state-and-federal-nil-legislation-tracker.html" },
   { label: "CourtListener", href: "https://www.courtlistener.com" },
   { label: "LegiScan", href: "https://legiscan.com" },
   { label: "NCAA.org", href: "https://www.ncaa.org" },
