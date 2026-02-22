@@ -160,7 +160,7 @@ const Panel = ({ title, accent, children, style, right, noPad, size }) => {
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: isLg ? 5 : isSm ? 3 : 4, height: isLg ? 18 : 14, borderRadius: 2, background: ac, flexShrink: 0 }} />
-            <Mono style={{ fontSize: isLg ? 17 : isSm ? 14 : 15, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: ac }}>{title}</Mono>
+            <Mono style={{ fontSize: isLg ? 17 : isSm ? 14 : 16, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: ac }}>{title}</Mono>
           </div>
           {right}
         </div>
@@ -209,8 +209,8 @@ const XListEmbed = () => (
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "4px 0", borderBottom: `1px solid ${T.border}`,
         }}>
-          <Mono style={{ fontSize: 12, fontWeight: 600, color: T.textMid }}>{a.handle}</Mono>
-          <Mono style={{ fontSize: 11, color: T.textDim }}>{a.org}</Mono>
+          <span style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 500, color: T.textMid }}>{a.handle}</span>
+          <Mono style={{ fontSize: 12, color: T.textDim }}>{a.org}</Mono>
         </div>
       ))}
     </div>
@@ -432,7 +432,7 @@ const MonitorPage = ({ onRefresh }) => {
                   style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "16px 0", cursor: "pointer" }}
                 >
                   <Mono style={{ fontSize: 12, color: T.textDim, lineHeight: 1.6, flexShrink: 0, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none" }}>▸</Mono>
-                  <span style={{ fontFamily: T.sans, fontSize: 17, fontWeight: 600, lineHeight: 1.5, color: T.text }}>{s.headline}</span>
+                  <span style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 600, lineHeight: 1.5, color: T.text }}>{s.headline}</span>
                 </div>
                 <div style={{
                   maxHeight: isOpen ? 400 : 0, overflow: "hidden",
@@ -448,7 +448,7 @@ const MonitorPage = ({ onRefresh }) => {
           })}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
             <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: T.accent, flexShrink: 0 }} />
-            <Mono style={{ fontSize: 12, color: T.accent }}>
+            <Mono style={{ fontSize: 13, color: T.accent }}>
               {briefingGeneratedAt ? `Generated ${(() => {
                 const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
                 return new Date(n).toLocaleString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short" }) + " · " + new Date(n).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -482,10 +482,10 @@ const MonitorPage = ({ onRefresh }) => {
               onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
-              <Mono style={{ flex: "0 0 72px", fontSize: 11, fontWeight: 600, color: T.textDim, textTransform: "uppercase", letterSpacing: ".3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.src}</Mono>
+              <Mono style={{ flex: "0 0 80px", fontSize: 12, fontWeight: 600, color: T.textDim, textTransform: "uppercase", letterSpacing: ".3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.src}</Mono>
               {h.cat && <Badge color={CAT_COLORS[h.cat]}>{h.cat}</Badge>}
               {h.subCat && <Badge color={CSC_SUB_COLORS[h.subCat] || T.textDim}>{h.subCat}</Badge>}
-              <div style={{ flex: 1, fontFamily: T.sans, fontSize: 14, fontWeight: h.sev === "critical" ? 600 : 500, color: T.text, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
+              <div style={{ flex: 1, fontFamily: T.sans, fontSize: 15, fontWeight: h.sev === "critical" ? 600 : 500, color: T.text, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
               {h.isNew && <span style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, color: "#fff", background: T.green, padding: "2px 6px", borderRadius: 3, letterSpacing: ".5px", flexShrink: 0, textTransform: "uppercase", lineHeight: 1.3 }}>NEW</span>}
               <Mono style={{ flex: "0 0 48px", fontSize: 12, color: T.textDim, textAlign: "right" }}>{h.time}</Mono>
             </a>
@@ -519,11 +519,11 @@ const MonitorPage = ({ onRefresh }) => {
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
                   <Mono style={{ fontSize: 11, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>
-                  <strong style={{ fontFamily: T.sans, fontSize: 15, color: T.text }}>{c.name}</strong>
+                  <strong style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, color: T.text }}>{c.name}</strong>
                   <Badge color={T.amber}>{c.status}</Badge>
                   {c.cat && <Badge color={CAT_COLORS[c.cat]}>{c.cat}</Badge>}
                   <div style={{ flex: 1 }} />
-                  {c.next && <Mono style={{ fontSize: 11, fontWeight: 600, color: nextSoon ? T.red : T.textDim, flexShrink: 0 }}>→ {c.next}</Mono>}
+                  {c.next && <Mono style={{ fontSize: 13, fontWeight: 600, color: nextSoon ? T.red : T.textDim, flexShrink: 0 }}>→ {c.next}</Mono>}
                 </div>
                 <div style={{
                   maxHeight: isOpen ? 300 : 0, overflow: "hidden",
