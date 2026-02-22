@@ -269,7 +269,7 @@ const KalshiSection = () => (
 
 // ── Nav Resources ────────────────────────────────────────────────
 const RESOURCES = [
-  { label: "Saul Ewing NIL Tracker", href: "https://www.saul.com/nil-tracker" },
+  { label: "Saul Ewing NIL Tracker", href: "https://www.saul.com/nil-legislation-tracker" },
   { label: "CourtListener", href: "https://www.courtlistener.com" },
   { label: "LegiScan", href: "https://legiscan.com" },
   { label: "NCAA.org", href: "https://www.ncaa.org" },
