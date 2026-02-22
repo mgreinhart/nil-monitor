@@ -202,47 +202,41 @@ const X_LIST_ACCOUNTS = [
 
 const XListEmbed = () => (
   <Panel title="Live NIL News Feed" accent={T.green} size="sm">
-    <a href={X_LIST_URL} target="_blank" rel="noopener noreferrer"
-      style={{
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-        padding: "8px 12px", background: "transparent", borderRadius: 4,
-        border: `1px solid ${T.border}`,
-        textDecoration: "none", marginBottom: 8,
-      }}>
-      <span style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 500, color: T.text }}>Open on X</span>
-      <Mono style={{ fontSize: 11, color: T.textDim }}>→</Mono>
-    </a>
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       {X_LIST_ACCOUNTS.map((a, i) => (
         <div key={i} style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "4px 0", borderBottom: i < X_LIST_ACCOUNTS.length - 1 ? `1px solid ${T.borderLight}` : "none",
+          padding: "4px 0", borderBottom: `1px solid ${T.border}`,
         }}>
-          <Mono style={{ fontSize: 13, fontWeight: 600, color: T.textMid }}>{a.handle}</Mono>
+          <Mono style={{ fontSize: 12, fontWeight: 600, color: T.textMid }}>{a.handle}</Mono>
           <Mono style={{ fontSize: 11, color: T.textDim }}>{a.org}</Mono>
         </div>
       ))}
     </div>
-    <Mono style={{ display: "block", textAlign: "center", marginTop: 8, fontSize: 11, color: T.textDim }}>
-      Auto-updating feed
-    </Mono>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+      <Mono style={{ fontSize: 11, color: T.textDim }}>Auto-updating · {X_LIST_ACCOUNTS.length} accounts</Mono>
+      <a href={X_LIST_URL} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+        <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>Open on X →</Mono>
+      </a>
+    </div>
   </Panel>
 );
 
 const PodcastsSection = () => (
   <Panel title="NIL Podcasts" accent={T.purple} size="sm" noPad>
-    <div style={{ display: "flex", flexDirection: "column", gap: 4, padding: 4 }}>
-      {NIL_PODCASTS.map((p) => (
-        <iframe
-          key={p.id}
-          src={`https://open.spotify.com/embed/show/${p.id}?utm_source=generator&theme=0`}
-          width="100%"
-          height="80"
-          frameBorder="0"
-          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-          loading="lazy"
-          style={{ display: "block", borderRadius: 8 }}
-        />
+    <div style={{ display: "flex", flexDirection: "column", gap: 0, padding: 4 }}>
+      {NIL_PODCASTS.map((p, i) => (
+        <div key={p.id} style={{ borderBottom: i < NIL_PODCASTS.length - 1 ? `1px solid ${T.border}` : "none", padding: "2px 0" }}>
+          <iframe
+            src={`https://open.spotify.com/embed/show/${p.id}?utm_source=generator&theme=0`}
+            width="100%"
+            height="76"
+            frameBorder="0"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+            style={{ display: "block", borderRadius: 8, maxWidth: "100%" }}
+          />
+        </div>
       ))}
     </div>
   </Panel>
@@ -314,7 +308,7 @@ const isWithinHour = (dateStr) => {
 // ╔═══════════════════════════════════════════════════════════════════
 //  MONITOR PAGE — The Dashboard (live from D1, falls back to mock)
 // ╚═══════════════════════════════════════════════════════════════════
-const MonitorPage = () => {
+const MonitorPage = ({ onRefresh }) => {
   const [expCase, setExpCase] = useState(null);
   const [headlineCatFilt, setHeadlineCatFilt] = useState("All");
   const [hlPage, setHlPage] = useState(0);
@@ -329,7 +323,7 @@ const MonitorPage = () => {
 
   const fetchHeadlines = () => {
     fetch("/api/headlines?limit=100").then(r => r.ok ? r.json() : null).then(d => {
-      if (d) setHeadlines(d);
+      if (d) { setHeadlines(d); onRefresh?.(new Date()); }
     }).catch(() => {});
     fetch("/api/headline-counts").then(r => r.ok ? r.json() : null).then(d => {
       if (d) setHeadlineCounts(d);
@@ -405,7 +399,7 @@ const MonitorPage = () => {
            ══════════════════════════════════════════════════════════ */}
 
         {/* ── Briefing (accordion, always expanded by default) ── */}
-        <Panel size="lg" title={(() => {
+        <Panel size="lg" style={{ animation: "fadeIn 0.3s ease-in" }} title={(() => {
           if (!briefingGeneratedAt) return "Briefing";
           const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
           const d = new Date(n);
@@ -463,7 +457,7 @@ const MonitorPage = () => {
         </Panel>
 
         {/* ── Latest Headlines ── */}
-        <Panel title="Latest Headlines" accent={T.accent} noPad>
+        <Panel title="Latest Headlines" accent={T.accent} noPad style={{ animation: "fadeIn 0.3s ease-in" }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "8px 16px", borderBottom: `1px solid ${T.borderLight}` }}>
             {["All", ...Object.keys(CAT_COLORS).slice(0, 7)].map(c => (
               <Pill key={c} active={headlineCatFilt === c} onClick={() => { setHeadlineCatFilt(c); setHlPage(0); }}>{c}</Pill>
@@ -491,8 +485,8 @@ const MonitorPage = () => {
               {h.cat && <Badge color={CAT_COLORS[h.cat]}>{h.cat}</Badge>}
               {h.subCat && <Badge color={CSC_SUB_COLORS[h.subCat] || T.textDim}>{h.subCat}</Badge>}
               <div style={{ flex: 1, fontFamily: T.sans, fontSize: 14, fontWeight: h.sev === "critical" ? 600 : 500, color: T.text, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
-              {h.isNew && <Mono style={{ fontSize: 11, fontWeight: 700, color: T.green, letterSpacing: ".5px", flexShrink: 0 }}>NEW</Mono>}
-              <Mono style={{ flex: "0 0 auto", fontSize: 12, color: T.textDim }}>{h.time}</Mono>
+              {h.isNew && <span style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, color: "#fff", background: T.green, padding: "2px 6px", borderRadius: 3, letterSpacing: ".5px", flexShrink: 0, textTransform: "uppercase", lineHeight: 1.3 }}>NEW</span>}
+              <Mono style={{ flex: "0 0 48px", fontSize: 12, color: T.textDim, textAlign: "right" }}>{h.time}</Mono>
             </a>
           ))}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 16px", borderTop: `1px solid ${T.borderLight}` }}>
@@ -651,6 +645,14 @@ const InfoModal = ({ onClose }) => (
 export default function NILMonitor() {
   const [showResources, setShowResources] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(null);
+  const [now, setNow] = useState(Date.now());
+
+  // Tick every 60s so "Updated X min ago" stays fresh
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, []);
 
   // Close dropdown on any outside click
   useEffect(() => {
@@ -671,6 +673,7 @@ export default function NILMonitor() {
         button { outline: none; }
         button:hover { filter: brightness(0.95); }
         @keyframes pulse-live { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+        @keyframes fadeIn { from { opacity: 0.95; } to { opacity: 1; } }
       `}</style>
 
       {/* ── Navigation ── */}
@@ -688,8 +691,12 @@ export default function NILMonitor() {
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: T.green, display: "inline-block", animation: "pulse-live 2s ease-in-out infinite" }} />
           <Mono style={{ fontSize: 11, fontWeight: 700, color: T.green, letterSpacing: ".5px" }}>LIVE</Mono>
         </div>
-        <Mono style={{ fontSize: 11, color: "rgba(255,255,255,.5)" }}>
+        <Mono style={{ fontSize: 12, color: "rgba(255,255,255,.65)" }}>
           {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          {lastRefresh && (() => {
+            const mins = Math.floor((now - lastRefresh.getTime()) / 60000);
+            return ` · Updated ${mins < 1 ? "just now" : mins < 60 ? `${mins}m ago` : `${Math.floor(mins / 60)}h ago`}`;
+          })()}
         </Mono>
 
         {/* Spacer */}
@@ -739,7 +746,7 @@ export default function NILMonitor() {
 
       {/* ── Dashboard ── */}
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "16px 16px 40px" }}>
-        <MonitorPage />
+        <MonitorPage onRefresh={setLastRefresh} />
       </main>
 
       {/* ── Info Modal ── */}
