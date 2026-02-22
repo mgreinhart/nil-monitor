@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { ComposableMap, Geographies, Geography } from "react-simple-maps";
+import stateNilData from "./nil-state-data.json";
 
 /* ═══════════════════════════════════════════════════════════════════
    NIL MONITOR — Phase 1 Static Shell
@@ -304,6 +306,102 @@ const isWithinHour = (dateStr) => {
   return !isNaN(diff) && diff >= 0 && diff < 3600000;
 };
 
+// ── State NIL Legislation Map ─────────────────────────────────────
+const GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
+const STATE_DATA_BY_NAME = Object.fromEntries(stateNilData.map(s => [s.name, s]));
+
+const StateLegislationMap = () => {
+  const [selected, setSelected] = useState(null);
+  const enacted = stateNilData.filter(s => s.status === "enacted").length;
+  const total = stateNilData.length;
+
+  return (
+    <Panel title="State NIL Legislation" accent="#6366f1" noPad>
+      <div style={{ padding: "12px 16px 0" }}>
+        <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 12, height: 12, borderRadius: 2, background: "#10b981", display: "inline-block" }} />
+            <Mono style={{ fontSize: 11, color: T.textMid }}>Enacted ({enacted})</Mono>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 12, height: 12, borderRadius: 2, background: "#e2e5ec", display: "inline-block" }} />
+            <Mono style={{ fontSize: 11, color: T.textMid }}>No Law ({total - enacted})</Mono>
+          </div>
+        </div>
+      </div>
+      <div style={{ padding: "0 8px" }}>
+        <ComposableMap projection="geoAlbersUsa" style={{ width: "100%", height: "auto" }}>
+          <Geographies geography={GEO_URL}>
+            {({ geographies }) =>
+              geographies.map((geo) => {
+                const name = geo.properties.name;
+                const stateData = STATE_DATA_BY_NAME[name];
+                const isEnacted = stateData?.status === "enacted";
+                const isSelected = selected?.name === name;
+                return (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    onClick={() => setSelected(stateData || null)}
+                    style={{
+                      default: {
+                        fill: isEnacted ? "#10b981" : "#e2e5ec",
+                        stroke: "#fff",
+                        strokeWidth: isSelected ? 1.5 : 0.5,
+                        outline: "none",
+                        cursor: "pointer",
+                      },
+                      hover: {
+                        fill: isEnacted ? "#059669" : "#cbd5e1",
+                        stroke: "#fff",
+                        strokeWidth: 1,
+                        outline: "none",
+                        cursor: "pointer",
+                      },
+                      pressed: {
+                        fill: isEnacted ? "#047857" : "#94a3b8",
+                        stroke: "#fff",
+                        strokeWidth: 1.5,
+                        outline: "none",
+                      },
+                    }}
+                  />
+                );
+              })
+            }
+          </Geographies>
+        </ComposableMap>
+      </div>
+      {selected && (
+        <div style={{ padding: "0 16px 16px", borderTop: `1px solid ${T.border}` }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0 8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <strong style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, color: T.text }}>{selected.name}</strong>
+              <Mono style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: selected.status === "enacted" ? T.green : T.textDim, padding: "2px 8px", borderRadius: 3 }}>
+                {selected.status === "enacted" ? "ENACTED" : "NO LAW"}
+              </Mono>
+            </div>
+            <button onClick={() => setSelected(null)} style={{ fontFamily: T.mono, fontSize: 14, color: T.textDim, background: "transparent", border: "none", cursor: "pointer" }}>&times;</button>
+          </div>
+          {selected.statusDetail && selected.statusDetail !== "None." && (
+            <Mono style={{ fontSize: 11, color: T.textDim, lineHeight: 1.5, display: "block", marginBottom: 8 }}>{selected.statusDetail}</Mono>
+          )}
+          {selected.summary && selected.summary !== "N/A." && (
+            <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textMid, lineHeight: 1.6, maxHeight: 200, overflowY: "auto" }}>
+              {selected.summary}
+            </div>
+          )}
+        </div>
+      )}
+      <div style={{ padding: "8px 16px", borderTop: `1px solid ${T.border}` }}>
+        <Mono style={{ fontSize: 10, color: T.textDim }}>
+          Source: Troutman Pepper — State & Federal NIL Legislation Tracker (Feb 2026)
+        </Mono>
+      </div>
+    </Panel>
+  );
+};
+
 // ╔═══════════════════════════════════════════════════════════════════
 //  MONITOR PAGE — The Dashboard (live from D1, falls back to mock)
 // ╚═══════════════════════════════════════════════════════════════════
@@ -503,6 +601,9 @@ const MonitorPage = ({ onRefresh }) => {
         {/* ══════════════════════════════════════════════════════════
             BELOW THE FOLD — Detail Sections
            ══════════════════════════════════════════════════════════ */}
+
+        {/* ── State NIL Legislation Map ── */}
+        <StateLegislationMap />
 
         {/* ── Litigation ── */}
         <Panel title="The Courtroom" accent={T.textDim} noPad>
