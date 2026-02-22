@@ -154,9 +154,9 @@ const Panel = ({ title, accent, children, style, right, noPad, size }) => {
       {title && (
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: isSm ? "8px 12px" : "12px 16px",
+          padding: isSm ? "8px 12px" : "8px 16px",
           borderBottom: `1px solid ${T.border}`,
-          minHeight: isLg ? 40 : isSm ? 32 : 36,
+          minHeight: isLg ? 36 : 32,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: isLg ? 5 : isSm ? 3 : 4, height: isLg ? 18 : 14, borderRadius: 2, background: ac, flexShrink: 0 }} />
@@ -165,7 +165,7 @@ const Panel = ({ title, accent, children, style, right, noPad, size }) => {
           {right}
         </div>
       )}
-      <div style={{ padding: noPad ? 0 : isLg ? "16px 20px" : isSm ? "12px" : "16px", flex: 1, minHeight: 0 }}>{children}</div>
+      <div style={{ padding: noPad ? 0 : isLg ? "16px" : isSm ? "12px" : "12px 16px", flex: 1, minHeight: 0 }}>{children}</div>
     </div>
   );
 };
@@ -391,9 +391,9 @@ const MonitorPage = ({ onRefresh }) => {
   const hlPageItems = hlFiltered.slice(hlPageClamped * HL_PER_PAGE, (hlPageClamped + 1) * HL_PER_PAGE);
 
   return (
-    <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
       {/* ══ MAIN COLUMN ══ */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
 
         {/* ══════════════════════════════════════════════════════════
             ABOVE THE FOLD — Briefing + Headlines (stacked)
@@ -429,7 +429,7 @@ const MonitorPage = ({ onRefresh }) => {
                     next.has(i) ? next.delete(i) : next.add(i);
                     return next;
                   })}
-                  style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "16px 0", cursor: "pointer" }}
+                  style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "12px 0", cursor: "pointer" }}
                 >
                   <Mono style={{ fontSize: 12, color: T.textDim, lineHeight: 1.6, flexShrink: 0, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none" }}>▸</Mono>
                   <span style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 600, lineHeight: 1.5, color: T.text }}>{s.headline}</span>
@@ -473,7 +473,7 @@ const MonitorPage = ({ onRefresh }) => {
           ) : hlPageItems.map((h, i) => (
             <a key={i} href={h.url} target="_blank" rel="noopener noreferrer"
               style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "12px 16px",
+                display: "flex", alignItems: "center", gap: 8, padding: "8px 16px",
                 borderBottom: `1px solid ${T.borderLight}`,
                 // severity borders: critical = coral, important = amber, routine/null = none
                 borderLeft: h.sev === "critical" ? `3px solid ${T.accent}` : h.sev === "important" ? `3px solid ${T.amber}` : "3px solid transparent",
@@ -567,7 +567,7 @@ const MonitorPage = ({ onRefresh }) => {
       </div>
 
       {/* ══ SIDEBAR ══ */}
-      <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 12, position: "sticky", top: 52 }}>
+      <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: 52 }}>
         <XListEmbed />
         <PodcastsSection />
       </div>
