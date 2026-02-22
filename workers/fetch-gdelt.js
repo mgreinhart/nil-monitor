@@ -87,30 +87,19 @@ export async function fetchGDELT(env, { force = false } = {}) {
   console.log('Fetching GDELT news volume...');
 
   let data;
-  try {
-    const resp = await fetch(GDELT_URL, {
-      headers: { 'User-Agent': 'NILMonitor/1.0 (news volume chart)' },
-    });
-    if (!resp.ok) {
-      console.error(`GDELT: API returned ${resp.status}`);
-      return;
-    }
-    const text = await resp.text();
-    // GDELT returns plain text or HTML on errors/rate limits
-    if (!text.startsWith('{')) {
-      console.error('GDELT: API returned non-JSON:', text.slice(0, 100));
-      return;
-    }
-    data = JSON.parse(text);
-  } catch (err) {
-    console.error('GDELT: fetch error:', err.message);
-    return;
+  const resp = await fetch(GDELT_URL);
+  if (!resp.ok) {
+    throw new Error(`API returned ${resp.status}`);
   }
+  const text = await resp.text();
+  if (!text.startsWith('{')) {
+    throw new Error(`API returned non-JSON: ${text.slice(0, 200)}`);
+  }
+  data = JSON.parse(text);
 
   const points = parseTimeline(data);
   if (points.length === 0) {
-    console.log('GDELT: no data points parsed from response');
-    return;
+    throw new Error(`No data points parsed. Keys: ${Object.keys(data).join(',')}`);
   }
 
   let upserted = 0;
