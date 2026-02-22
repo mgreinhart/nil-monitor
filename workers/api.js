@@ -26,13 +26,20 @@ export async function handleApi(request, env) {
   try {
     // Cases
     if (path === '/api/cases') {
-      const cat = url.searchParams.get('cat');
-      let query = 'SELECT * FROM cases ORDER BY last_filing_date DESC';
+      const group = url.searchParams.get('group');
+      const active = url.searchParams.get('active');
+      let query = 'SELECT * FROM cases';
+      const conditions = [];
       const params = [];
-      if (cat && cat !== 'All') {
-        query = 'SELECT * FROM cases WHERE category = ? ORDER BY last_filing_date DESC';
-        params.push(cat);
+      if (group && group !== 'All') {
+        conditions.push('case_group = ?');
+        params.push(group);
       }
+      if (active !== '0') {
+        conditions.push('is_active = 1');
+      }
+      if (conditions.length) query += ' WHERE ' + conditions.join(' AND ');
+      query += ' ORDER BY last_event_date DESC';
       const { results } = await env.DB.prepare(query).bind(...params).all();
       return json(results);
     }
@@ -42,6 +49,14 @@ export async function handleApi(request, env) {
       const row = await env.DB.prepare('SELECT * FROM cases WHERE id = ?').bind(id).first();
       if (!row) return json({ error: 'Not found' }, 404);
       return json(row);
+    }
+
+    // Case Updates
+    if (path === '/api/case-updates') {
+      const { results } = await env.DB.prepare(
+        'SELECT * FROM case_updates ORDER BY fetched_at DESC LIMIT 50'
+      ).all();
+      return json(results);
     }
 
     // Headlines
@@ -131,6 +146,7 @@ export async function handleApi(request, env) {
       const { fetchCongress } = await import('./fetch-congress.js');
       const { fetchCourtListener } = await import('./fetch-courtlistener.js');
       const { fetchNILRevolution } = await import('./fetch-nil-revolution.js');
+      const { fetchCSLT } = await import('./fetch-cslt.js');
       const { runAIPipeline } = await import('./ai-pipeline.js');
 
       const phase = url.searchParams.get('phase') || 'all';
@@ -145,6 +161,7 @@ export async function handleApi(request, env) {
             fetchCongress(env).then(() => log.push('congress: ok')).catch(e => log.push(`congress: ${e.message}`)),
             fetchCourtListener(env).then(() => log.push('courtlistener: ok')).catch(e => log.push(`courtlistener: ${e.message}`)),
             fetchNILRevolution(env).then(() => log.push('nil-revolution: ok')).catch(e => log.push(`nil-revolution: ${e.message}`)),
+            fetchCSLT(env, { force: true }).then(() => log.push('cslt: ok')).catch(e => log.push(`cslt: ${e.message}`)),
           ]);
         }
         if (phase === 'ai' || phase === 'all') {

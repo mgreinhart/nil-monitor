@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ComposableMap, Geographies, Geography } from "react-simple-maps";
+import { ComposableMap, Geographies, Geography, Marker, Line } from "react-simple-maps";
 import stateNilData from "./nil-state-data.json";
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -199,11 +199,10 @@ const X_LIST_ACCOUNTS = [
   { handle: "@DarrenHeitner", org: "NIL Legal" },
   { handle: "@achristovichh", org: "FOS" },
   { handle: "@Sportico", org: "Sports Business" },
-  { handle: "@NCAA", org: "Official" },
 ];
 
 const XListEmbed = () => (
-  <Panel title="Live NIL News Feed" accent={T.green} size="sm">
+  <Panel title="Live NIL News Feed" accent={T.accent} size="sm">
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       {X_LIST_ACCOUNTS.map((a, i) => (
         <div key={i} style={{
@@ -214,6 +213,9 @@ const XListEmbed = () => (
           <Mono style={{ fontSize: 12, color: T.textDim }}>{a.org}</Mono>
         </div>
       ))}
+      <div style={{ padding: "4px 0", borderBottom: `1px solid ${T.border}`, textAlign: "center" }}>
+        <span style={{ fontFamily: T.sans, fontSize: 13, fontStyle: "italic", color: T.textDim }}>...and more</span>
+      </div>
     </div>
     <div style={{ marginTop: 8, textAlign: "right" }}>
       <a href={X_LIST_URL} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
@@ -224,7 +226,7 @@ const XListEmbed = () => (
 );
 
 const PodcastsSection = () => (
-  <Panel title="NIL Podcasts" accent={T.purple} size="sm" noPad>
+  <Panel title="NIL Podcasts" accent={T.accent} size="sm" noPad>
     <div style={{ display: "flex", flexDirection: "column", gap: 0, padding: 4 }}>
       {NIL_PODCASTS.map((p, i) => (
         <div key={p.id} style={{ borderBottom: i < NIL_PODCASTS.length - 1 ? `1px solid ${T.border}` : "none", padding: "2px 0" }}>
@@ -310,17 +312,86 @@ const isWithinHour = (dateStr) => {
 const GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
 const STATE_DATA_BY_NAME = Object.fromEntries(stateNilData.map(s => [s.name, s]));
 
+const parseSections = (summary) => {
+  if (!summary || summary === "N/A.") return [];
+  const lines = summary.split("\n");
+  const sections = [];
+  let current = null;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const isHeader = trimmed.length >= 10 && trimmed.length < 85
+      && /^[A-Z]/.test(trimmed)
+      && !/[.;,:]$/.test(trimmed)
+      && !/; or$/.test(trimmed)
+      && trimmed.split(/\s+/).length >= 2;
+    if (isHeader) {
+      current = { title: trimmed, content: [] };
+      sections.push(current);
+    } else if (current) {
+      current.content.push(trimmed);
+    } else {
+      current = { title: "Overview", content: [trimmed] };
+      sections.push(current);
+    }
+  }
+  // Merge empty sections: fold their title into the next section as a lead-in
+  const merged = [];
+  for (let i = 0; i < sections.length; i++) {
+    if (sections[i].content.length === 0 && i + 1 < sections.length) {
+      sections[i + 1].content.unshift(sections[i + 1].title);
+      sections[i + 1].title = sections[i].title;
+    } else {
+      merged.push(sections[i]);
+    }
+  }
+  return merged;
+};
+
+const SectionedSummary = ({ summary }) => {
+  const sections = parseSections(summary);
+  const [openSec, setOpenSec] = useState(new Set());
+  if (!sections.length) return null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+      {sections.map((sec, i) => {
+        const isOpen = openSec.has(i);
+        return (
+          <div key={i} style={{ borderBottom: i < sections.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
+            <div
+              onClick={() => setOpenSec(prev => {
+                const next = new Set(prev);
+                next.has(i) ? next.delete(i) : next.add(i);
+                return next;
+              })}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 0", cursor: "pointer" }}
+            >
+              <Mono style={{ fontSize: 10, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>
+              <span style={{ fontFamily: T.sans, fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.4 }}>{sec.title}</span>
+            </div>
+            {isOpen && sec.content.length > 0 && (
+              <div style={{ padding: "0 0 8px 16px", fontFamily: T.sans, fontSize: 12, color: T.textMid, lineHeight: 1.6 }}>
+                {sec.content.map((line, j) => <div key={j} style={{ marginBottom: 2 }}>{line}</div>)}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 const StateLegislationMap = () => {
   const [selected, setSelected] = useState(null);
   const enacted = stateNilData.filter(s => s.status === "enacted").length;
   const total = stateNilData.length;
 
   return (
-    <Panel title="State NIL Legislation" accent="#6366f1" noPad>
+    <Panel title="State NIL Legislation" accent={T.accent} noPad>
       <div style={{ padding: "12px 16px 0" }}>
         <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 12, height: 12, borderRadius: 2, background: "#10b981", display: "inline-block" }} />
+            <span style={{ width: 12, height: 12, borderRadius: 2, background: T.accent, display: "inline-block" }} />
             <Mono style={{ fontSize: 11, color: T.textMid }}>Enacted ({enacted})</Mono>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -329,7 +400,7 @@ const StateLegislationMap = () => {
           </div>
         </div>
       </div>
-      <div style={{ padding: "0 8px" }}>
+      <div style={{ padding: "0 8px", position: "relative" }}>
         <ComposableMap projection="geoAlbersUsa" style={{ width: "100%", height: "auto" }}>
           <Geographies geography={GEO_URL}>
             {({ geographies }) =>
@@ -345,21 +416,21 @@ const StateLegislationMap = () => {
                     onClick={() => setSelected(stateData || null)}
                     style={{
                       default: {
-                        fill: isEnacted ? "#10b981" : "#e2e5ec",
+                        fill: isEnacted ? T.accent : "#e2e5ec",
                         stroke: "#fff",
                         strokeWidth: isSelected ? 1.5 : 0.5,
                         outline: "none",
                         cursor: "pointer",
                       },
                       hover: {
-                        fill: isEnacted ? "#059669" : "#cbd5e1",
+                        fill: isEnacted ? "#c4402a" : "#cbd5e1",
                         stroke: "#fff",
                         strokeWidth: 1,
                         outline: "none",
                         cursor: "pointer",
                       },
                       pressed: {
-                        fill: isEnacted ? "#047857" : "#94a3b8",
+                        fill: isEnacted ? "#a83824" : "#94a3b8",
                         stroke: "#fff",
                         strokeWidth: 1.5,
                         outline: "none",
@@ -370,6 +441,32 @@ const StateLegislationMap = () => {
               })
             }
           </Geographies>
+          {/* DC callout — line from actual location to offset label */}
+          <Line
+            from={[-77.04, 38.91]}
+            to={[-71.5, 39.5]}
+            stroke="#94a3b8"
+            strokeWidth={0.5}
+            strokeDasharray="2,2"
+          />
+          <Marker coordinates={[-71.5, 39.5]}>
+            <g onClick={() => setSelected(STATE_DATA_BY_NAME["District of Columbia"])} style={{ cursor: "pointer" }}>
+              <rect
+                x={-28} y={-14} width={56} height={28} rx={4}
+                fill={selected?.name === "District of Columbia" ? "#c4402a" : "#fff"}
+                stroke={selected?.name === "District of Columbia" ? "#c4402a" : "#94a3b8"}
+                strokeWidth={0.75}
+              />
+              <circle cx={-14} cy={0} r={4} fill={T.accent} />
+              <text
+                x={0} y={1} textAnchor="start" dominantBaseline="middle"
+                style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 700, fill: selected?.name === "District of Columbia" ? "#fff" : "#3d4a5c" }}
+              >DC</text>
+            </g>
+          </Marker>
+          <Marker coordinates={[-77.04, 38.91]}>
+            <circle r={2} fill={T.accent} stroke="#fff" strokeWidth={0.5} />
+          </Marker>
         </ComposableMap>
       </div>
       {selected && (
@@ -377,7 +474,7 @@ const StateLegislationMap = () => {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0 8px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <strong style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, color: T.text }}>{selected.name}</strong>
-              <Mono style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: selected.status === "enacted" ? T.green : T.textDim, padding: "2px 8px", borderRadius: 3 }}>
+              <Mono style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: selected.status === "enacted" ? T.accent : T.textDim, padding: "2px 8px", borderRadius: 3 }}>
                 {selected.status === "enacted" ? "ENACTED" : "NO LAW"}
               </Mono>
             </div>
@@ -387,8 +484,8 @@ const StateLegislationMap = () => {
             <Mono style={{ fontSize: 11, color: T.textDim, lineHeight: 1.5, display: "block", marginBottom: 8 }}>{selected.statusDetail}</Mono>
           )}
           {selected.summary && selected.summary !== "N/A." && (
-            <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textMid, lineHeight: 1.6, maxHeight: 200, overflowY: "auto" }}>
-              {selected.summary}
+            <div style={{ maxHeight: 240, overflowY: "auto" }}>
+              <SectionedSummary summary={selected.summary} />
             </div>
           )}
         </div>
@@ -446,13 +543,51 @@ const MonitorPage = ({ onRefresh }) => {
   }, []);
 
   // Normalize API cases or use mock
-  const caseSource = cases ? cases.map(c => ({
-    name: c.name, court: c.court, judge: c.judge, status: c.status,
-    cat: c.category, lastFiling: c.last_filing_date, filings: c.filing_count,
-    next: c.next_action_date ? `${formatDate(c.next_action_date)} — ${c.next_action || ""}` : null,
-    nextDate: c.next_action_date || null,
-    desc: c.description, clUrl: c.courtlistener_url, pacerUrl: c.pacer_url,
-  })) : MOCK.cases;
+  const caseSource = cases ? cases.map(c => {
+    // Parse upcoming_dates JSON for the nearest next action
+    let nextDate = null, nextText = null;
+    if (c.upcoming_dates) {
+      try {
+        const dates = JSON.parse(c.upcoming_dates);
+        if (dates.length > 0) {
+          // Find the nearest future date
+          const now = new Date();
+          const future = dates
+            .filter(d => d.date && new Date(d.date) >= now)
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+          if (future.length > 0) {
+            nextDate = future[0].date;
+            nextText = future[0].text;
+          } else {
+            // All dates may be past; just use the first one
+            nextDate = dates[0].date;
+            nextText = dates[0].text;
+          }
+        }
+      } catch {}
+    }
+    return {
+      name: c.name, court: c.court, judge: c.judge,
+      status: c.status_summary ? c.status_summary.slice(0, 100) + (c.status_summary.length > 100 ? '...' : '') : c.last_event_text || '',
+      cat: c.case_group,
+      lastFiling: c.last_event_date,
+      filings: null,
+      next: nextDate ? `${formatDate(nextDate)} — ${nextText || ""}` : null,
+      nextDate: nextDate,
+      desc: c.description,
+      clUrl: c.cslt_url,
+      pacerUrl: null,
+      caseNumber: c.case_number,
+    };
+  }) : MOCK.cases;
+
+  // Sort cases by next action date, soonest first
+  const caseSorted = [...caseSource].sort((a, b) => {
+    if (!a.nextDate && !b.nextDate) return 0;
+    if (!a.nextDate) return 1;
+    if (!b.nextDate) return -1;
+    return new Date(a.nextDate) - new Date(b.nextDate);
+  });
 
   // Briefing: API or mock
   const briefingSource = briefing || MOCK.briefing.map(([headline, body]) => ({ headline, body }));
@@ -525,7 +660,7 @@ const MonitorPage = ({ onRefresh }) => {
                     next.has(i) ? next.delete(i) : next.add(i);
                     return next;
                   })}
-                  style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "12px 0", cursor: "pointer" }}
+                  style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: i === 0 ? "0 0 10px 0" : "10px 0", cursor: "pointer" }}
                 >
                   <Mono style={{ fontSize: 12, color: T.textDim, lineHeight: 1.6, flexShrink: 0, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none" }}>▸</Mono>
                   <span style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 600, lineHeight: 1.5, color: T.text }}>{s.headline}</span>
@@ -542,7 +677,7 @@ const MonitorPage = ({ onRefresh }) => {
               </div>
             );
           })}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
             <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: T.accent, flexShrink: 0 }} />
             <Mono style={{ fontSize: 13, color: T.accent }}>
               {briefingGeneratedAt ? `Generated ${(() => {
@@ -555,9 +690,13 @@ const MonitorPage = ({ onRefresh }) => {
 
         {/* ── Latest Headlines ── */}
         <Panel title="Latest Headlines" accent={T.accent} noPad style={{ animation: "fadeIn 0.3s ease-in" }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "4px 16px", borderBottom: `1px solid ${T.borderLight}` }}>
-            {["All", ...Object.keys(CAT_COLORS).slice(0, 7)].map(c => (
-              <Pill key={c} active={headlineCatFilt === c} onClick={() => { setHeadlineCatFilt(c); setHlPage(0); }}>{c}</Pill>
+          <div style={{ display: "flex", gap: 8, flexWrap: "nowrap", padding: "4px 16px", borderBottom: `1px solid ${T.borderLight}` }}>
+            {[
+              ["All", "All"], ["Legislation", "Legislation"], ["Litigation", "Litigation"],
+              ["NCAA Governance", "Governance"], ["CSC / Enforcement", "CSC"],
+              ["Revenue Sharing", "Rev. Share"], ["Roster / Portal", "Portal"], ["Realignment", "Realignment"],
+            ].map(([val, label]) => (
+              <Pill key={val} active={headlineCatFilt === val} onClick={() => { setHeadlineCatFilt(val); setHlPage(0); }}>{label}</Pill>
             ))}
           </div>
           {hlPageItems.length === 0 ? (
@@ -579,22 +718,16 @@ const MonitorPage = ({ onRefresh }) => {
               onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
-              <Mono style={{ flex: "0 0 80px", fontSize: 12, fontWeight: 600, color: T.textDim, textTransform: "uppercase", letterSpacing: ".3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.src}</Mono>
-              {h.cat && <Badge color={CAT_COLORS[h.cat]}>{h.cat}</Badge>}
-              {h.subCat && <Badge color={CSC_SUB_COLORS[h.subCat] || T.textDim}>{h.subCat}</Badge>}
+              <Mono style={{ flex: "0 0 96px", fontSize: 12, fontWeight: 600, color: T.textDim, textTransform: "uppercase", letterSpacing: ".3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.src}</Mono>
               <div style={{ flex: 1, fontFamily: T.sans, fontSize: 15, fontWeight: h.sev === "critical" ? 600 : 500, color: T.text, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
               {h.isNew && <span style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, color: "#fff", background: T.green, padding: "2px 6px", borderRadius: 3, letterSpacing: ".5px", flexShrink: 0, textTransform: "uppercase", lineHeight: 1.3 }}>NEW</span>}
               <Mono style={{ flex: "0 0 48px", fontSize: 12, color: T.textDim, textAlign: "right" }}>{h.time}</Mono>
             </a>
           ))}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 16px", borderTop: `1px solid ${T.borderLight}` }}>
-            {hlPageClamped > 0 ? (
-              <button onClick={() => setHlPage(hlPageClamped - 1)} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: T.accent, background: "transparent", border: "none", cursor: "pointer" }}>← Prev</button>
-            ) : <span />}
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, padding: "8px 16px", borderTop: `1px solid ${T.borderLight}` }}>
+            <button onClick={() => setHlPage(hlPageClamped - 1)} disabled={hlPageClamped === 0} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: hlPageClamped > 0 ? T.accent : T.borderLight, background: "transparent", border: "none", cursor: hlPageClamped > 0 ? "pointer" : "default" }}>← Prev</button>
             <Mono style={{ fontSize: 12, color: T.textDim }}>{hlPageClamped + 1} of {hlTotalPages}</Mono>
-            {hlPageClamped < hlTotalPages - 1 ? (
-              <button onClick={() => setHlPage(hlPageClamped + 1)} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: T.accent, background: "transparent", border: "none", cursor: "pointer" }}>Next →</button>
-            ) : <span />}
+            <button onClick={() => setHlPage(hlPageClamped + 1)} disabled={hlPageClamped >= hlTotalPages - 1} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: hlPageClamped < hlTotalPages - 1 ? T.accent : T.borderLight, background: "transparent", border: "none", cursor: hlPageClamped < hlTotalPages - 1 ? "pointer" : "default" }}>Next →</button>
           </div>
         </Panel>
 
@@ -606,41 +739,36 @@ const MonitorPage = ({ onRefresh }) => {
         <StateLegislationMap />
 
         {/* ── Litigation ── */}
-        <Panel title="The Courtroom" accent={T.textDim} noPad>
-          {caseSource.map((c, i) => {
+        <Panel title="The Courtroom" accent={T.accent} noPad>
+          {caseSorted.map((c, i) => {
             const isOpen = expCase === i;
-            const nextSoon = c.nextDate && (new Date(c.nextDate) - Date.now()) / 86400000 <= 30;
             return (
-              <div key={i} style={{ borderBottom: i < caseSource.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
+              <div key={i} style={{ borderBottom: i < caseSorted.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
                 <div
                   onClick={() => setExpCase(isOpen ? null : i)}
-                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", cursor: "pointer", flexWrap: "wrap" }}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 16px", cursor: "pointer" }}
                   onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
                   <Mono style={{ fontSize: 11, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>
-                  <strong style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, color: T.text }}>{c.name}</strong>
-                  <Badge color={T.amber}>{c.status}</Badge>
-                  {c.cat && <Badge color={CAT_COLORS[c.cat]}>{c.cat}</Badge>}
+                  <strong style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 700, color: T.text }}>{c.name}</strong>
+                  <Mono style={{ fontSize: 12, color: T.textDim, flexShrink: 0 }}>·&nbsp;{c.status}</Mono>
+                  {c.cat && <Mono style={{ fontSize: 12, color: T.textDim, flexShrink: 0 }}>·&nbsp;{c.cat}</Mono>}
                   <div style={{ flex: 1 }} />
-                  {c.next && <Mono style={{ fontSize: 13, fontWeight: 600, color: nextSoon ? T.red : T.textDim, flexShrink: 0 }}>→ {c.next}</Mono>}
+                  {c.next && <Mono style={{ fontSize: 13, fontWeight: 600, color: T.accent, flexShrink: 0 }}>→ {c.next}</Mono>}
                 </div>
                 <div style={{
                   maxHeight: isOpen ? 300 : 0, overflow: "hidden",
                   transition: "max-height .2s ease, opacity .2s ease",
                   opacity: isOpen ? 1 : 0,
                 }}>
-                  <div style={{ padding: "0 16px 12px 24px" }}>
-                    <Mono style={{ fontSize: 11, color: T.textDim, display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
-                      {c.court && <span>{c.court}</span>}
-                      {c.judge && <span>Judge {c.judge}</span>}
-                      {c.filings != null && <span>{c.filings} filings</span>}
-                      {c.lastFiling && <span>Last filed {formatDate(c.lastFiling)}</span>}
+                  <div style={{ padding: "12px 16px 12px 24px" }}>
+                    <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 8, display: "block" }}>
+                      {[c.court, c.judge && `Judge ${c.judge}`, c.caseNumber, c.lastFiling && `Last event ${formatDate(c.lastFiling)}`].filter(Boolean).join(" · ")}
                     </Mono>
                     {c.desc && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textMid, lineHeight: 1.5, marginBottom: 8 }}>{c.desc}</div>}
                     <div style={{ display: "flex", gap: 12 }}>
-                      {c.clUrl && <a href={c.clUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}><Mono style={{ fontSize: 11, fontWeight: 600, color: T.accent }}>CourtListener →</Mono></a>}
-                      {c.pacerUrl && <a href={c.pacerUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}><Mono style={{ fontSize: 11, fontWeight: 600, color: T.accent }}>PACER →</Mono></a>}
+                      {c.clUrl && <a href={c.clUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}><Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>CSLT Tracker →</Mono></a>}
                     </div>
                   </div>
                 </div>
@@ -650,7 +778,7 @@ const MonitorPage = ({ onRefresh }) => {
         </Panel>
 
         {/* ── Outside View ── */}
-        <Panel title="The Outside View" accent="#64748b" size="sm">
+        <Panel title="The Outside View" accent={T.accent} size="sm">
           <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 8, display: "block" }}>News Volume · 30 Days</Mono>
           <div style={{ height: 52 }}>
             {chartData.length > 0 ? <MiniBarChart data={chartData} /> : (

@@ -14,6 +14,7 @@ import { fetchCongress } from './fetch-congress.js';
 import { fetchNILRevolution } from './fetch-nil-revolution.js';
 import { fetchBingNews } from './fetch-bing-news.js';
 import { fetchPublications } from './fetch-publications.js';
+import { fetchCSLT } from './fetch-cslt.js';
 import { runAIPipeline } from './ai-pipeline.js';
 
 export default {
@@ -41,6 +42,7 @@ export default {
           fetchNILRevolution(env).catch(e => console.error('nil-revolution:', e.message)),
           fetchBingNews(env).catch(e => console.error('bing-news:', e.message)),
           fetchPublications(env).catch(e => console.error('publications:', e.message)),
+          fetchCSLT(env).catch(e => console.error('cslt:', e.message)),
         ])
       );
     }

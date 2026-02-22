@@ -17,26 +17,35 @@ CREATE TABLE bills (
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
--- Cases (from CourtListener + seeded at setup)
+-- Cases (from College Sports Litigation Tracker)
 CREATE TABLE cases (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  source_id TEXT UNIQUE,
-  name TEXT,
+  name TEXT NOT NULL,
+  case_group TEXT,
   court TEXT,
   judge TEXT,
-  status TEXT,
-  category TEXT,
+  case_number TEXT,
   filed_date TEXT,
-  last_filing_date TEXT,
-  filing_count INTEGER DEFAULT 0,
-  last_action TEXT,
-  next_action TEXT,
-  next_action_date TEXT,
+  last_event_text TEXT,
+  last_event_date TEXT,
+  status_summary TEXT,
   description TEXT,
-  courtlistener_url TEXT,
-  pacer_url TEXT,
+  upcoming_dates TEXT,        -- JSON array: [{"date":"YYYY-MM-DD","text":"..."}]
+  cslt_url TEXT DEFAULT 'https://www.collegesportslitigationtracker.com/tracker',
+  is_active INTEGER DEFAULT 1,
   created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+  updated_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(name, case_number)
+);
+
+-- Case Updates (from CSLT "Latest Updates" / "Previous Updates" sections)
+CREATE TABLE IF NOT EXISTS case_updates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_name TEXT NOT NULL,
+  update_text TEXT NOT NULL,
+  update_date TEXT,
+  fetched_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(case_name, update_text)
 );
 
 -- Headlines (from NewsData.io + Google News RSS, AI-tagged with category + severity)
