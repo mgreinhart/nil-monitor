@@ -213,8 +213,7 @@ const XListEmbed = () => (
         </div>
       ))}
     </div>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-      <Mono style={{ fontSize: 11, color: T.textDim }}>Auto-updating · {X_LIST_ACCOUNTS.length} accounts</Mono>
+    <div style={{ marginTop: 8, textAlign: "right" }}>
       <a href={X_LIST_URL} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
         <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>Open on X →</Mono>
       </a>
