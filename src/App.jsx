@@ -611,7 +611,7 @@ const MonitorPage = ({ onRefresh }) => {
     return () => clearInterval(id);
   }, []);
 
-  // Parse and group cases for Courtroom section — hide archived, sort by activity
+  // Parse, deduplicate, and group cases for Courtroom section
   const { courtroomGroups, archivedCount } = (() => {
     if (!cases?.length) return { courtroomGroups: [], archivedCount: 0 };
     const now = new Date();
@@ -629,8 +629,25 @@ const MonitorPage = ({ onRefresh }) => {
       }
       return { ...c, upcomingParsed, soonest };
     });
-    const groups = [], seen = new Map();
+
+    // Deduplicate by case name — keep the row with most recent activity
+    const deduped = new Map();
     for (const c of parsed) {
+      const key = c.name.toLowerCase().trim();
+      const existing = deduped.get(key);
+      if (!existing) { deduped.set(key, c); continue; }
+      // Prefer the row with soonest upcoming date, then most recent last_event_date
+      const eDateA = existing.soonest ? new Date(existing.soonest.date) : null;
+      const eDateB = c.soonest ? new Date(c.soonest.date) : null;
+      if (eDateB && (!eDateA || eDateB < eDateA)) { deduped.set(key, c); continue; }
+      if (eDateA && !eDateB) continue;
+      const aLast = existing.last_event_date ? new Date(existing.last_event_date) : new Date(0);
+      const bLast = c.last_event_date ? new Date(c.last_event_date) : new Date(0);
+      if (bLast > aLast) deduped.set(key, c);
+    }
+
+    const groups = [], seen = new Map();
+    for (const c of deduped.values()) {
       const g = c.case_group || "Other";
       if (c.is_active === 0 || c.is_active === '0' || /archived|dismissed|resolved|withdrawn/i.test(g)) {
         archived++;
@@ -793,6 +810,11 @@ const MonitorPage = ({ onRefresh }) => {
 
         {/* ── Litigation ── */}
         <Panel title="The Courtroom" accent={T.accent} noPad>
+          <div style={{ padding: "6px 16px 2px", borderBottom: `1px solid ${T.borderLight}` }}>
+            <Mono style={{ fontSize: 9, color: T.textDim, letterSpacing: "0.3px" }}>
+              <span style={{ color: T.accent }}>Coral dates</span> = upcoming actions &middot; <span style={{ color: T.textDim }}>Gray dates</span> = last activity
+            </Mono>
+          </div>
           {courtroomGroups.length === 0 ? (
             <div style={{ padding: "20px 16px", textAlign: "center" }}>
               <Mono style={{ fontSize: 12, color: T.textDim }}>
@@ -832,7 +854,7 @@ const MonitorPage = ({ onRefresh }) => {
                       {eventSnippet && <Mono style={{ fontSize: 12, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&nbsp;· {eventSnippet}</Mono>}
                       <div style={{ flex: 1 }} />
                       {c.soonest ? (
-                        <Mono style={{ fontSize: 13, fontWeight: 600, color: T.accent, flexShrink: 0, whiteSpace: "nowrap" }}>{formatDate(c.soonest.date)}</Mono>
+                        <Mono style={{ fontSize: 13, fontWeight: 600, color: T.accent, flexShrink: 0, whiteSpace: "nowrap" }}>Next: {formatDate(c.soonest.date)}</Mono>
                       ) : c.last_event_date ? (
                         <Mono style={{ fontSize: 13, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap" }}>Last: {formatDate(c.last_event_date)}</Mono>
                       ) : null}
