@@ -140,7 +140,6 @@ These sections fetch real data from the API:
 
 ### Known Issues
 
-- **`pipeline_runs` schema drift** — Remote DB may have column named `events_created` while `schema.sql` and `ai-pipeline.js` use `headlines_tagged`. Pipeline still runs but column name may be mismatched. Verify with `PRAGMA table_info(pipeline_runs)` if issues arise.
 - **GDELT fetcher error handling** — Errors now throw (for diagnostic visibility in trigger log) rather than silently returning. This is intentional after debugging but means a GDELT API outage would show as an error in the trigger response.
 - **No multi-page routing** — The build spec envisioned separate pages (Monitor, States, Cases, Headlines, About). The app is a single scrollable dashboard with an info modal. All content is in `MonitorPage`.
 - **Sidebar is podcasts only** — The X List embed (`X_LIST_URL` configured) and Kalshi prediction markets were planned but are not rendered. Sidebar contains only `<PodcastsSection />`.
