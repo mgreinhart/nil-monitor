@@ -572,6 +572,7 @@ const StateLegislationMap = () => {
 // ╚═══════════════════════════════════════════════════════════════════
 const MonitorPage = ({ onRefresh }) => {
   const [expCase, setExpCase] = useState(null);
+  const [expGroups, setExpGroups] = useState(new Set());
   const [headlineCatFilt, setHeadlineCatFilt] = useState("All");
   const [hlPage, setHlPage] = useState(0);
   const [briefingOpen, setBriefingOpen] = useState(null);
@@ -610,10 +611,11 @@ const MonitorPage = ({ onRefresh }) => {
     return () => clearInterval(id);
   }, []);
 
-  // Parse and group cases for Courtroom section (API pre-sorted by upcoming date)
-  const courtroomGroups = (() => {
-    if (!cases?.length) return [];
+  // Parse and group cases for Courtroom section — hide archived, sort by activity
+  const { courtroomGroups, archivedCount } = (() => {
+    if (!cases?.length) return { courtroomGroups: [], archivedCount: 0 };
     const now = new Date();
+    let archived = 0;
     const parsed = cases.map(c => {
       let upcomingParsed = [], soonest = null;
       if (c.upcoming_dates) {
@@ -630,10 +632,27 @@ const MonitorPage = ({ onRefresh }) => {
     const groups = [], seen = new Map();
     for (const c of parsed) {
       const g = c.case_group || "Other";
+      if (c.is_active === 0 || c.is_active === '0' || /archived|dismissed|resolved|withdrawn/i.test(g)) {
+        archived++;
+        continue;
+      }
       if (!seen.has(g)) { const arr = []; seen.set(g, arr); groups.push({ name: g, cases: arr }); }
       seen.get(g).push(c);
     }
-    return groups;
+    // Sort within each group: soonest upcoming first, then most recent activity
+    for (const g of groups) {
+      g.cases.sort((a, b) => {
+        if (a.soonest && b.soonest) return new Date(a.soonest.date) - new Date(b.soonest.date);
+        if (a.soonest) return -1;
+        if (b.soonest) return 1;
+        const aLast = a.last_event_date ? new Date(a.last_event_date) : null;
+        const bLast = b.last_event_date ? new Date(b.last_event_date) : null;
+        if (aLast && bLast) return bLast - aLast;
+        if (aLast) return -1;
+        return 0;
+      });
+    }
+    return { courtroomGroups: groups, archivedCount: archived };
   })();
   const cleanGroupName = (n) => n.replace(/\s*\(and Related\)/i, " & Related").replace(/\s*\(Click here[^)]*\)/i, "").trim();
 
@@ -780,17 +799,25 @@ const MonitorPage = ({ onRefresh }) => {
                 {cases ? "No active cases" : "Loading cases..."}
               </Mono>
             </div>
-          ) : courtroomGroups.map((group, gi) => (
+          ) : courtroomGroups.map((group, gi) => {
+            const CASE_LIMIT = 5;
+            const isGroupExp = expGroups.has(gi);
+            const visible = isGroupExp ? group.cases : group.cases.slice(0, CASE_LIMIT);
+            const hiddenCount = group.cases.length - CASE_LIMIT;
+            return (
             <div key={gi}>
               <div style={{ padding: "10px 16px 4px" }}>
                 <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
-                  {cleanGroupName(group.name)}
+                  {cleanGroupName(group.name)} <span style={{ fontWeight: 400 }}>({group.cases.length})</span>
                 </Mono>
               </div>
-              {group.cases.map((c) => {
+              {visible.map((c) => {
                 const isOpen = expCase === c.id;
                 const eventSnippet = c.last_event_text
-                  ? (c.last_event_text.length > 60 ? c.last_event_text.slice(0, 60) + "..." : c.last_event_text)
+                  ? (c.last_event_text.length > 80 ? c.last_event_text.slice(0, 80) + "..." : c.last_event_text)
+                  : "";
+                const descSnippet = c.description
+                  ? (c.description.length > 80 ? c.description.slice(0, 80) + "..." : c.description)
                   : "";
                 return (
                   <div key={c.id} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
@@ -819,7 +846,7 @@ const MonitorPage = ({ onRefresh }) => {
                         <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 8, display: "block" }}>
                           {[c.court, c.judge && `Judge ${c.judge}`, c.case_number, c.filed_date].filter(Boolean).join(" · ")}
                         </Mono>
-                        {c.description && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textMid, lineHeight: 1.5, marginBottom: 8 }}>{c.description}</div>}
+                        {descSnippet && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textMid, lineHeight: 1.5, marginBottom: 8 }}>{descSnippet}</div>}
                         {c.upcomingParsed.length > 0 && (
                           <div style={{ marginBottom: 8 }}>
                             {c.upcomingParsed.map((d, di) => (
@@ -840,8 +867,26 @@ const MonitorPage = ({ onRefresh }) => {
                   </div>
                 );
               })}
+              {hiddenCount > 0 && !isGroupExp && (
+                <div
+                  onClick={() => setExpGroups(prev => new Set([...prev, gi]))}
+                  style={{ padding: "6px 16px", cursor: "pointer" }}
+                  onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>Show {hiddenCount} more →</Mono>
+                </div>
+              )}
             </div>
-          ))}
+            );
+          })}
+          {archivedCount > 0 && (
+            <div style={{ padding: "8px 16px", borderTop: `1px solid ${T.borderLight}` }}>
+              <Mono style={{ fontSize: 12, color: T.textDim }}>
+                {archivedCount} archived case{archivedCount !== 1 ? "s" : ""} — <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" style={{ color: T.accent, textDecoration: "none", fontFamily: T.mono }}>view all on College Sports Litigation Tracker →</a>
+              </Mono>
+            </div>
+          )}
           <div style={{ padding: "8px 16px", borderTop: `1px solid ${T.border}` }}>
             <Mono style={{ fontSize: 12, color: T.textDim }}>
               Source: <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" style={{ color: T.accent, textDecoration: "none", fontFamily: T.mono }}>College Sports Litigation Tracker</a> — Sam C. Ehrlich, Boise State University
