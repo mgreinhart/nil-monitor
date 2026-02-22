@@ -114,7 +114,6 @@ const NIL_PODCASTS = [
   { name: "Highway to NIL", id: "1Pju07vvKyIqEZOGDNaMMD" },
   { name: "NIL Clubhouse", id: "3AbKOjnxZaBLs9VVfujToU" },
   { name: "The Portal", id: "2Wr77m5yVBgANHkDS7NxI5" },
-  { name: "College Football Enquirer", id: "0x30kB7Vc7T7WAK7ExXzRi" },
 ];
 // ── Shared Components ──────────────────────────────────────────────
 const Mono = ({ children, style }) => <span style={{ fontFamily: T.mono, ...style }}>{children}</span>;
