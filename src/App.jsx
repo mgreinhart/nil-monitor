@@ -475,7 +475,8 @@ const MonitorPage = ({ onRefresh }) => {
               style={{
                 display: "flex", alignItems: "center", gap: 8, padding: "12px 16px",
                 borderBottom: `1px solid ${T.borderLight}`,
-                borderLeft: h.sev === "critical" ? `3px solid ${T.accent}` : h.sev === "important" ? `2px solid ${T.amber}` : "3px solid transparent",
+                // severity borders: critical = coral, important = amber, routine/null = none
+                borderLeft: h.sev === "critical" ? `3px solid ${T.accent}` : h.sev === "important" ? `3px solid ${T.amber}` : "3px solid transparent",
                 background: "transparent",
                 textDecoration: "none", cursor: "pointer",
               }}
