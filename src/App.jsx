@@ -23,7 +23,7 @@ const T = {
   bg: "#f1f3f7",
   surface: "#ffffff",
   surfaceAlt: "#f7f8fb",
-  briefingBg: "#fffdfb",
+  briefingBg: "#FFF9F5",
   text: "#0f1729",
   textMid: "#3d4a5c",
   textDim: "#7c8698",
@@ -159,7 +159,7 @@ const Panel = ({ title, accent, children, style, right, noPad, size }) => {
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: isLg ? 5 : isSm ? 3 : 4, height: isLg ? 18 : 14, borderRadius: 2, background: ac, flexShrink: 0 }} />
-            <Mono style={{ fontSize: isLg ? 15 : isSm ? 14 : 15, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: ac }}>{title}</Mono>
+            <Mono style={{ fontSize: isLg ? 17 : isSm ? 14 : 15, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: ac }}>{title}</Mono>
           </div>
           {right}
         </div>
@@ -420,7 +420,7 @@ const MonitorPage = () => {
               const current = prev ?? new Set(briefingSource.map((_, i) => i));
               return current.size === briefingSource.length ? new Set() : new Set(briefingSource.map((_, i) => i));
             })}
-            style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: T.accent, background: "transparent", border: "none", cursor: "pointer", letterSpacing: ".3px" }}
+            style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: T.textDim, background: "transparent", border: "none", cursor: "pointer", letterSpacing: ".3px" }}
           >{briefingExpanded.size === briefingSource.length ? "Collapse all" : "Expand all"}</button>
         )}>
           {briefingSource.map((s, i) => {
@@ -451,12 +451,15 @@ const MonitorPage = () => {
               </div>
             );
           })}
-          <Mono style={{ display: "block", marginTop: 8, fontSize: 12, color: T.textMid }}>
-            {briefingGeneratedAt ? `Generated ${(() => {
-              const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
-              return new Date(n).toLocaleString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short" }) + " · " + new Date(n).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-            })()}` : briefing ? "AI-generated" : "Sample briefing"}
-          </Mono>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+            <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: T.accent, flexShrink: 0 }} />
+            <Mono style={{ fontSize: 12, color: T.accent }}>
+              {briefingGeneratedAt ? `Generated ${(() => {
+                const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
+                return new Date(n).toLocaleString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short" }) + " · " + new Date(n).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+              })()}` : briefing ? "AI-generated" : "Sample briefing"}
+            </Mono>
+          </div>
         </Panel>
 
         {/* ── Latest Headlines ── */}
@@ -478,11 +481,11 @@ const MonitorPage = () => {
                 display: "flex", alignItems: "center", gap: 8, padding: "12px 16px",
                 borderBottom: `1px solid ${T.borderLight}`,
                 borderLeft: h.sev === "critical" ? `3px solid ${T.accent}` : h.sev === "important" ? `2px solid ${T.amber}` : "3px solid transparent",
-                background: h.sev === "critical" ? `${T.accent}06` : "transparent",
+                background: "transparent",
                 textDecoration: "none", cursor: "pointer",
               }}
-              onMouseEnter={e => { if (h.sev !== "critical") e.currentTarget.style.background = T.surfaceAlt; }}
-              onMouseLeave={e => { e.currentTarget.style.background = h.sev === "critical" ? `${T.accent}06` : "transparent"; }}
+              onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
               <Mono style={{ flex: "0 0 72px", fontSize: 11, fontWeight: 600, color: T.textDim, textTransform: "uppercase", letterSpacing: ".3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.src}</Mono>
               {h.cat && <Badge color={CAT_COLORS[h.cat]}>{h.cat}</Badge>}
@@ -508,7 +511,7 @@ const MonitorPage = () => {
            ══════════════════════════════════════════════════════════ */}
 
         {/* ── Litigation ── */}
-        <Panel title="The Courtroom" accent={T.accent} noPad>
+        <Panel title="The Courtroom" accent={T.textDim} noPad>
           {caseSource.map((c, i) => {
             const isOpen = expCase === i;
             const nextSoon = c.nextDate && (new Date(c.nextDate) - Date.now()) / 86400000 <= 30;
@@ -552,7 +555,7 @@ const MonitorPage = () => {
         </Panel>
 
         {/* ── Outside View ── */}
-        <Panel title="The Outside View" accent="#64748b">
+        <Panel title="The Outside View" accent="#64748b" size="sm">
           <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 8, display: "block" }}>News Volume · 30 Days</Mono>
           <div style={{ height: 52 }}>
             {chartData.length > 0 ? <MiniBarChart data={chartData} /> : (
