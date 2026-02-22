@@ -15,6 +15,20 @@ function json(data, status = 200) {
   });
 }
 
+function getEarliestUpcoming(upcomingJson) {
+  if (!upcomingJson) return null;
+  try {
+    const dates = JSON.parse(upcomingJson);
+    const now = new Date();
+    const future = dates
+      .filter(d => d.date && new Date(d.date) >= now)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    return future.length > 0 ? future[0].date : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function handleApi(request, env) {
   if (request.method === 'OPTIONS') {
     return new Response(null, { headers: CORS });
@@ -39,8 +53,21 @@ export async function handleApi(request, env) {
         conditions.push('is_active = 1');
       }
       if (conditions.length) query += ' WHERE ' + conditions.join(' AND ');
-      query += ' ORDER BY last_event_date DESC';
       const { results } = await env.DB.prepare(query).bind(...params).all();
+      // Sort: soonest upcoming date first, then last_event_date DESC
+      results.sort((a, b) => {
+        const aNext = getEarliestUpcoming(a.upcoming_dates);
+        const bNext = getEarliestUpcoming(b.upcoming_dates);
+        if (aNext && bNext) return new Date(aNext) - new Date(bNext);
+        if (aNext) return -1;
+        if (bNext) return 1;
+        const aLast = a.last_event_date ? new Date(a.last_event_date) : null;
+        const bLast = b.last_event_date ? new Date(b.last_event_date) : null;
+        if (aLast && bLast) return bLast - aLast;
+        if (aLast) return -1;
+        if (bLast) return 1;
+        return 0;
+      });
       return json(results);
     }
 
@@ -51,7 +78,15 @@ export async function handleApi(request, env) {
       return json(row);
     }
 
-    // Case Updates
+    // Case Updates (latest 15)
+    if (path === '/api/cases/updates') {
+      const { results } = await env.DB.prepare(
+        'SELECT * FROM case_updates ORDER BY fetched_at DESC LIMIT 15'
+      ).all();
+      return json(results);
+    }
+
+    // Case Updates (legacy, 50 items)
     if (path === '/api/case-updates') {
       const { results } = await env.DB.prepare(
         'SELECT * FROM case_updates ORDER BY fetched_at DESC LIMIT 50'
@@ -138,6 +173,34 @@ export async function handleApi(request, env) {
       return json(results);
     }
 
+    // GDELT news volume (30-day chart)
+    if (path === '/api/gdelt-volume') {
+      const { results } = await env.DB.prepare(
+        `SELECT date, article_count as count FROM gdelt_volume
+         WHERE date >= date('now', '-30 days')
+         ORDER BY date ASC`
+      ).all();
+      const total = results.reduce((s, r) => s + r.count, 0);
+      const avg = results.length > 0 ? Math.round(total / results.length) : 0;
+      const lastRow = await env.DB.prepare(
+        'SELECT fetched_at FROM gdelt_volume ORDER BY fetched_at DESC LIMIT 1'
+      ).first();
+      return json({
+        data: results,
+        total,
+        avg,
+        last_updated: lastRow?.fetched_at || null,
+      });
+    }
+
+    // Podcast freshness (for NEW badges on sidebar)
+    if (path === '/api/podcasts') {
+      const { results } = await env.DB.prepare(
+        'SELECT spotify_id, latest_date FROM podcast_episodes'
+      ).all();
+      return json(results);
+    }
+
     // Manual trigger for scheduled tasks (dev/admin use)
     if (path === '/api/trigger') {
       const { fetchGoogleNews } = await import('./fetch-google-news.js');
@@ -147,6 +210,8 @@ export async function handleApi(request, env) {
       const { fetchCourtListener } = await import('./fetch-courtlistener.js');
       const { fetchNILRevolution } = await import('./fetch-nil-revolution.js');
       const { fetchCSLT } = await import('./fetch-cslt.js');
+      const { fetchPodcasts } = await import('./fetch-podcasts.js');
+      const { fetchGDELT } = await import('./fetch-gdelt.js');
       const { runAIPipeline } = await import('./ai-pipeline.js');
 
       const phase = url.searchParams.get('phase') || 'all';
@@ -162,6 +227,8 @@ export async function handleApi(request, env) {
             fetchCourtListener(env).then(() => log.push('courtlistener: ok')).catch(e => log.push(`courtlistener: ${e.message}`)),
             fetchNILRevolution(env).then(() => log.push('nil-revolution: ok')).catch(e => log.push(`nil-revolution: ${e.message}`)),
             fetchCSLT(env, { force: true }).then(() => log.push('cslt: ok')).catch(e => log.push(`cslt: ${e.message}`)),
+            fetchPodcasts(env, { force: true }).then(() => log.push('podcasts: ok')).catch(e => log.push(`podcasts: ${e.message}`)),
+            fetchGDELT(env, { force: true }).then(() => log.push('gdelt: ok')).catch(e => log.push(`gdelt: ${e.message}`)),
           ]);
         }
         if (phase === 'ai' || phase === 'all') {

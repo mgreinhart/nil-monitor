@@ -199,11 +199,23 @@ export async function insertHeadline(db, { source, title, url, category, publish
   // Categorize with cleaned title
   const cat = category || categorizeByKeyword(cleanTitle);
 
-  // Title-based dedup — skip if exact title already exists in last 7 days
-  const dup = await db.prepare(
-    `SELECT 1 FROM headlines WHERE title = ? AND published_at >= date('now', '-7 days') LIMIT 1`
-  ).bind(cleanTitle).first();
-  if (dup) return false;
+  // Title dedup — exact match + fuzzy cross-source matching
+  const { results: recent } = await db.prepare(
+    `SELECT title FROM headlines WHERE published_at >= date('now', '-7 days')`
+  ).all();
+  if (recent.some(r => r.title === cleanTitle)) return false;
+
+  // Fuzzy dedup: normalize (lowercase, strip punctuation), then check
+  // exact normalized match + substring containment across all sources
+  const norm = cleanTitle.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+  if (norm.length >= 20) {
+    for (const r of recent) {
+      const rn = r.title.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+      if (rn === norm) return false;
+      if (rn.length >= 30 && norm.length >= 30 &&
+          (rn.includes(norm) || norm.includes(rn))) return false;
+    }
+  }
 
   // Insert (URL UNIQUE constraint still catches remaining dupes)
   try {

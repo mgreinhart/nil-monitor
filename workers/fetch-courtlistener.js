@@ -1,14 +1,18 @@
 // ═══════════════════════════════════════════════════════════════════
 //  CourtListener Fetcher — Free API (token required)
+//  CSLT (College Sports Litigation Tracker) is now the primary case
+//  data source, providing case metadata, status, and expert summaries.
+//  CourtListener provides supplemental filing activity (docket entries)
+//  but no longer drives the Courtroom section. Cases in D1 are keyed
+//  by (name, case_number) from CSLT; to re-enable CL integration,
+//  match CL docket IDs to CSLT cases via case_number.
+//
 //  Self-governing cooldown:
 //    6 AM–5 PM ET:  every 2 hours
 //    5–10 PM ET:    every 4 hours
 //    10 PM–6 AM ET: skip
 //  Requires: wrangler secret put COURTLISTENER_TOKEN
 //    (free — sign up at courtlistener.com, token in profile)
-//  For each tracked case with a numeric source_id (CL docket ID),
-//  fetches latest docket entries and updates D1. Setting updated_at
-//  on change flags the case for the next AI pipeline run.
 // ═══════════════════════════════════════════════════════════════════
 
 import { getETHour, shouldRun, recordRun } from './fetcher-utils.js';
@@ -59,57 +63,43 @@ export async function fetchCourtListener(env) {
 
   console.log('Fetching CourtListener updates...');
 
-  // Get all tracked cases
+  // Get active cases — CSLT cases use case_number (e.g. "24-cv-00238"),
+  // not CL docket IDs. CL integration is dormant until a mapping is built.
   const { results: cases } = await env.DB.prepare(
-    'SELECT id, source_id, name, last_filing_date, filing_count FROM cases'
+    'SELECT id, name, case_number, last_event_date FROM cases WHERE is_active = 1'
   ).all();
 
+  // No cases currently have numeric CL docket IDs — all will be skipped.
+  // Future: extract CL docket IDs from case_number or a mapping table.
   let totalUpdated = 0;
 
   for (const c of cases) {
     // Skip cases without numeric CL docket IDs
-    if (!/^\d+$/.test(c.source_id)) {
-      console.log(`CourtListener: skipping "${c.name}" (no CL docket ID)`);
-      continue;
+    if (!/^\d+$/.test(c.case_number)) {
+      continue; // Expected: CSLT cases use court-format case numbers, not CL IDs
     }
 
     try {
-      // Fetch latest docket entries (most recent 5)
       const entries = await clFetch(
-        `/docket-entries/?docket=${c.source_id}&order_by=-date_filed&page_size=5`,
+        `/docket-entries/?docket=${c.case_number}&order_by=-date_filed&page_size=5`,
         token
       );
 
-      const filingCount = entries.count || 0;
       const latest = entries.results?.[0];
       const lastFilingDate = latest?.date_filed || null;
       const lastAction = stripHtml(latest?.description) || null;
-      const clUrl = `https://www.courtlistener.com/docket/${c.source_id}/`;
 
-      // Detect changes
-      const hasNewFiling = lastFilingDate && lastFilingDate !== c.last_filing_date;
-      const countChanged = filingCount !== (c.filing_count || 0);
-
-      if (hasNewFiling || countChanged) {
-        // Update case — setting updated_at flags it for the AI pipeline
+      if (lastFilingDate && lastFilingDate !== c.last_event_date) {
         await env.DB.prepare(
           `UPDATE cases SET
-            last_filing_date = COALESCE(?, last_filing_date),
-            filing_count = ?,
-            last_action = COALESCE(?, last_action),
-            courtlistener_url = ?,
+            last_event_text = COALESCE(?, last_event_text),
+            last_event_date = COALESCE(?, last_event_date),
             updated_at = datetime('now')
           WHERE id = ?`
-        ).bind(lastFilingDate, filingCount, lastAction, clUrl, c.id).run();
+        ).bind(lastAction, lastFilingDate, c.id).run();
 
         totalUpdated++;
-        if (hasNewFiling) {
-          console.log(`CourtListener: NEW FILING "${c.name}" (${lastFilingDate}): ${lastAction?.substring(0, 100)}`);
-        } else {
-          console.log(`CourtListener: "${c.name}" count ${c.filing_count || 0} → ${filingCount}`);
-        }
-      } else {
-        console.log(`CourtListener: "${c.name}" — no changes`);
+        console.log(`CourtListener: NEW FILING "${c.name}" (${lastFilingDate}): ${lastAction?.substring(0, 100)}`);
       }
     } catch (err) {
       console.error(`CourtListener error for "${c.name}":`, err.message);

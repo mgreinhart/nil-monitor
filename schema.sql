@@ -110,6 +110,24 @@ CREATE TABLE IF NOT EXISTS pipeline_runs (
   briefing_generated INTEGER DEFAULT 0
 );
 
+-- GDELT news volume (daily article counts for chart)
+CREATE TABLE IF NOT EXISTS gdelt_volume (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  date TEXT NOT NULL,
+  article_count INTEGER NOT NULL,
+  query_terms TEXT DEFAULT 'NIL NCAA transfer_portal',
+  fetched_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(date, query_terms)
+);
+
+-- Podcast episode freshness (for NEW badge on sidebar embeds)
+CREATE TABLE IF NOT EXISTS podcast_episodes (
+  spotify_id TEXT PRIMARY KEY,
+  latest_title TEXT,
+  latest_date TEXT,
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
 -- Fetcher self-governing cooldowns
 CREATE TABLE IF NOT EXISTS fetcher_runs (
   fetcher_name TEXT PRIMARY KEY,

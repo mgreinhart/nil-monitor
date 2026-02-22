@@ -68,13 +68,6 @@ async function getNewCaseUpdates(db, since) {
   return results;
 }
 
-async function getUnsummarizedCases(db) {
-  const { results } = await db.prepare(
-    "SELECT * FROM cases WHERE description IS NULL OR description = ''"
-  ).all();
-  return results;
-}
-
 // ── Task 1: Tag Untagged Headlines ───────────────────────────────
 async function tagHeadlines(env, db) {
   // Find headlines without category or severity
@@ -180,7 +173,7 @@ Return ONLY valid JSON, no other text.`;
   ).join('\n');
 
   const caseList = caseUpdates.map(c =>
-    `${c.name}: next_action=${c.next_action}, next_action_date=${c.next_action_date}, status=${c.status}`
+    `${c.name}: status=${c.status_summary || ''}, last_event=${c.last_event_text || ''}, last_event_date=${c.last_event_date || ''}`
   ).join('\n');
 
   const existingList = existingDeadlines.length > 0
@@ -528,27 +521,10 @@ export async function runAIPipeline(env, options = {}) {
     console.log('AI Pipeline: briefing skipped (non-briefing run)');
   }
 
-  // 7. Summarize unsummarized cases
-  const unsummarized = await getUnsummarizedCases(db);
-  for (const c of unsummarized) {
-    try {
-      const summary = await callClaude(env,
-        'You write 2-sentence case summaries for an athletic director\'s regulatory dashboard. Include what the case is about and why it matters to college athletics. Be direct and factual.',
-        `Summarize this case:\nName: ${c.name}\nCourt: ${c.court}\nJudge: ${c.judge}\nStatus: ${c.status}\nCategory: ${c.category}\nReturn JSON: {"summary": "2-sentence summary"}`
-      );
-      if (summary.summary) {
-        await db.prepare('UPDATE cases SET description = ? WHERE id = ?')
-          .bind(summary.summary, c.id).run();
-        console.log(`AI Pipeline: summarized case "${c.name}"`);
-      }
-    } catch (err) {
-      console.error(`AI Pipeline: failed to summarize "${c.name}":`, err.message);
-    }
-  }
-
-  // 8. Record pipeline run
+  // 7. Record pipeline run
+  // (Case summaries are provided by CSLT — no AI summarization needed)
   await db.prepare(
-    `INSERT INTO pipeline_runs (items_processed, events_created, deadlines_created, csc_items_created, briefing_generated)
+    `INSERT INTO pipeline_runs (items_processed, headlines_tagged, deadlines_created, csc_items_created, briefing_generated)
      VALUES (?, ?, ?, ?, ?)`
   ).bind(totalNew, headlinesTagged, deadlinesWritten, cscWritten, briefingWritten).run();
 

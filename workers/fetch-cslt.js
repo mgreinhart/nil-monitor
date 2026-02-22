@@ -334,7 +334,7 @@ export async function fetchCSLT(env, { force = false } = {}) {
           is_active = excluded.is_active,
           updated_at = datetime('now')`
       ).bind(
-        c.name, c.case_group, c.court, c.judge, c.case_number, c.filed_date,
+        c.name, c.case_group, c.court, c.judge, c.case_number || '', c.filed_date,
         c.last_event_text, c.last_event_date, c.status_summary, c.description,
         c.upcoming_dates, CSLT_URL, c.is_active,
       ).run();
