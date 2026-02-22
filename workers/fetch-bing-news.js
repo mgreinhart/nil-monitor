@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { parseRSS } from './rss-parser.js';
-import { getETHour, shouldRun, recordRun, insertHeadline } from './fetcher-utils.js';
+import { getETHour, shouldRun, recordRun, insertHeadline, isTitleRelevant } from './fetcher-utils.js';
 
 const FETCHER = 'bing-news';
 
@@ -20,7 +20,7 @@ const QUERIES = [
   '"College Sports Commission"',
   '"revenue sharing" college sports',
   '"transfer portal" NCAA',
-  '"conference realignment"',
+  '"conference realignment" college OR NCAA',
   '"NIL legislation" OR "NIL bill"',
   '"NIL collective" OR "NIL deal"',
   '"college athlete" union OR employment',
@@ -70,6 +70,9 @@ export async function fetchBingNews(env) {
 
       for (const item of items.slice(0, 15)) {
         if (!item.title || !item.link) continue;
+
+        // Safety net: even targeted queries can return tangential results
+        if (!isTitleRelevant(item.title)) continue;
 
         // Bing wraps links in a redirect — extract the actual URL
         const url = extractBingUrl(item.link) || item.link;

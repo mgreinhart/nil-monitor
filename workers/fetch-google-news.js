@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { parseRSS } from './rss-parser.js';
-import { getETHour, shouldRun, recordRun, insertHeadline } from './fetcher-utils.js';
+import { getETHour, shouldRun, recordRun, insertHeadline, isTitleRelevant } from './fetcher-utils.js';
 
 const FETCHER = 'google-news';
 
@@ -30,7 +30,7 @@ const QUERIES = [
   '"NIL compliance" OR "NIL enforcement"',
   '"college sports" reform OR restructuring',
   '"athletic director" NIL OR "revenue sharing"',
-  '"Sports Business Journal" college OR NCAA',
+  '"roster limit" OR "scholarship limit" NCAA',
   '"College Sports Commission" enforcement',
   '"NCAA revenue sharing" compliance',
   '"college athlete" employment classification',
@@ -75,6 +75,9 @@ export async function fetchGoogleNews(env) {
 
       for (const item of items.slice(0, 15)) {
         if (!item.title || !item.link) continue;
+
+        // Safety net: even targeted queries can return tangential results
+        if (!isTitleRelevant(item.title)) continue;
 
         const source = item.sourceName || 'Google News';
         const published = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString();

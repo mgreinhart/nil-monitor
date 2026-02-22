@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { parseRSS } from './rss-parser.js';
-import { getETHour, shouldRun, recordRun, insertHeadline } from './fetcher-utils.js';
+import { getETHour, shouldRun, recordRun, insertHeadline, isTitleRelevant } from './fetcher-utils.js';
 
 const FETCHER = 'ncaa-rss';
 
@@ -54,6 +54,9 @@ export async function fetchNCAANews(env) {
 
       for (const item of items.slice(0, 15)) {
         if (!item.title || !item.link) continue;
+
+        // NCAA.com feeds are general — only insert regulatory/business headlines
+        if (!isTitleRelevant(item.title)) continue;
 
         const source = item.sourceName || feed.fallbackSource;
         const published = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString();

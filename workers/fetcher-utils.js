@@ -179,6 +179,20 @@ export function categorizeByKeyword(title) {
   return null;
 }
 
+// ── Title Relevance Gate ─────────────────────────────────────────
+
+/**
+ * Strict title relevance check — at least one keyword related to
+ * NIL, college athletics regulation, or governance must appear.
+ * Used by all headline fetchers as a universal quality gate.
+ */
+const TITLE_RELEVANCE_RE = /\bnil\b|name.image.likeness|\bncaa\b|college\s+athlete|transfer\s+portal|revenue\s+shar|title\s+ix|college\s+sports?|athletic\s+directors?|\bcompliance\b|\bcollective\b|house\s+v\.?|\bcsc\b|college\s+sports?\s+commission/i;
+
+export function isTitleRelevant(title) {
+  if (!title) return false;
+  return TITLE_RELEVANCE_RE.test(title);
+}
+
 // ── Shared Headline Insert ──────────────────────────────────────────
 
 /**

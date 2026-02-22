@@ -8,7 +8,7 @@
 //  Requires secret: wrangler secret put NEWSDATA_KEY
 // ═══════════════════════════════════════════════════════════════════
 
-import { getETHour, shouldRun, recordRun, insertHeadline } from './fetcher-utils.js';
+import { getETHour, shouldRun, recordRun, insertHeadline, isTitleRelevant } from './fetcher-utils.js';
 
 const FETCHER = 'newsdata';
 const BASE_URL = 'https://newsdata.io/api/1/latest';
@@ -84,6 +84,9 @@ export async function fetchNewsData(env) {
 
       for (const article of data.results) {
         if (!article.title || !article.link) continue;
+
+        // Targeted queries can still return tangential results
+        if (!isTitleRelevant(article.title)) continue;
 
         const source = article.source_name || article.source_id || 'NewsData.io';
         const published = article.pubDate
