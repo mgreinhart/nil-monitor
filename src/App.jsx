@@ -133,7 +133,7 @@ const Pill = ({ active, children, onClick }) => (
   }}>{children}</button>
 );
 
-const Panel = ({ title, accent, children, style, right, noPad, size }) => {
+const Panel = ({ title, accent, children, style, right, noPad, size, onHeaderClick }) => {
   const isLg = size === "lg";
   const isSm = size === "sm";
   const ac = accent || T.accent;
@@ -149,12 +149,17 @@ const Panel = ({ title, accent, children, style, right, noPad, size }) => {
       ...style,
     }}>
       {title && (
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: isSm ? "8px 12px" : "8px 16px",
-          borderBottom: `1px solid ${T.border}`,
-          minHeight: isLg ? 36 : 32,
-        }}>
+        <div
+          onClick={onHeaderClick}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: isSm ? "8px 12px" : "8px 16px",
+            borderBottom: `1px solid ${T.border}`,
+            minHeight: isLg ? 36 : 32,
+            cursor: onHeaderClick ? "pointer" : "default",
+            userSelect: onHeaderClick ? "none" : "auto",
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: isLg ? 5 : isSm ? 3 : 4, height: isLg ? 18 : 14, borderRadius: 2, background: ac, flexShrink: 0 }} />
             <Mono style={{ fontSize: isLg ? 17 : isSm ? 14 : 16, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: ac }}>{title}</Mono>
@@ -573,6 +578,7 @@ const StateLegislationMap = () => {
 const MonitorPage = ({ onRefresh }) => {
   const [expCase, setExpCase] = useState(null);
   const [recentOpen, setRecentOpen] = useState(false);
+  const [courtroomOpen, setCourtroomOpen] = useState(true);
   const [headlineCatFilt, setHeadlineCatFilt] = useState("All");
   const [hlPage, setHlPage] = useState(0);
   const [briefingOpen, setBriefingOpen] = useState(null);
@@ -820,7 +826,18 @@ const MonitorPage = ({ onRefresh }) => {
         <StateLegislationMap />
 
         {/* ── Litigation ── */}
-        <Panel title="The Courtroom" accent={T.accent} noPad>
+        <Panel
+          title="The Courtroom"
+          accent={T.accent}
+          noPad
+          onHeaderClick={() => setCourtroomOpen(o => !o)}
+          right={
+            <Mono style={{ fontSize: 11, color: T.textDim, fontWeight: 400 }}>
+              {cases?.length || 0} tracked cases &middot; Source: <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ color: T.textDim, textDecoration: "none" }}>CSLT</a>
+            </Mono>
+          }
+        >
+          {!courtroomOpen ? null : <>
           <div style={{ padding: "6px 16px 2px", borderBottom: `1px solid ${T.borderLight}` }}>
             <Mono style={{ fontSize: 9, color: T.textDim, letterSpacing: "0.3px" }}>
               <span style={{ color: T.accent }}>Coral dates</span> = upcoming actions &middot; <span style={{ color: T.textDim }}>Gray dates</span> = last activity
@@ -914,17 +931,13 @@ const MonitorPage = ({ onRefresh }) => {
           )}
           {/* ── TIER 3: Everything else — link out ── */}
           {totalTracked > 0 && (
-            <div style={{ padding: "8px 16px", borderBottom: `1px solid ${T.borderLight}` }}>
+            <div style={{ padding: "8px 16px" }}>
               <Mono style={{ fontSize: 12, color: T.textDim }}>
-                <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" style={{ color: T.accent, textDecoration: "none", fontFamily: T.mono }}>View all {totalTracked} tracked cases on College Sports Litigation Tracker →</a>
+                <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" style={{ color: T.accent, textDecoration: "none", fontFamily: T.mono }}>View all {totalTracked} cases on College Sports Litigation Tracker →</a>
               </Mono>
             </div>
           )}
-          <div style={{ padding: "8px 16px", borderTop: `1px solid ${T.border}` }}>
-            <Mono style={{ fontSize: 12, color: T.textDim }}>
-              Source: <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" style={{ color: T.accent, textDecoration: "none", fontFamily: T.mono }}>College Sports Litigation Tracker</a> — Sam C. Ehrlich, Boise State University
-            </Mono>
-          </div>
+          </>}
         </Panel>
 
         {/* ── Outside View ── */}
