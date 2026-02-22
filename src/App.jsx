@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { ComposableMap, Geographies, Geography, Marker, Line } from "react-simple-maps";
 import stateNilData from "./nil-state-data.json";
 
@@ -81,13 +81,7 @@ const MOCK = {
     { time: "2d", cat: "Realignment", src: "FOS", text: "Pac-12 expansion negotiations with Mountain West stalled over media rights", sev: "routine" },
     { time: "2d", cat: "Litigation", src: "CourtListener", text: "Carter v. NCAA — NLRB certifies Dartmouth basketball union election", sev: "important" },
   ],
-  cases: [
-    { name: "House v. NCAA", court: "N.D. Cal.", judge: "Wilken", status: "Final Approval Pending", cat: "Settlement Implementation", lastFiling: "Feb 19", next: "Mar 12 — Fairness hearing", filings: 847, desc: "Class action settlement: revenue sharing ($20.5M cap), back-damages ($2.78B), College Sports Commission as enforcement body." },
-    { name: "Williams v. Washington", court: "W.D. Wash.", judge: "Martinez", status: "Mediation", cat: "Contract Enforcement", lastFiling: "Feb 15", next: "Mar 17 — Mediation", filings: 23, desc: "First test of revenue-sharing contract enforceability. QB signed $4M deal, entered portal 4 days later." },
-    { name: "Carter v. NCAA", court: "NLRB", judge: "Reg. Dir.", status: "Election Certified", cat: "Employment Classification", lastFiling: "Feb 17", next: "Mar 5 — Election", filings: 156, desc: "Dartmouth basketball union petition. NLRB certified election. NCAA appealing employee classification." },
-    { name: "Tennessee v. NCAA", court: "E.D. Tenn.", judge: "Atchley", status: "Discovery", cat: "Governance", lastFiling: "Feb 10", next: "Apr 20 — Discovery deadline", filings: 89, desc: "State challenging NCAA governance authority. Antitrust claims in enforcement actions." },
-    { name: "Duke v. Harper", court: "M.D.N.C.", judge: "Schroeder", status: "MTD Pending", cat: "Contract Enforcement", lastFiling: "Feb 8", next: "Mar 28 — MTD hearing", filings: 12, desc: "Duke seeking enforcement of multi-year revenue-sharing contract after player announced transfer intent." },
-  ],
+  cases: [], // Cases populated by CSLT fetcher — no mock data
   headlines: [
     { src: "ESPN", time: "1h", cat: "Revenue Sharing", title: "Inside the $20.5M math problem: How ADs are allocating revenue-sharing dollars" },
     { src: "Sportico", time: "2h", cat: "CSC / Enforcement", title: "CSC's first enforcement rubric signals tough line on collective-funded deals" },
@@ -116,6 +110,8 @@ const NIL_PODCASTS = [
   { name: "Highway to NIL", id: "1Pju07vvKyIqEZOGDNaMMD" },
   { name: "NIL Clubhouse", id: "3AbKOjnxZaBLs9VVfujToU" },
   { name: "The Portal", id: "2Wr77m5yVBgANHkDS7NxI5" },
+  { name: "One Question Leadership", id: "6QmP0ZLPAiEG7iqhywSURD" },
+  { name: "The Standard", id: "30VL73UUR59yLZfagH1Rzv" },
 ];
 // ── Shared Components ──────────────────────────────────────────────
 const Mono = ({ children, style }) => <span style={{ fontFamily: T.mono, ...style }}>{children}</span>;
@@ -173,22 +169,6 @@ const Panel = ({ title, accent, children, style, right, noPad, size }) => {
 
 const Divider = () => <div style={{ height: 1, background: T.border, margin: 0 }} />;
 
-// ── Bar Chart ──────────────────────────────────────────────────────
-const MiniBarChart = ({ data }) => {
-  const max = Math.max(...data.map(d => d.count), 1);
-  return (
-    <div style={{ display: "flex", alignItems: "flex-end", gap: 1.5, height: 52 }}>
-      {data.map((d, i) => (
-        <div key={i} title={`${d.day}: ${d.count}`} style={{
-          flex: 1, height: `${(d.count / max) * 100}%`,
-          background: i === data.length - 1 ? T.accent : T.accent + "35",
-          borderRadius: "1px 1px 0 0", minHeight: d.count > 0 ? 2 : 0,
-        }} />
-      ))}
-    </div>
-  );
-};
-
 // ── Live Embed Components ─────────────────────────────────────────
 
 const X_LIST_ACCOUNTS = [
@@ -225,60 +205,57 @@ const XListEmbed = () => (
   </Panel>
 );
 
-const PodcastsSection = () => (
-  <Panel title="NIL Podcasts" accent={T.accent} size="sm" noPad>
-    <div style={{ display: "flex", flexDirection: "column", gap: 0, padding: 4 }}>
-      {NIL_PODCASTS.map((p, i) => (
-        <div key={p.id} style={{ borderBottom: i < NIL_PODCASTS.length - 1 ? `1px solid ${T.border}` : "none", padding: "2px 0" }}>
-          <iframe
-            src={`https://open.spotify.com/embed/show/${p.id}?utm_source=generator&theme=0`}
-            width="100%"
-            height="152"
-            frameBorder="0"
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            loading="lazy"
-            style={{ display: "block", borderRadius: 8, maxWidth: "100%" }}
-          />
-        </div>
-      ))}
-    </div>
-  </Panel>
-);
-
-const KalshiSection = () => (
-  <div style={{ marginTop: 12 }}>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-      <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
-        Prediction Markets · Kalshi
-      </Mono>
-      <a href="https://kalshi.com/sports" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
-        <Mono style={{ fontSize: 11, color: T.accent }}>All markets →</Mono>
-      </a>
-    </div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-      {[
-        { label: "College Football", href: "https://kalshi.com/markets/kxncaaf/ncaaf-championship", desc: "CFB championship & game markets" },
-        { label: "March Madness", href: "https://kalshi.com/sports/ncaab", desc: "NCAA tournament & basketball" },
-        { label: "All Sports", href: "https://kalshi.com/sports", desc: "All event contracts" },
-      ].map((link, i) => (
-        <a key={i} href={link.href} target="_blank" rel="noopener noreferrer"
-          style={{ padding: "8px 12px", background: T.surfaceAlt, borderRadius: 4, textDecoration: "none", border: `1px solid ${T.borderLight}` }}>
-          <div style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 4 }}>{link.label}</div>
-          <Mono style={{ fontSize: 11, color: T.textDim }}>{link.desc}</Mono>
-        </a>
-      ))}
-    </div>
-  </div>
-);
+const PodcastsSection = () => {
+  const [freshIds, setFreshIds] = useState(new Set());
+  useEffect(() => {
+    fetch("/api/podcasts").then(r => r.ok ? r.json() : []).then(data => {
+      const now = Date.now();
+      const fresh = new Set();
+      for (const p of data) {
+        if (p.latest_date && (now - new Date(p.latest_date).getTime()) < 48 * 3600000) {
+          fresh.add(p.spotify_id);
+        }
+      }
+      setFreshIds(fresh);
+    }).catch(() => {});
+  }, []);
+  return (
+    <Panel title="NIL Podcasts" accent={T.accent} size="sm" noPad>
+      <div style={{ display: "flex", flexDirection: "column", gap: 0, padding: 4 }}>
+        {NIL_PODCASTS.map((p, i) => {
+          const isFresh = freshIds.has(p.id);
+          return (
+            <div key={p.id} style={{
+              borderBottom: i < NIL_PODCASTS.length - 1 ? `1px solid ${T.border}` : "none",
+              padding: "2px 0",
+              borderLeft: isFresh ? `3px solid ${T.accent}` : "3px solid transparent",
+              paddingLeft: 4,
+            }}>
+              <iframe
+                src={`https://open.spotify.com/embed/show/${p.id}?utm_source=generator&theme=0`}
+                width="100%"
+                height="152"
+                frameBorder="0"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"
+                style={{ display: "block", borderRadius: 8, maxWidth: "100%" }}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </Panel>
+  );
+};
 
 // ── Nav Resources ────────────────────────────────────────────────
 const RESOURCES = [
-  { label: "NIL Legislation Tracker", href: "https://www.troutman.com/state-and-federal-nil-legislation-tracker.html" },
+  { label: "NIL Monitor X List", href: X_LIST_URL },
+  { label: "College Sports Litigation Tracker", href: "https://www.collegesportslitigationtracker.com" },
+  { label: "Troutman Pepper NIL Tracker", href: "https://www.troutman.com/nil-legislation-tracker" },
+  { label: "NIL Revolution Blog", href: "https://www.nilrevolution.com" },
+  { label: "Saul Ewing NIL State Tracker", href: "https://www.saul.com/nil" },
   { label: "CourtListener", href: "https://www.courtlistener.com" },
-  { label: "LegiScan", href: "https://legiscan.com" },
-  { label: "NCAA.org", href: "https://www.ncaa.org" },
-  { label: "NIL Revolution", href: "https://www.nilrevolution.com" },
-  { label: "Congress.gov", href: "https://www.congress.gov" },
 ];
 
 // ── Utility Functions ────────────────────────────────────────────
@@ -311,6 +288,37 @@ const isWithinHour = (dateStr) => {
 // ── State NIL Legislation Map ─────────────────────────────────────
 const GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
 const STATE_DATA_BY_NAME = Object.fromEntries(stateNilData.map(s => [s.name, s]));
+
+// State label centroids (lon, lat) — manually adjusted for legibility
+const STATE_LABELS = {
+  "Alabama": [-86.8, 32.8, "AL"], "Alaska": [-153.5, 64.2, "AK"], "Arizona": [-111.7, 34.3, "AZ"],
+  "Arkansas": [-92.4, 34.8, "AR"], "California": [-119.5, 37.2, "CA"], "Colorado": [-105.5, 39.0, "CO"],
+  "Connecticut": [-72.7, 41.6, "CT"], "Delaware": [-75.5, 39.0, "DE"], "Florida": [-81.7, 28.7, "FL"],
+  "Georgia": [-83.4, 32.7, "GA"], "Hawaii": [-155.5, 21.5, "HI"], "Idaho": [-114.5, 44.4, "ID"],
+  "Illinois": [-89.2, 40.0, "IL"], "Indiana": [-86.2, 39.8, "IN"], "Iowa": [-93.5, 42.0, "IA"],
+  "Kansas": [-98.3, 38.5, "KS"], "Kentucky": [-85.3, 37.8, "KY"], "Louisiana": [-92.0, 31.0, "LA"],
+  "Maine": [-69.2, 45.4, "ME"], "Maryland": [-76.7, 39.0, "MD"], "Massachusetts": [-72.0, 42.3, "MA"],
+  "Michigan": [-84.6, 44.3, "MI"], "Minnesota": [-94.3, 46.3, "MN"], "Mississippi": [-89.7, 32.7, "MS"],
+  "Missouri": [-92.5, 38.4, "MO"], "Montana": [-109.6, 47.0, "MT"], "Nebraska": [-99.8, 41.5, "NE"],
+  "Nevada": [-116.6, 39.3, "NV"], "New Hampshire": [-71.0, 43.5, "NH"], "New Jersey": [-74.4, 40.1, "NJ"],
+  "New Mexico": [-106.0, 34.5, "NM"], "New York": [-75.5, 43.0, "NY"], "North Carolina": [-79.4, 35.5, "NC"],
+  "North Dakota": [-100.5, 47.4, "ND"], "Ohio": [-82.8, 40.4, "OH"], "Oklahoma": [-97.5, 35.5, "OK"],
+  "Oregon": [-120.5, 43.9, "OR"], "Pennsylvania": [-77.6, 41.0, "PA"], "Rhode Island": [-71.5, 41.7, "RI"],
+  "South Carolina": [-80.9, 34.0, "SC"], "South Dakota": [-100.2, 44.4, "SD"], "Tennessee": [-86.3, 35.8, "TN"],
+  "Texas": [-99.0, 31.5, "TX"], "Utah": [-111.7, 39.3, "UT"], "Vermont": [-73.2, 44.5, "VT"],
+  "Virginia": [-79.4, 37.5, "VA"], "Washington": [-120.5, 47.4, "WA"], "West Virginia": [-80.6, 38.6, "WV"],
+  "Wisconsin": [-89.8, 44.6, "WI"], "Wyoming": [-107.5, 43.0, "WY"],
+};
+
+// Callout states — too small/narrow for inline labels at full size
+// Label offset positions; dot stays at STATE_LABELS centroid, leader line connects them
+const CALLOUT_OFFSETS = {
+  "Connecticut": [-67.5, 43.2],
+  "Rhode Island": [-66.5, 41.7],
+  "New Jersey": [-67.5, 40.3],
+  "Maryland": [-67.5, 37.5],
+  "Delaware": [-67.5, 36.0],
+};
 
 const parseSections = (summary) => {
   if (!summary || summary === "N/A.") return [];
@@ -441,6 +449,56 @@ const StateLegislationMap = () => {
               })
             }
           </Geographies>
+          {/* State abbreviation labels (inline — skip callout states) */}
+          {Object.entries(STATE_LABELS).map(([name, [lon, lat, abbr]]) => {
+            if (CALLOUT_OFFSETS[name]) return null;
+            const stateData = STATE_DATA_BY_NAME[name];
+            const isEnacted = stateData?.status === "enacted";
+            return (
+              <Marker key={abbr} coordinates={[lon, lat]}>
+                <text
+                  textAnchor="middle" dominantBaseline="central"
+                  onClick={() => setSelected(stateData || null)}
+                  style={{
+                    fontFamily: T.mono, fontSize: 10, fontWeight: 700,
+                    fill: isEnacted ? "#fff" : "#3d4a5c",
+                    cursor: "pointer", pointerEvents: "all",
+                  }}
+                >{abbr}</text>
+              </Marker>
+            );
+          })}
+          {/* Callout labels for small states — dot + leader line + offset label */}
+          {Object.entries(CALLOUT_OFFSETS).map(([name, [labelLon, labelLat]]) => {
+            const [dotLon, dotLat, abbr] = STATE_LABELS[name];
+            const stateData = STATE_DATA_BY_NAME[name];
+            const isEnacted = stateData?.status === "enacted";
+            return (
+              <Fragment key={`callout-${abbr}`}>
+                <Marker coordinates={[dotLon, dotLat]}>
+                  <circle r={2} fill={isEnacted ? T.accent : "#94a3b8"} stroke="#fff" strokeWidth={0.5} />
+                </Marker>
+                <Line
+                  from={[dotLon, dotLat]}
+                  to={[labelLon, labelLat]}
+                  stroke="#94a3b8"
+                  strokeWidth={0.5}
+                  strokeDasharray="2,2"
+                />
+                <Marker coordinates={[labelLon, labelLat]}>
+                  <text
+                    textAnchor="start" dominantBaseline="central"
+                    onClick={() => setSelected(stateData || null)}
+                    style={{
+                      fontFamily: T.mono, fontSize: 10, fontWeight: 700,
+                      fill: "#3d4a5c",
+                      cursor: "pointer", pointerEvents: "all",
+                    }}
+                  >{abbr}</text>
+                </Marker>
+              </Fragment>
+            );
+          })}
           {/* DC callout — line from actual location to offset label */}
           <Line
             from={[-77.04, 38.91]}
@@ -512,15 +570,12 @@ const MonitorPage = ({ onRefresh }) => {
   const [briefing, setBriefing] = useState(null);
   const [briefingGeneratedAt, setBriefingGeneratedAt] = useState(null);
   const [cases, setCases] = useState(null);
-  const [headlineCounts, setHeadlineCounts] = useState(null);
   const [headlines, setHeadlines] = useState(null);
+  const [gdeltVolume, setGdeltVolume] = useState(null);
 
   const fetchHeadlines = () => {
     fetch("/api/headlines?limit=100").then(r => r.ok ? r.json() : null).then(d => {
       if (d) { setHeadlines(d); onRefresh?.(new Date()); }
-    }).catch(() => {});
-    fetch("/api/headline-counts").then(r => r.ok ? r.json() : null).then(d => {
-      if (d) setHeadlineCounts(d);
     }).catch(() => {});
   };
 
@@ -535,6 +590,9 @@ const MonitorPage = ({ onRefresh }) => {
     fetch("/api/cases").then(r => r.ok ? r.json() : null).then(d => {
       if (d?.length) setCases(d);
     }).catch(() => {});
+    fetch("/api/gdelt-volume").then(r => r.ok ? r.json() : null).then(d => {
+      if (d) setGdeltVolume(d);
+    }).catch(() => {});
     fetchHeadlines();
 
     // Auto-refresh headlines every 2 minutes
@@ -542,72 +600,38 @@ const MonitorPage = ({ onRefresh }) => {
     return () => clearInterval(id);
   }, []);
 
-  // Normalize API cases or use mock
-  const caseSource = cases ? cases.map(c => {
-    // Parse upcoming_dates JSON for the nearest next action
-    let nextDate = null, nextText = null;
-    if (c.upcoming_dates) {
-      try {
-        const dates = JSON.parse(c.upcoming_dates);
-        if (dates.length > 0) {
-          // Find the nearest future date
-          const now = new Date();
-          const future = dates
+  // Parse and group cases for Courtroom section (API pre-sorted by upcoming date)
+  const courtroomGroups = (() => {
+    if (!cases?.length) return [];
+    const now = new Date();
+    const parsed = cases.map(c => {
+      let upcomingParsed = [], soonest = null;
+      if (c.upcoming_dates) {
+        try {
+          upcomingParsed = JSON.parse(c.upcoming_dates);
+          const future = upcomingParsed
             .filter(d => d.date && new Date(d.date) >= now)
             .sort((a, b) => new Date(a.date) - new Date(b.date));
-          if (future.length > 0) {
-            nextDate = future[0].date;
-            nextText = future[0].text;
-          } else {
-            // All dates may be past; just use the first one
-            nextDate = dates[0].date;
-            nextText = dates[0].text;
-          }
-        }
-      } catch {}
+          soonest = future[0] || null;
+        } catch {}
+      }
+      return { ...c, upcomingParsed, soonest };
+    });
+    const groups = [], seen = new Map();
+    for (const c of parsed) {
+      const g = c.case_group || "Other";
+      if (!seen.has(g)) { const arr = []; seen.set(g, arr); groups.push({ name: g, cases: arr }); }
+      seen.get(g).push(c);
     }
-    return {
-      name: c.name, court: c.court, judge: c.judge,
-      status: c.status_summary ? c.status_summary.slice(0, 100) + (c.status_summary.length > 100 ? '...' : '') : c.last_event_text || '',
-      cat: c.case_group,
-      lastFiling: c.last_event_date,
-      filings: null,
-      next: nextDate ? `${formatDate(nextDate)} — ${nextText || ""}` : null,
-      nextDate: nextDate,
-      desc: c.description,
-      clUrl: c.cslt_url,
-      pacerUrl: null,
-      caseNumber: c.case_number,
-    };
-  }) : MOCK.cases;
-
-  // Sort cases by next action date, soonest first
-  const caseSorted = [...caseSource].sort((a, b) => {
-    if (!a.nextDate && !b.nextDate) return 0;
-    if (!a.nextDate) return 1;
-    if (!b.nextDate) return -1;
-    return new Date(a.nextDate) - new Date(b.nextDate);
-  });
+    return groups;
+  })();
+  const cleanGroupName = (n) => n.replace(/\s*\(and Related\)/i, " & Related").replace(/\s*\(Click here[^)]*\)/i, "").trim();
 
   // Briefing: API or mock
   const briefingSource = briefing || MOCK.briefing.map(([headline, body]) => ({ headline, body }));
 
   // Briefing defaults to all expanded; null = user hasn't interacted
   const briefingExpanded = briefingOpen ?? new Set(briefingSource.map((_, i) => i));
-
-  // Build 30-day chart data from headline counts (fill gaps with 0)
-  const chartData = (() => {
-    const map = {};
-    if (headlineCounts) headlineCounts.forEach(r => { map[r.day] = r.count; });
-    const days = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 86400000);
-      const key = d.toISOString().split("T")[0];
-      days.push({ day: key, count: map[key] || 0 });
-    }
-    return days;
-  })();
-
 
   // Headlines: normalize for feed (include severity when AI-tagged)
   const hlSource = headlines ? headlines.map(h => ({
@@ -740,62 +764,162 @@ const MonitorPage = ({ onRefresh }) => {
 
         {/* ── Litigation ── */}
         <Panel title="The Courtroom" accent={T.accent} noPad>
-          {caseSorted.map((c, i) => {
-            const isOpen = expCase === i;
-            return (
-              <div key={i} style={{ borderBottom: i < caseSorted.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
-                <div
-                  onClick={() => setExpCase(isOpen ? null : i)}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 16px", cursor: "pointer" }}
-                  onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                >
-                  <Mono style={{ fontSize: 11, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>
-                  <strong style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 700, color: T.text }}>{c.name}</strong>
-                  <Mono style={{ fontSize: 12, color: T.textDim, flexShrink: 0 }}>·&nbsp;{c.status}</Mono>
-                  {c.cat && <Mono style={{ fontSize: 12, color: T.textDim, flexShrink: 0 }}>·&nbsp;{c.cat}</Mono>}
-                  <div style={{ flex: 1 }} />
-                  {c.next && <Mono style={{ fontSize: 13, fontWeight: 600, color: T.accent, flexShrink: 0 }}>→ {c.next}</Mono>}
-                </div>
-                <div style={{
-                  maxHeight: isOpen ? 300 : 0, overflow: "hidden",
-                  transition: "max-height .2s ease, opacity .2s ease",
-                  opacity: isOpen ? 1 : 0,
-                }}>
-                  <div style={{ padding: "12px 16px 12px 24px" }}>
-                    <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 8, display: "block" }}>
-                      {[c.court, c.judge && `Judge ${c.judge}`, c.caseNumber, c.lastFiling && `Last event ${formatDate(c.lastFiling)}`].filter(Boolean).join(" · ")}
-                    </Mono>
-                    {c.desc && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textMid, lineHeight: 1.5, marginBottom: 8 }}>{c.desc}</div>}
-                    <div style={{ display: "flex", gap: 12 }}>
-                      {c.clUrl && <a href={c.clUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}><Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>CSLT Tracker →</Mono></a>}
+          {courtroomGroups.length === 0 ? (
+            <div style={{ padding: "20px 16px", textAlign: "center" }}>
+              <Mono style={{ fontSize: 12, color: T.textDim }}>
+                {cases ? "No active cases" : "Loading cases..."}
+              </Mono>
+            </div>
+          ) : courtroomGroups.map((group, gi) => (
+            <div key={gi}>
+              <div style={{ padding: "10px 16px 4px" }}>
+                <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
+                  {cleanGroupName(group.name)}
+                </Mono>
+              </div>
+              {group.cases.map((c) => {
+                const isOpen = expCase === c.id;
+                const eventSnippet = c.last_event_text
+                  ? (c.last_event_text.length > 60 ? c.last_event_text.slice(0, 60) + "..." : c.last_event_text)
+                  : "";
+                return (
+                  <div key={c.id} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
+                    <div
+                      onClick={() => setExpCase(isOpen ? null : c.id)}
+                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 16px", cursor: "pointer" }}
+                      onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >
+                      <Mono style={{ fontSize: 11, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>
+                      <strong style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 700, color: T.text, flexShrink: 0 }}>{c.name}</strong>
+                      {eventSnippet && <Mono style={{ fontSize: 12, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&nbsp;· {eventSnippet}</Mono>}
+                      <div style={{ flex: 1 }} />
+                      {c.soonest ? (
+                        <Mono style={{ fontSize: 13, fontWeight: 600, color: T.accent, flexShrink: 0, whiteSpace: "nowrap" }}>{formatDate(c.soonest.date)}</Mono>
+                      ) : c.last_event_date ? (
+                        <Mono style={{ fontSize: 13, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap" }}>Last: {formatDate(c.last_event_date)}</Mono>
+                      ) : null}
+                    </div>
+                    <div style={{
+                      maxHeight: isOpen ? 500 : 0, overflow: "hidden",
+                      transition: "max-height .2s ease, opacity .2s ease",
+                      opacity: isOpen ? 1 : 0,
+                    }}>
+                      <div style={{ padding: "8px 16px 12px 24px" }}>
+                        <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 8, display: "block" }}>
+                          {[c.court, c.judge && `Judge ${c.judge}`, c.case_number, c.filed_date].filter(Boolean).join(" · ")}
+                        </Mono>
+                        {c.description && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textMid, lineHeight: 1.5, marginBottom: 8 }}>{c.description}</div>}
+                        {c.upcomingParsed.length > 0 && (
+                          <div style={{ marginBottom: 8 }}>
+                            {c.upcomingParsed.map((d, di) => (
+                              <div key={di} style={{ display: "flex", gap: 8, padding: "2px 0" }}>
+                                <Mono style={{ fontSize: 12, color: T.accent, flexShrink: 0 }}>{d.date ? formatDate(d.date) : "TBD"}</Mono>
+                                <Mono style={{ fontSize: 12, color: T.text }}>{d.text}</Mono>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {c.cslt_url && (
+                          <a href={c.cslt_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}>
+                            <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>Full case detail → College Sports Litigation Tracker</Mono>
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          ))}
+          <div style={{ padding: "8px 16px", borderTop: `1px solid ${T.border}` }}>
+            <Mono style={{ fontSize: 12, color: T.textDim }}>
+              Source: <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" style={{ color: T.accent, textDecoration: "none", fontFamily: T.mono }}>College Sports Litigation Tracker</a> — Sam C. Ehrlich, Boise State University
+            </Mono>
+          </div>
         </Panel>
 
         {/* ── Outside View ── */}
-        <Panel title="The Outside View" accent={T.accent} size="sm">
-          <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 8, display: "block" }}>News Volume · 30 Days</Mono>
-          <div style={{ height: 52 }}>
-            {chartData.length > 0 ? <MiniBarChart data={chartData} /> : (
-              <Mono style={{ fontSize: 12, color: T.textDim }}>Loading chart data...</Mono>
-            )}
+        <Panel title="The Outside View" accent={T.textDim} size="sm">
+          <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 24 }}>
+            {/* Left: GDELT News Volume Chart */}
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>News Volume · 30 Days</Mono>
+                {gdeltVolume?.total > 0 && (
+                  <Mono style={{ fontSize: 11, color: T.textMid }}>{gdeltVolume.total.toLocaleString()} articles · avg {gdeltVolume.avg}/day</Mono>
+                )}
+              </div>
+              {(() => {
+                const pts = gdeltVolume?.data || [];
+                if (pts.length === 0) return (
+                  <div style={{ height: 120, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Mono style={{ fontSize: 12, color: T.textDim }}>{gdeltVolume ? "No volume data available" : "Loading..."}</Mono>
+                  </div>
+                );
+                const W = 500, H = 120, PX = 0, PY = 8;
+                const max = Math.max(...pts.map(p => p.count), 1);
+                const xStep = (W - PX * 2) / (pts.length - 1 || 1);
+                const yScale = (v) => PY + (H - PY * 2) * (1 - v / max);
+                const linePoints = pts.map((p, i) => `${PX + i * xStep},${yScale(p.count)}`).join(" ");
+                const areaPath = `M${PX},${H - PY} ` + pts.map((p, i) => `L${PX + i * xStep},${yScale(p.count)}`).join(" ") + ` L${PX + (pts.length - 1) * xStep},${H - PY} Z`;
+                const midIdx = Math.floor(pts.length / 2);
+                const fmtLabel = (d) => new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                return (
+                  <div>
+                    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: 120, display: "block" }}>
+                      <defs>
+                        <linearGradient id="gdelt-fill" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={T.accent} stopOpacity="0.15" />
+                          <stop offset="100%" stopColor={T.accent} stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+                      <path d={areaPath} fill="url(#gdelt-fill)" />
+                      <polyline points={linePoints} fill="none" stroke={T.accent} strokeOpacity="0.4" strokeWidth="1.5" strokeLinejoin="round" />
+                    </svg>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
+                      <Mono style={{ fontSize: 11, color: T.textDim }}>{fmtLabel(pts[0].date)}</Mono>
+                      <Mono style={{ fontSize: 11, color: T.textDim }}>{fmtLabel(pts[midIdx].date)}</Mono>
+                      <Mono style={{ fontSize: 11, color: T.textDim }}>{fmtLabel(pts[pts.length - 1].date)}</Mono>
+                    </div>
+                  </div>
+                );
+              })()}
+              <Mono style={{ fontSize: 10, color: T.textDim, marginTop: 6, display: "block" }}>
+                Articles mentioning NIL, NCAA, transfer portal across global media · GDELT
+              </Mono>
+            </div>
+            {/* Right: Resources */}
+            <div>
+              <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 10, display: "block" }}>Resources</Mono>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {[
+                  { label: "College Sports Litigation Tracker", href: "https://www.collegesportslitigationtracker.com" },
+                  { label: "Troutman Pepper NIL Tracker", href: "https://www.troutman.com/nil-legislation-tracker" },
+                  { label: "NIL Revolution Blog", href: "https://www.nilrevolution.com" },
+                  { label: "Saul Ewing NIL State Tracker", href: "https://www.saul.com/nil" },
+                  { label: "CourtListener", href: "https://www.courtlistener.com" },
+                  { label: "NIL Monitor X List", href: X_LIST_URL },
+                ].map((r, i) => (
+                  <a key={i} href={r.href} target="_blank" rel="noopener noreferrer"
+                    style={{ textDecoration: "none", fontFamily: T.mono, fontSize: 13, color: T.textDim, display: "flex", alignItems: "center", gap: 6 }}
+                    onMouseEnter={e => { e.currentTarget.style.color = T.accent; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = T.textDim; }}
+                  >
+                    <span style={{ color: T.accent }}>→</span> {r.label}
+                  </a>
+                ))}
+              </div>
+              <Mono style={{ fontSize: 10, color: T.textDim, marginTop: 12, display: "block" }}>
+                Data sources for this dashboard
+              </Mono>
+            </div>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-            <Mono style={{ fontSize: 11, color: T.textDim }}>30d ago</Mono>
-            <Mono style={{ fontSize: 11, color: T.textDim }}>Today</Mono>
-          </div>
-          <KalshiSection />
         </Panel>
       </div>
 
       {/* ══ SIDEBAR ══ */}
       <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: 52 }}>
-        <XListEmbed />
         <PodcastsSection />
       </div>
     </div>
