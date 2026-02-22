@@ -356,39 +356,6 @@ const parseSections = (summary) => {
   return merged;
 };
 
-const SectionedSummary = ({ summary }) => {
-  const sections = parseSections(summary);
-  const [openSec, setOpenSec] = useState(new Set());
-  if (!sections.length) return null;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      {sections.map((sec, i) => {
-        const isOpen = openSec.has(i);
-        return (
-          <div key={i} style={{ borderBottom: i < sections.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
-            <div
-              onClick={() => setOpenSec(prev => {
-                const next = new Set(prev);
-                next.has(i) ? next.delete(i) : next.add(i);
-                return next;
-              })}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 0", cursor: "pointer" }}
-            >
-              <Mono style={{ fontSize: 10, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>
-              <span style={{ fontFamily: T.sans, fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.4 }}>{sec.title}</span>
-            </div>
-            {isOpen && sec.content.length > 0 && (
-              <div style={{ padding: "0 0 8px 16px", fontFamily: T.sans, fontSize: 12, color: T.textMid, lineHeight: 1.6 }}>
-                {sec.content.map((line, j) => <div key={j} style={{ marginBottom: 2 }}>{line}</div>)}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
 const StateLegislationMap = () => {
   const [selected, setSelected] = useState(null);
   const enacted = stateNilData.filter(s => s.status === "enacted").length;
@@ -526,28 +493,71 @@ const StateLegislationMap = () => {
             <circle r={2} fill={T.accent} stroke="#fff" strokeWidth={0.5} />
           </Marker>
         </ComposableMap>
+        {/* State detail overlay — centered on map */}
+        {selected && (
+          <>
+            <style>{`@keyframes stateOverlayIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }`}</style>
+            <div
+              onClick={() => setSelected(null)}
+              style={{
+                position: "absolute", inset: 0, zIndex: 10,
+                background: "rgba(15,23,41,0.08)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                  background: "#fff",
+                  borderRadius: 8,
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.15)",
+                  maxWidth: 480,
+                  width: "calc(100% - 32px)",
+                  maxHeight: "70%",
+                  overflowY: "auto",
+                  padding: 20,
+                  animation: "stateOverlayIn 150ms ease",
+                }}
+              >
+                {/* Header: name + badge + close */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <strong style={{ fontFamily: T.sans, fontSize: 20, fontWeight: 700, color: T.text }}>{selected.name}</strong>
+                    <Mono style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: selected.status === "enacted" ? T.accent : T.textDim, padding: "2px 8px", borderRadius: 3 }}>
+                      {selected.status === "enacted" ? "ENACTED" : "NO LAW"}
+                    </Mono>
+                  </div>
+                  <button onClick={() => setSelected(null)} style={{ fontFamily: T.mono, fontSize: 18, color: T.textDim, background: "transparent", border: "none", cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>&times;</button>
+                </div>
+                {/* Dates */}
+                {selected.statusDetail && selected.statusDetail !== "None." && (
+                  <Mono style={{ fontSize: 12, color: T.textDim, lineHeight: 1.5, display: "block", marginBottom: 12 }}>{selected.statusDetail}</Mono>
+                )}
+                {/* Provision sections — all expanded */}
+                {selected.summary && selected.summary !== "N/A." ? (
+                  <>
+                    <div style={{ height: 1, background: T.border, marginBottom: 14 }} />
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      {parseSections(selected.summary).map((sec, i) => (
+                        <div key={i}>
+                          <div style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 4 }}>{sec.title}</div>
+                          {sec.content.length > 0 && (
+                            <div style={{ fontFamily: T.sans, fontSize: 12.5, color: T.textMid, lineHeight: 1.6 }}>
+                              {sec.content.map((line, j) => <div key={j} style={{ marginBottom: 2 }}>{line}</div>)}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : selected.status !== "enacted" ? (
+                  <Mono style={{ fontSize: 12, color: T.textDim, marginTop: 4 }}>No NIL legislation enacted.</Mono>
+                ) : null}
+              </div>
+            </div>
+          </>
+        )}
       </div>
-      {selected && (
-        <div style={{ padding: "0 16px 16px", borderTop: `1px solid ${T.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0 8px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <strong style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, color: T.text }}>{selected.name}</strong>
-              <Mono style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: selected.status === "enacted" ? T.accent : T.textDim, padding: "2px 8px", borderRadius: 3 }}>
-                {selected.status === "enacted" ? "ENACTED" : "NO LAW"}
-              </Mono>
-            </div>
-            <button onClick={() => setSelected(null)} style={{ fontFamily: T.mono, fontSize: 14, color: T.textDim, background: "transparent", border: "none", cursor: "pointer" }}>&times;</button>
-          </div>
-          {selected.statusDetail && selected.statusDetail !== "None." && (
-            <Mono style={{ fontSize: 11, color: T.textDim, lineHeight: 1.5, display: "block", marginBottom: 8 }}>{selected.statusDetail}</Mono>
-          )}
-          {selected.summary && selected.summary !== "N/A." && (
-            <div style={{ maxHeight: 240, overflowY: "auto" }}>
-              <SectionedSummary summary={selected.summary} />
-            </div>
-          )}
-        </div>
-      )}
       <div style={{ padding: "8px 16px", borderTop: `1px solid ${T.border}` }}>
         <Mono style={{ fontSize: 10, color: T.textDim }}>
           Source: Troutman Pepper — State & Federal NIL Legislation Tracker (Feb 2026)
