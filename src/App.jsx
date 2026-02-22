@@ -29,7 +29,7 @@ const T = {
   textDim: "#7c8698",
   border: "#edf0f4",
   borderLight: "#f0f2f6",
-  mono: "'Geist Mono', 'JetBrains Mono', 'SF Mono', monospace",
+  mono: "'Geist Mono', 'Fira Code', 'SF Mono', monospace",
   sans: "'Geist Sans', 'Inter', system-ui, sans-serif",
   radius: 6,
 };
@@ -120,15 +120,15 @@ const Mono = ({ children, style }) => <span style={{ fontFamily: T.mono, ...styl
 
 const Badge = ({ children, color = T.accent }) => (
   <span style={{
-    fontFamily: T.mono, fontSize: 11, fontWeight: 600, letterSpacing: ".3px",
-    padding: "2px 8px", borderRadius: 4,
+    fontFamily: T.mono, fontSize: 11, fontWeight: 700, letterSpacing: ".3px",
+    padding: "4px 8px", borderRadius: 4,
     background: color + "15", color, whiteSpace: "nowrap", textTransform: "uppercase", lineHeight: 1.4,
   }}>{children}</span>
 );
 
 const Pill = ({ active, children, onClick }) => (
   <button onClick={onClick} style={{
-    fontFamily: T.mono, fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 4,
+    fontFamily: T.mono, fontSize: 11, fontWeight: 600, padding: "8px 12px", borderRadius: 4,
     border: `1px solid ${active ? T.accent : "#9ca3af"}`,
     background: active ? T.accent : "transparent",
     color: active ? "#fff" : "#3d4a5c", cursor: "pointer", whiteSpace: "nowrap", letterSpacing: ".3px",
@@ -159,7 +159,7 @@ const Panel = ({ title, accent, children, style, right, noPad, size }) => {
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: isLg ? 5 : isSm ? 3 : 4, height: isLg ? 18 : 14, borderRadius: 2, background: ac, flexShrink: 0 }} />
-            <Mono style={{ fontSize: isLg ? 15 : isSm ? 12 : 13, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: ac }}>{title}</Mono>
+            <Mono style={{ fontSize: isLg ? 15 : isSm ? 14 : 15, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: ac }}>{title}</Mono>
           </div>
           {right}
         </div>
@@ -218,7 +218,7 @@ const XListEmbed = () => (
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "4px 0", borderBottom: i < X_LIST_ACCOUNTS.length - 1 ? `1px solid ${T.borderLight}` : "none",
         }}>
-          <Mono style={{ fontSize: 12, fontWeight: 600, color: T.textMid }}>{a.handle}</Mono>
+          <Mono style={{ fontSize: 13, fontWeight: 600, color: T.textMid }}>{a.handle}</Mono>
           <Mono style={{ fontSize: 11, color: T.textDim }}>{a.org}</Mono>
         </div>
       ))}
@@ -434,17 +434,17 @@ const MonitorPage = () => {
                     next.has(i) ? next.delete(i) : next.add(i);
                     return next;
                   })}
-                  style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "12px 0", cursor: "pointer" }}
+                  style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "16px 0", cursor: "pointer" }}
                 >
                   <Mono style={{ fontSize: 12, color: T.textDim, lineHeight: 1.6, flexShrink: 0, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none" }}>▸</Mono>
-                  <span style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 600, lineHeight: 1.5, color: T.text }}>{s.headline}</span>
+                  <span style={{ fontFamily: T.sans, fontSize: 17, fontWeight: 600, lineHeight: 1.5, color: T.text }}>{s.headline}</span>
                 </div>
                 <div style={{
                   maxHeight: isOpen ? 400 : 0, overflow: "hidden",
                   transition: "max-height .2s ease, opacity .2s ease",
                   opacity: isOpen ? 1 : 0,
                 }}>
-                  <div style={{ fontFamily: T.sans, fontSize: 14, lineHeight: 1.6, color: T.textMid, padding: "0 0 12px 20px" }}>
+                  <div style={{ fontFamily: T.sans, fontSize: 15, lineHeight: 1.6, color: T.textMid, padding: "0 0 12px 20px" }}>
                     {s.body}
                   </div>
                 </div>
@@ -475,7 +475,7 @@ const MonitorPage = () => {
           ) : hlPageItems.map((h, i) => (
             <a key={i} href={h.url} target="_blank" rel="noopener noreferrer"
               style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "4px 16px",
+                display: "flex", alignItems: "center", gap: 8, padding: "12px 16px",
                 borderBottom: `1px solid ${T.borderLight}`,
                 borderLeft: h.sev === "critical" ? `3px solid ${T.accent}` : h.sev === "important" ? `2px solid ${T.amber}` : "3px solid transparent",
                 background: h.sev === "critical" ? `${T.accent}06` : "transparent",
@@ -489,16 +489,16 @@ const MonitorPage = () => {
               {h.subCat && <Badge color={CSC_SUB_COLORS[h.subCat] || T.textDim}>{h.subCat}</Badge>}
               <div style={{ flex: 1, fontFamily: T.sans, fontSize: 14, fontWeight: h.sev === "critical" ? 600 : 500, color: T.text, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
               {h.isNew && <Mono style={{ fontSize: 11, fontWeight: 700, color: T.green, letterSpacing: ".5px", flexShrink: 0 }}>NEW</Mono>}
-              <Mono style={{ flex: "0 0 auto", fontSize: 11, color: T.textDim }}>{h.time}</Mono>
+              <Mono style={{ flex: "0 0 auto", fontSize: 12, color: T.textDim }}>{h.time}</Mono>
             </a>
           ))}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 16px", borderTop: `1px solid ${T.borderLight}` }}>
             {hlPageClamped > 0 ? (
-              <button onClick={() => setHlPage(hlPageClamped - 1)} style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: T.accent, background: "transparent", border: "none", cursor: "pointer" }}>← Prev</button>
+              <button onClick={() => setHlPage(hlPageClamped - 1)} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: T.accent, background: "transparent", border: "none", cursor: "pointer" }}>← Prev</button>
             ) : <span />}
-            <Mono style={{ fontSize: 11, color: T.textDim }}>{hlPageClamped + 1} of {hlTotalPages}</Mono>
+            <Mono style={{ fontSize: 12, color: T.textDim }}>{hlPageClamped + 1} of {hlTotalPages}</Mono>
             {hlPageClamped < hlTotalPages - 1 ? (
-              <button onClick={() => setHlPage(hlPageClamped + 1)} style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: T.accent, background: "transparent", border: "none", cursor: "pointer" }}>Next →</button>
+              <button onClick={() => setHlPage(hlPageClamped + 1)} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: T.accent, background: "transparent", border: "none", cursor: "pointer" }}>Next →</button>
             ) : <span />}
           </div>
         </Panel>
@@ -508,7 +508,7 @@ const MonitorPage = () => {
            ══════════════════════════════════════════════════════════ */}
 
         {/* ── Litigation ── */}
-        <Panel title="The Courtroom" accent={T.accent} size="sm" noPad>
+        <Panel title="The Courtroom" accent={T.accent} noPad>
           {caseSource.map((c, i) => {
             const isOpen = expCase === i;
             const nextSoon = c.nextDate && (new Date(c.nextDate) - Date.now()) / 86400000 <= 30;
@@ -521,7 +521,7 @@ const MonitorPage = () => {
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
                   <Mono style={{ fontSize: 11, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>
-                  <strong style={{ fontFamily: T.sans, fontSize: 13, color: T.text }}>{c.name}</strong>
+                  <strong style={{ fontFamily: T.sans, fontSize: 15, color: T.text }}>{c.name}</strong>
                   <Badge color={T.amber}>{c.status}</Badge>
                   {c.cat && <Badge color={CAT_COLORS[c.cat]}>{c.cat}</Badge>}
                   <div style={{ flex: 1 }} />
@@ -552,7 +552,7 @@ const MonitorPage = () => {
         </Panel>
 
         {/* ── Outside View ── */}
-        <Panel title="The Outside View" accent="#64748b" size="sm">
+        <Panel title="The Outside View" accent="#64748b">
           <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 8, display: "block" }}>News Volume · 30 Days</Mono>
           <div style={{ height: 52 }}>
             {chartData.length > 0 ? <MiniBarChart data={chartData} /> : (
@@ -568,7 +568,7 @@ const MonitorPage = () => {
       </div>
 
       {/* ══ SIDEBAR ══ */}
-      <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 16, position: "sticky", top: 52 }}>
+      <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 12, position: "sticky", top: 52 }}>
         <XListEmbed />
         <PodcastsSection />
       </div>
@@ -678,7 +678,7 @@ export default function NILMonitor() {
       }}>
         {/* Left: brand + live + date */}
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 16 }}>
-          <span style={{ fontFamily: T.mono, fontSize: 14, fontWeight: 700, color: "#fff", background: T.accent, padding: "2px 8px", borderRadius: 4, letterSpacing: ".5px" }}>NIL</span>
+          <span style={{ fontFamily: T.mono, fontSize: 14, fontWeight: 700, color: "#fff", background: T.accent, padding: "4px 8px", borderRadius: 4, letterSpacing: ".5px" }}>NIL</span>
           <span style={{ fontFamily: T.mono, fontSize: 14, fontWeight: 400, color: "#fff", letterSpacing: "1.5px" }}>MONITOR</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 20 }}>
@@ -697,7 +697,7 @@ export default function NILMonitor() {
           <button
             onClick={e => { e.stopPropagation(); setShowResources(prev => !prev); }}
             style={{
-              fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,.6)",
+              fontFamily: T.sans, fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,.6)",
               background: "transparent", border: "none", cursor: "pointer",
               padding: "8px 12px", letterSpacing: ".3px",
             }}
