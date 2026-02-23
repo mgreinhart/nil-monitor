@@ -289,18 +289,14 @@ If none of these are actually NEW CSC activity (not already tracked), return: {"
 
 // ── Task 4: Daily Briefing ───────────────────────────────────────
 async function generateBriefing(env, db, isAfternoon = false) {
-  // Get today's tagged headlines for the briefing
+  // Get recent tagged headlines for the briefing (last 24h — covers overnight + morning)
   const { results: headlines } = await db.prepare(
-    "SELECT * FROM headlines WHERE category IS NOT NULL AND date(published_at) >= date('now') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 50"
+    "SELECT * FROM headlines WHERE category IS NOT NULL AND published_at >= datetime('now', '-24 hours') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 50"
   ).all();
 
   const { results: deadlines } = await db.prepare(
     "SELECT * FROM deadlines WHERE date >= date('now') AND date <= date('now', '+14 days') ORDER BY date ASC"
   ).all();
-
-  if (headlines.length === 0) {
-    return null; // Nothing to brief on
-  }
 
   const system = `You are a sharp deputy AD briefing your boss. Be direct — no throat-clearing, no filler.
 
