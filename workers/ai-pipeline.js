@@ -316,10 +316,11 @@ If the answer is no, don't include it.
 
 STRICT FORMAT RULES:
 - Always produce EXACTLY 4 sections. No more, no fewer.
-- For each section, provide three fields:
+- For each section, provide four fields:
   - "short_title": A punchy 6-10 word title that captures the core development. Written like a news ticker or push notification. No periods. Examples: "Nevada judge strikes NCAA eligibility rules", "'Street agents' draw multi-conference alarm", "Power 4 participation deadline holds at March 1"
   - "headline": ONE bold opening sentence stating what happened.
   - "body": ONE to TWO sentences max of detail/context/action items.
+  - "url": The URL of the most relevant source article for this section (copy exactly from the headline list). If the section is about a deadline or forward-looking item with no specific article, use null.
 - Lead with the most important item. Group related developments.
 - Cite sources parenthetically (e.g., "per ESPN" or "(CourtListener)").
 - If something requires institutional action, say so explicitly.
@@ -329,7 +330,7 @@ STRICT FORMAT RULES:
 Return ONLY valid JSON, no other text.`;
 
   const headlineList = headlines.map(h =>
-    `[${h.severity?.toUpperCase()}] [${h.category}] ${h.source}: ${h.title}`
+    `[${h.severity?.toUpperCase()}] [${h.category}] ${h.source}: ${h.title}${h.url ? ` <${h.url}>` : ''}`
   ).join('\n');
 
   const deadlineList = deadlines.map(d =>
@@ -368,7 +369,8 @@ Return JSON (EXACTLY 4 sections):
     {
       "short_title": "Punchy 6-10 word title for this item",
       "headline": "Bold opening sentence stating what happened.",
-      "body": "One to two sentences of context or action items. No more."
+      "body": "One to two sentences of context or action items. No more.",
+      "url": "https://example.com/article-url-from-headline-list or null"
     }
   ]
 }`;
@@ -402,7 +404,8 @@ Return JSON (EXACTLY 4 sections):
     {
       "short_title": "Punchy 6-10 word title for this item",
       "headline": "Bold opening sentence stating what happened.",
-      "body": "One to two sentences of context or action items. No more."
+      "body": "One to two sentences of context or action items. No more.",
+      "url": "https://example.com/article-url-from-headline-list or null"
     }
   ]
 }`;
