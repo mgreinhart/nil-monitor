@@ -292,39 +292,34 @@ const isWithinHour = (dateStr) => {
 const GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
 const STATE_DATA_BY_NAME = Object.fromEntries(stateNilData.map(s => [s.name, s]));
 
-// State label centroids (lon, lat) — manually adjusted for legibility
+// State label positions (lon, lat) — manually adjusted for legibility
+// Small NE states: labels placed adjacent/outside the state, no leader lines
 const STATE_LABELS = {
   "Alabama": [-86.8, 32.8, "AL"], "Alaska": [-153.5, 64.2, "AK"], "Arizona": [-111.7, 34.3, "AZ"],
   "Arkansas": [-92.4, 34.8, "AR"], "California": [-119.5, 37.2, "CA"], "Colorado": [-105.5, 39.0, "CO"],
-  "Connecticut": [-72.7, 41.6, "CT"], "Delaware": [-75.5, 39.0, "DE"], "Florida": [-81.7, 28.7, "FL"],
-  "Georgia": [-83.4, 32.7, "GA"], "Hawaii": [-155.5, 21.5, "HI"], "Idaho": [-114.5, 45.5, "ID"],
+  "Connecticut": [-72.7, 41.6, "CT", "start", -0.3],
+  "Delaware": [-75.0, 38.7, "DE", "start", 0.5],
+  "Florida": [-81.7, 28.7, "FL"],
+  "Georgia": [-83.4, 32.7, "GA"], "Hawaii": [-155.5, 21.5, "HI"], "Idaho": [-114.5, 44.8, "ID"],
   "Illinois": [-89.2, 40.0, "IL"], "Indiana": [-86.2, 39.8, "IN"], "Iowa": [-93.5, 42.0, "IA"],
-  "Kansas": [-98.3, 38.5, "KS"], "Kentucky": [-85.3, 37.8, "KY"], "Louisiana": [-92.0, 31.8, "LA"],
-  "Maine": [-69.2, 45.4, "ME"], "Maryland": [-76.7, 39.0, "MD"], "Massachusetts": [-71.8, 42.3, "MA"],
+  "Kansas": [-98.3, 38.5, "KS"], "Kentucky": [-85.3, 37.8, "KY"], "Louisiana": [-92.5, 31.2, "LA"],
+  "Maine": [-69.2, 45.4, "ME"],
+  "Maryland": [-74.8, 38.2, "MD", "start", 0.5],
+  "Massachusetts": [-70.5, 42.3, "MA", "start", 0.3],
   "Michigan": [-84.6, 43.3, "MI"], "Minnesota": [-94.3, 46.3, "MN"], "Mississippi": [-89.7, 32.7, "MS"],
   "Missouri": [-92.5, 38.4, "MO"], "Montana": [-109.6, 47.0, "MT"], "Nebraska": [-99.8, 41.5, "NE"],
-  "Nevada": [-116.6, 39.3, "NV"], "New Hampshire": [-71.5, 43.8, "NH"], "New Jersey": [-74.4, 40.1, "NJ"],
+  "Nevada": [-116.6, 39.3, "NV"],
+  "New Hampshire": [-70.5, 43.5, "NH", "start", 0.3],
+  "New Jersey": [-73.0, 40.0, "NJ", "start", 0.5],
   "New Mexico": [-106.0, 34.5, "NM"], "New York": [-75.5, 43.0, "NY"], "North Carolina": [-79.4, 35.5, "NC"],
   "North Dakota": [-100.5, 47.4, "ND"], "Ohio": [-82.8, 40.4, "OH"], "Oklahoma": [-97.5, 35.5, "OK"],
-  "Oregon": [-120.5, 43.9, "OR"], "Pennsylvania": [-77.6, 41.0, "PA"], "Rhode Island": [-71.5, 41.7, "RI"],
+  "Oregon": [-120.5, 43.9, "OR"], "Pennsylvania": [-77.6, 41.0, "PA"],
+  "Rhode Island": [-70.5, 41.6, "RI", "start", 0.3],
   "South Carolina": [-80.9, 34.0, "SC"], "South Dakota": [-100.2, 44.4, "SD"], "Tennessee": [-86.3, 35.8, "TN"],
-  "Texas": [-99.0, 31.5, "TX"], "Utah": [-111.7, 39.3, "UT"], "Vermont": [-72.6, 44.0, "VT"],
+  "Texas": [-99.0, 31.5, "TX"], "Utah": [-111.7, 39.3, "UT"],
+  "Vermont": [-72.6, 44.2, "VT"],
   "Virginia": [-79.4, 37.5, "VA"], "Washington": [-120.5, 47.4, "WA"], "West Virginia": [-80.6, 38.6, "WV"],
   "Wisconsin": [-89.8, 44.6, "WI"], "Wyoming": [-107.5, 43.0, "WY"],
-};
-
-// Callout states — too small/narrow for inline labels
-// Stacked top-to-bottom geographically on the right side, non-crossing leader lines
-// Order: NH, VT, MA, CT, RI, NJ, DE, MD
-const CALLOUT_OFFSETS = {
-  "New Hampshire": [-65.0, 45.0],
-  "Vermont":       [-65.0, 44.2],
-  "Massachusetts": [-65.0, 43.4],
-  "Connecticut":   [-65.0, 42.6],
-  "Rhode Island":  [-65.0, 41.8],
-  "New Jersey":    [-65.0, 41.0],
-  "Delaware":      [-65.0, 40.2],
-  "Maryland":      [-65.0, 39.4],
 };
 
 const parseSections = (summary) => {
@@ -423,54 +418,27 @@ const StateLegislationMap = () => {
               })
             }
           </Geographies>
-          {/* State abbreviation labels (inline — skip callout states) */}
-          {Object.entries(STATE_LABELS).map(([name, [lon, lat, abbr]]) => {
-            if (CALLOUT_OFFSETS[name]) return null;
+          {/* State abbreviation labels — all states, no callout lines */}
+          {Object.entries(STATE_LABELS).map(([name, entry]) => {
+            const [lon, lat, abbr, anchor, dx] = entry;
             const stateData = STATE_DATA_BY_NAME[name];
             const isEnacted = stateData?.status === "enacted";
+            const textAnchor = anchor || "middle";
+            // Outside-placed labels (anchor="start") use dark color always for visibility
+            const fill = anchor ? "#3d4a5c" : (isEnacted ? "#fff" : "#3d4a5c");
             return (
               <Marker key={abbr} coordinates={[lon, lat]}>
                 <text
-                  textAnchor="middle" dominantBaseline="central"
+                  textAnchor={textAnchor} dominantBaseline="central"
+                  dx={dx || 0}
                   onClick={() => setSelected(stateData || null)}
                   style={{
                     fontFamily: T.mono, fontSize: 10, fontWeight: 700,
-                    fill: isEnacted ? "#fff" : "#3d4a5c",
+                    fill,
                     cursor: "pointer", pointerEvents: "all",
                   }}
                 >{abbr}</text>
               </Marker>
-            );
-          })}
-          {/* Callout labels for small states — dot + leader line + offset label */}
-          {Object.entries(CALLOUT_OFFSETS).map(([name, [labelLon, labelLat]]) => {
-            const [dotLon, dotLat, abbr] = STATE_LABELS[name];
-            const stateData = STATE_DATA_BY_NAME[name];
-            const isEnacted = stateData?.status === "enacted";
-            return (
-              <Fragment key={`callout-${abbr}`}>
-                <Marker coordinates={[dotLon, dotLat]}>
-                  <circle r={2} fill={isEnacted ? T.accent : "#94a3b8"} stroke="#fff" strokeWidth={0.5} />
-                </Marker>
-                <Line
-                  from={[dotLon, dotLat]}
-                  to={[labelLon, labelLat]}
-                  stroke="#94a3b8"
-                  strokeWidth={0.5}
-                  strokeDasharray="2,2"
-                />
-                <Marker coordinates={[labelLon, labelLat]}>
-                  <text
-                    textAnchor="start" dominantBaseline="central"
-                    onClick={() => setSelected(stateData || null)}
-                    style={{
-                      fontFamily: T.mono, fontSize: 10, fontWeight: 700,
-                      fill: "#3d4a5c",
-                      cursor: "pointer", pointerEvents: "all",
-                    }}
-                  >{abbr}</text>
-                </Marker>
-              </Fragment>
             );
           })}
           {/* DC callout — line from actual location to offset label */}
