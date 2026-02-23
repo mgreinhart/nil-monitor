@@ -297,30 +297,34 @@ const STATE_LABELS = {
   "Alabama": [-86.8, 32.8, "AL"], "Alaska": [-153.5, 64.2, "AK"], "Arizona": [-111.7, 34.3, "AZ"],
   "Arkansas": [-92.4, 34.8, "AR"], "California": [-119.5, 37.2, "CA"], "Colorado": [-105.5, 39.0, "CO"],
   "Connecticut": [-72.7, 41.6, "CT"], "Delaware": [-75.5, 39.0, "DE"], "Florida": [-81.7, 28.7, "FL"],
-  "Georgia": [-83.4, 32.7, "GA"], "Hawaii": [-155.5, 21.5, "HI"], "Idaho": [-114.5, 44.4, "ID"],
+  "Georgia": [-83.4, 32.7, "GA"], "Hawaii": [-155.5, 21.5, "HI"], "Idaho": [-114.5, 45.5, "ID"],
   "Illinois": [-89.2, 40.0, "IL"], "Indiana": [-86.2, 39.8, "IN"], "Iowa": [-93.5, 42.0, "IA"],
-  "Kansas": [-98.3, 38.5, "KS"], "Kentucky": [-85.3, 37.8, "KY"], "Louisiana": [-92.0, 31.0, "LA"],
-  "Maine": [-69.2, 45.4, "ME"], "Maryland": [-76.7, 39.0, "MD"], "Massachusetts": [-72.0, 42.3, "MA"],
-  "Michigan": [-84.6, 44.3, "MI"], "Minnesota": [-94.3, 46.3, "MN"], "Mississippi": [-89.7, 32.7, "MS"],
+  "Kansas": [-98.3, 38.5, "KS"], "Kentucky": [-85.3, 37.8, "KY"], "Louisiana": [-92.0, 31.8, "LA"],
+  "Maine": [-69.2, 45.4, "ME"], "Maryland": [-76.7, 39.0, "MD"], "Massachusetts": [-71.8, 42.3, "MA"],
+  "Michigan": [-84.6, 43.3, "MI"], "Minnesota": [-94.3, 46.3, "MN"], "Mississippi": [-89.7, 32.7, "MS"],
   "Missouri": [-92.5, 38.4, "MO"], "Montana": [-109.6, 47.0, "MT"], "Nebraska": [-99.8, 41.5, "NE"],
-  "Nevada": [-116.6, 39.3, "NV"], "New Hampshire": [-71.0, 43.5, "NH"], "New Jersey": [-74.4, 40.1, "NJ"],
+  "Nevada": [-116.6, 39.3, "NV"], "New Hampshire": [-71.5, 43.8, "NH"], "New Jersey": [-74.4, 40.1, "NJ"],
   "New Mexico": [-106.0, 34.5, "NM"], "New York": [-75.5, 43.0, "NY"], "North Carolina": [-79.4, 35.5, "NC"],
   "North Dakota": [-100.5, 47.4, "ND"], "Ohio": [-82.8, 40.4, "OH"], "Oklahoma": [-97.5, 35.5, "OK"],
   "Oregon": [-120.5, 43.9, "OR"], "Pennsylvania": [-77.6, 41.0, "PA"], "Rhode Island": [-71.5, 41.7, "RI"],
   "South Carolina": [-80.9, 34.0, "SC"], "South Dakota": [-100.2, 44.4, "SD"], "Tennessee": [-86.3, 35.8, "TN"],
-  "Texas": [-99.0, 31.5, "TX"], "Utah": [-111.7, 39.3, "UT"], "Vermont": [-73.2, 44.5, "VT"],
+  "Texas": [-99.0, 31.5, "TX"], "Utah": [-111.7, 39.3, "UT"], "Vermont": [-72.6, 44.0, "VT"],
   "Virginia": [-79.4, 37.5, "VA"], "Washington": [-120.5, 47.4, "WA"], "West Virginia": [-80.6, 38.6, "WV"],
   "Wisconsin": [-89.8, 44.6, "WI"], "Wyoming": [-107.5, 43.0, "WY"],
 };
 
-// Callout states — too small/narrow for inline labels at full size
-// Label offset positions; dot stays at STATE_LABELS centroid, leader line connects them
+// Callout states — too small/narrow for inline labels
+// Stacked top-to-bottom geographically on the right side, non-crossing leader lines
+// Order: NH, VT, MA, CT, RI, NJ, DE, MD
 const CALLOUT_OFFSETS = {
-  "Connecticut": [-67.5, 43.2],
-  "Rhode Island": [-66.5, 41.7],
-  "New Jersey": [-67.5, 40.3],
-  "Maryland": [-67.5, 37.5],
-  "Delaware": [-67.5, 36.0],
+  "New Hampshire": [-65.0, 45.0],
+  "Vermont":       [-65.0, 44.2],
+  "Massachusetts": [-65.0, 43.4],
+  "Connecticut":   [-65.0, 42.6],
+  "Rhode Island":  [-65.0, 41.8],
+  "New Jersey":    [-65.0, 41.0],
+  "Delaware":      [-65.0, 40.2],
+  "Maryland":      [-65.0, 39.4],
 };
 
 const parseSections = (summary) => {
