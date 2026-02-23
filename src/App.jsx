@@ -758,8 +758,8 @@ const MonitorPage = ({ onRefresh }) => {
                   <div>
                     <div style={{ paddingLeft: 6, marginTop: -2 }}>
                       {briefingSource.map((s, i) => (
-                        <div key={i} style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 600, lineHeight: 1.5, color: T.text, padding: "2px 0" }}>
-                          <span style={{ fontFamily: T.mono, fontSize: 14, color: T.accent, marginRight: 8 }}>{"\u00BB"}</span>
+                        <div key={i} style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 600, lineHeight: 1.5, color: T.text, padding: "2px 0" }}>
+                          <span style={{ fontFamily: T.mono, fontSize: 16, color: T.accent, marginRight: 8 }}>{"\u00BB"}</span>
                           {s.short_title || s.headline}
                         </div>
                       ))}
