@@ -289,9 +289,11 @@ If none of these are actually NEW CSC activity (not already tracked), return: {"
 
 // ── Task 4: Daily Briefing ───────────────────────────────────────
 async function generateBriefing(env, db, isAfternoon = false) {
-  // Get recent tagged headlines for the briefing (last 24h — covers overnight + morning)
+  // AM briefing (6 AM ET / 11 UTC): headlines since yesterday's PM briefing (~14h window)
+  // PM briefing (4 PM ET / 21 UTC): full day's headlines (~24h window, can reference AM items)
+  const lookbackHours = isAfternoon ? '-24 hours' : '-14 hours';
   const { results: headlines } = await db.prepare(
-    "SELECT * FROM headlines WHERE category IS NOT NULL AND published_at >= datetime('now', '-24 hours') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 50"
+    `SELECT * FROM headlines WHERE category IS NOT NULL AND published_at >= datetime('now', '${lookbackHours}') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 50`
   ).all();
 
   const { results: deadlines } = await db.prepare(
