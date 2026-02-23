@@ -1,10 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════
 //  NewsData.io Fetcher
 //  Self-governing cooldown (~195 credits/day of 200):
-//    6 AM–12 PM ET: every 30 min  (12 runs × 13 = 156 credits)
-//    12–5 PM ET:    skip (budget consumed by morning runs)
-//    5–10 PM ET:    every 180 min (1-2 runs × 13 = 16 credits)
-//    10 PM–6 AM ET: once (~2 AM)  (1 run × 13 = 13 credits)
+//    6–10 AM ET:    every 30 min  (8 runs × 13 = 104 credits)
+//    10 AM–4 PM ET: every 60 min  (6 runs × 13 = 78 credits)
+//    4–7 PM ET:     skip (budget spent, briefing done)
+//    7–8 PM ET:     once           (1 run × 13 = 13 credits)
+//    8 PM–6 AM ET:  skip overnight
 //  Requires secret: wrangler secret put NEWSDATA_KEY
 // ═══════════════════════════════════════════════════════════════════
 
@@ -31,10 +32,10 @@ const QUERIES = [
 
 function getCooldown() {
   const h = getETHour();
-  if (h >= 6 && h < 12) return 30;    // 12 runs × 13 = 156 credits
-  if (h >= 12 && h < 17) return null;  // skip — budget consumed by AM
-  if (h >= 17 && h < 22) return 180;   // 1-2 runs × 13 = 16 credits
-  return 480; // overnight: ~8 hours → runs once around 2 AM (13 credits)
+  if (h >= 6 && h < 10) return 30;    // 8 runs × 13 = 104 credits
+  if (h >= 10 && h < 16) return 60;   // 6 runs × 13 = 78 credits
+  if (h >= 19 && h < 20) return 60;   // 1 run  × 13 = 13 credits (evening catch-up)
+  return null;                         // skip 4–7 PM + overnight
 }
 
 function buildUrl(apiKey, query) {
