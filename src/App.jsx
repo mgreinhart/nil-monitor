@@ -748,8 +748,10 @@ const MonitorPage = ({ onRefresh }) => {
                     {isStale && <span style={{ color: T.textDim }}>{" \u00B7 "}Latest available</span>}
                   </Mono>
                 </div>
-                {briefingRevealed && (
+                {briefingRevealed ? (
                   <Mono style={{ fontSize: 11, fontWeight: 600, color: T.textDim, letterSpacing: ".3px" }}>{"\u25BE"} Click to collapse</Mono>
+                ) : (
+                  <Mono style={{ fontSize: 11, fontWeight: 700, color: T.accent, letterSpacing: ".3px" }}>CLICK TO EXPAND</Mono>
                 )}
               </div>
               {/* ── Panel body ── */}
@@ -765,17 +767,7 @@ const MonitorPage = ({ onRefresh }) => {
                         </div>
                       ))}
                     </div>
-                    <div style={{ textAlign: "center", marginTop: 10, marginBottom: 2 }}>
-                      <span className="briefing-cta" style={{
-                        display: "inline-block",
-                        fontFamily: T.sans, fontSize: 13, fontWeight: 600, color: T.accent,
-                        background: "rgba(220,74,45,.08)", borderRadius: 6, padding: "8px 20px",
-                        cursor: "pointer",
-                      }}>
-                        {"\u25B6"} Read briefing
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
                       <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: T.accent, flexShrink: 0 }} />
                       <Mono style={{ fontSize: 13, color: T.accent }}>
                         {briefingGeneratedAt ? `Generated ${(() => {
