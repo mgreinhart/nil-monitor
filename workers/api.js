@@ -25,7 +25,6 @@ const FETCHER_CONFIG = {
   'newsdata':       { cooldown: 30,  activeStart: 6, activeEnd: 22 },
   'publications':   { cooldown: 30,  activeStart: 6, activeEnd: 22 },
   'nil-revolution': { cooldown: 120, activeStart: 6, activeEnd: 22 },
-  'congress':       { cooldown: 240, activeStart: 6, activeEnd: 22 },
   'courtlistener':  { cooldown: 120, activeStart: 6, activeEnd: 22 },
   'cslt':           { cooldown: 360, activeStart: 6, activeEnd: 22 },
   'cslt-keydates':  { cooldown: 360, activeStart: 6, activeEnd: 22 },
@@ -427,19 +426,6 @@ export async function handleApi(request, env) {
       return json(row || { date: null, content: null });
     }
 
-    // Bills
-    if (path === '/api/bills') {
-      const state = url.searchParams.get('state');
-      let query = 'SELECT * FROM bills ORDER BY last_action_date DESC';
-      const params = [];
-      if (state) {
-        query = 'SELECT * FROM bills WHERE state = ? ORDER BY last_action_date DESC';
-        params.push(state);
-      }
-      const { results } = await env.DB.prepare(query).bind(...params).all();
-      return json(results);
-    }
-
     // Headline counts per day (for news volume chart)
     if (path === '/api/headline-counts') {
       const { results } = await env.DB.prepare(
@@ -509,7 +495,6 @@ export async function handleApi(request, env) {
       const { fetchGoogleNews } = await import('./fetch-google-news.js');
       const { fetchNCAANews } = await import('./fetch-ncaa-rss.js');
       const { fetchNewsData } = await import('./fetch-newsdata.js');
-      const { fetchCongress } = await import('./fetch-congress.js');
       const { fetchCourtListener } = await import('./fetch-courtlistener.js');
       const { fetchNILRevolution } = await import('./fetch-nil-revolution.js');
       const { fetchCSLT, fetchCSLTKeyDates } = await import('./fetch-cslt.js');
@@ -526,7 +511,6 @@ export async function handleApi(request, env) {
             fetchGoogleNews(env).then(() => log.push('google-news: ok')).catch(e => log.push(`google-news: ${e.message}`)),
             fetchNCAANews(env).then(() => log.push('ncaa-rss: ok')).catch(e => log.push(`ncaa-rss: ${e.message}`)),
             fetchNewsData(env).then(() => log.push('newsdata: ok')).catch(e => log.push(`newsdata: ${e.message}`)),
-            fetchCongress(env).then(() => log.push('congress: ok')).catch(e => log.push(`congress: ${e.message}`)),
             fetchCourtListener(env).then(() => log.push('courtlistener: ok')).catch(e => log.push(`courtlistener: ${e.message}`)),
             fetchNILRevolution(env).then(() => log.push('nil-revolution: ok')).catch(e => log.push(`nil-revolution: ${e.message}`)),
             fetchCSLT(env, { force: true }).then(() => log.push('cslt: ok')).catch(e => log.push(`cslt: ${e.message}`)),

@@ -10,7 +10,6 @@ import { fetchCourtListener } from './fetch-courtlistener.js';
 import { fetchGoogleNews } from './fetch-google-news.js';
 import { fetchNCAANews } from './fetch-ncaa-rss.js';
 import { fetchNewsData } from './fetch-newsdata.js';
-import { fetchCongress } from './fetch-congress.js';
 import { fetchNILRevolution } from './fetch-nil-revolution.js';
 import { fetchBingNews } from './fetch-bing-news.js';
 import { fetchPublications } from './fetch-publications.js';
@@ -39,7 +38,6 @@ export default {
           fetchGoogleNews(env).catch(e => console.error('google-news:', e.message)),
           fetchNCAANews(env).catch(e => console.error('ncaa-rss:', e.message)),
           fetchNewsData(env).catch(e => console.error('newsdata:', e.message)),
-          fetchCongress(env).catch(e => console.error('congress:', e.message)),
           fetchCourtListener(env).catch(e => console.error('courtlistener:', e.message)),
           fetchNILRevolution(env).catch(e => console.error('nil-revolution:', e.message)),
           fetchBingNews(env).catch(e => console.error('bing-news:', e.message)),

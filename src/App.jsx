@@ -1073,7 +1073,6 @@ const InfoModal = ({ onClose }) => (
           ["NCAA.org", "Governance + rule changes", "RSS"],
           ["CourtListener / RECAP", "Federal court filings + alerts", "API"],
           ["LegiScan", "50-state + federal bill tracking", "API"],
-          ["Congress.gov", "Federal bill detail", "API"],
           ["X (Twitter) List", "Real-time curated feed", "Embed"],
         ].map(([src, what, method], i) => (
           <div key={i} style={{ display: "flex", padding: "4px 0", borderBottom: `1px solid ${T.borderLight}` }}>
