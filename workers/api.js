@@ -17,11 +17,20 @@ function json(data, status = 200) {
 
 // ── Admin Dashboard Helpers ───────────────────────────────────────
 
-const EXPECTED_COOLDOWNS = {
-  'google-news': 15, 'bing-news': 15,
-  'newsdata': 30, 'publications': 30, 'ncaa-rss': 30,
-  'nil-revolution': 120, 'congress': 120, 'courtlistener': 120,
-  'cslt': 360, 'cslt-keydates': 360, 'gdelt': 360, 'podcasts': 360,
+// Fetcher config: cooldown in minutes, active window in ET hours [start, end)
+const FETCHER_CONFIG = {
+  'google-news':    { cooldown: 15,  activeStart: 6, activeEnd: 22 },
+  'bing-news':      { cooldown: 15,  activeStart: 6, activeEnd: 22 },
+  'ncaa-rss':       { cooldown: 15,  activeStart: 6, activeEnd: 22 },
+  'newsdata':       { cooldown: 30,  activeStart: 6, activeEnd: 22 },
+  'publications':   { cooldown: 30,  activeStart: 6, activeEnd: 22 },
+  'nil-revolution': { cooldown: 120, activeStart: 6, activeEnd: 22 },
+  'congress':       { cooldown: 240, activeStart: 6, activeEnd: 22 },
+  'courtlistener':  { cooldown: 120, activeStart: 6, activeEnd: 22 },
+  'cslt':           { cooldown: 360, activeStart: 6, activeEnd: 22 },
+  'cslt-keydates':  { cooldown: 360, activeStart: 6, activeEnd: 22 },
+  'gdelt':          { cooldown: 360, activeStart: 6, activeEnd: 22 },
+  'podcasts':       { cooldown: 360, activeStart: 6, activeEnd: 22 },
 };
 
 function adminTimestamp(ts) {
@@ -38,17 +47,40 @@ function adminCooldown(min) {
   return min >= 60 ? `${min / 60}h` : `${min}m`;
 }
 
-function getFetcherStatus(lastRunStr, cooldownMin) {
+function getETHour() {
+  return parseInt(new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' }));
+}
+
+function isInSkipWindow(etHour, activeStart, activeEnd) {
+  return etHour < activeStart || etHour >= activeEnd;
+}
+
+// Minutes since the skip window started (10 PM ET = hour 22)
+function minutesSinceSkipStart(etHour) {
+  if (etHour >= 22) return (etHour - 22) * 60;
+  if (etHour < 6) return (etHour + 2) * 60; // hours past 22
+  return 0;
+}
+
+function getFetcherStatus(lastRunStr, cfg, etHour) {
   if (!lastRunStr) return { status: 'red', label: 'Never' };
   const d = new Date(lastRunStr.includes('T') ? lastRunStr : lastRunStr.replace(' ', 'T') + 'Z');
   const elapsed = (Date.now() - d.getTime()) / 60000;
-  if (elapsed > cooldownMin * 4) return { status: 'red', label: adminTimestamp(lastRunStr) };
-  if (elapsed > cooldownMin * 2) return { status: 'amber', label: adminTimestamp(lastRunStr) };
-  return { status: 'green', label: adminTimestamp(lastRunStr) };
-}
 
-function getETHour() {
-  return parseInt(new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' }));
+  // If we're in the skip window, the fetcher is healthy as long as it ran
+  // sometime before the skip started (i.e., elapsed < cooldown + skip duration so far)
+  if (isInSkipWindow(etHour, cfg.activeStart, cfg.activeEnd)) {
+    const skipMins = minutesSinceSkipStart(etHour);
+    const adjustedElapsed = elapsed - skipMins;
+    // Healthy if last run was within normal range before the skip started
+    if (adjustedElapsed <= cfg.cooldown * 2) return { status: 'green', label: adminTimestamp(lastRunStr) };
+    if (adjustedElapsed <= cfg.cooldown * 4) return { status: 'amber', label: adminTimestamp(lastRunStr) };
+    return { status: 'red', label: adminTimestamp(lastRunStr) };
+  }
+
+  if (elapsed > cfg.cooldown * 4) return { status: 'red', label: adminTimestamp(lastRunStr) };
+  if (elapsed > cfg.cooldown * 2) return { status: 'amber', label: adminTimestamp(lastRunStr) };
+  return { status: 'green', label: adminTimestamp(lastRunStr) };
 }
 
 async function buildAdminDashboard(env) {
@@ -74,22 +106,24 @@ async function buildAdminDashboard(env) {
   const fetcherMap = {};
   for (const row of (fetcherRows?.results || [])) fetcherMap[row.fetcher_name] = row.last_run;
 
-  const fetchers = Object.entries(EXPECTED_COOLDOWNS).map(([name, cooldown]) => {
+  const etHour = getETHour();
+  const fetchers = Object.entries(FETCHER_CONFIG).map(([name, cfg]) => {
     const lastRun = fetcherMap[name] || null;
-    const { status, label } = getFetcherStatus(lastRun, cooldown);
-    return { name, cooldown, lastRun, status, label };
+    const { status, label } = getFetcherStatus(lastRun, cfg, etHour);
+    const inSkip = isInSkipWindow(etHour, cfg.activeStart, cfg.activeEnd);
+    return { name, cooldown: cfg.cooldown, lastRun, status, label, inSkip };
   });
 
   // ── Issue detection ──
   const issues = [];
   const now = new Date();
-  const etHour = getETHour();
   const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
   for (const f of fetchers) {
     if (!f.lastRun) {
       issues.push({ level: 'red', text: `${f.name} has never run` });
-    } else {
+    } else if (!f.inSkip) {
+      // Only flag overdue issues when outside the skip window
       const d = new Date(f.lastRun.includes('T') ? f.lastRun : f.lastRun.replace(' ', 'T') + 'Z');
       const hrs = (now - d) / 3600000;
       if (hrs > 24) {
@@ -135,9 +169,10 @@ async function buildAdminDashboard(env) {
       ).join('')}</div>`
     : '';
 
-  const fetcherRowsHtml = fetchers.map(f =>
-    `<tr><td>${statusDot(f.status)}</td><td>${f.name}</td><td>${f.label}</td><td>${adminCooldown(f.cooldown)}</td></tr>`
-  ).join('');
+  const fetcherRowsHtml = fetchers.map(f => {
+    const freq = f.inSkip ? '<span style="color:#475569">sleeping</span>' : adminCooldown(f.cooldown);
+    return `<tr><td>${statusDot(f.status)}</td><td>${f.name}</td><td>${f.label}</td><td>${freq}</td></tr>`;
+  }).join('');
 
   return `<!DOCTYPE html>
 <html lang="en">
