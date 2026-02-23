@@ -831,16 +831,11 @@ const MonitorPage = ({ onRefresh }) => {
           onHeaderClick={() => setCourtroomOpen(o => !o)}
           right={
             <Mono style={{ fontSize: 11, color: T.textDim, fontWeight: 400 }}>
-              {cases?.length || 0} tracked cases &middot; Source: <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ color: T.textDim, textDecoration: "none" }}>CSLT</a>
+              {totalTracked} tracked cases &middot; Source: <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ color: T.textDim, textDecoration: "none" }}>CSLT</a>
             </Mono>
           }
         >
           {!courtroomOpen ? null : <>
-          <div style={{ padding: "6px 16px 2px", borderBottom: `1px solid ${T.borderLight}` }}>
-            <Mono style={{ fontSize: 9, color: T.textDim, letterSpacing: "0.3px" }}>
-              <span style={{ color: T.accent }}>Coral dates</span> = upcoming actions &middot; <span style={{ color: T.textDim }}>Gray dates</span> = last activity
-            </Mono>
-          </div>
           {/* ── KEY DATES (curated by CSLT) ── */}
           <div style={{ borderBottom: `1px solid ${T.border}` }}>
             <div style={{ padding: "10px 16px 4px" }}>
@@ -886,9 +881,7 @@ const MonitorPage = ({ onRefresh }) => {
                 const eventSnippet = c.last_event_text
                   ? (c.last_event_text.length > 80 ? c.last_event_text.slice(0, 80) + "..." : c.last_event_text)
                   : "";
-                const descSnippet = c.description
-                  ? (c.description.length > 80 ? c.description.slice(0, 80) + "..." : c.description)
-                  : "";
+                const descSnippet = c.description || "";
                 return (
                   <div key={c.id} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
                     <div
@@ -906,7 +899,7 @@ const MonitorPage = ({ onRefresh }) => {
                       )}
                     </div>
                     <div style={{
-                      maxHeight: isOpen ? 500 : 0, overflow: "hidden",
+                      maxHeight: isOpen ? 1000 : 0, overflow: "hidden",
                       transition: "max-height .2s ease, opacity .2s ease",
                       opacity: isOpen ? 1 : 0,
                     }}>
