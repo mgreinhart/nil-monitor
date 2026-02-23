@@ -310,7 +310,7 @@ const STATE_LABELS = {
   "Missouri": [-92.5, 38.4, "MO"], "Montana": [-109.6, 47.0, "MT"], "Nebraska": [-99.8, 41.5, "NE"],
   "Nevada": [-116.6, 39.3, "NV"],
   "New Hampshire": [-71.5, 43.8, "NH"],
-  "New Jersey": [-73.0, 40.0, "NJ", "start", 0.5],
+  "New Jersey": [-74.4, 40.1, "NJ", "middle", 0, 9],
   "New Mexico": [-106.0, 34.5, "NM"], "New York": [-75.5, 43.0, "NY"], "North Carolina": [-79.4, 35.5, "NC"],
   "North Dakota": [-100.5, 47.4, "ND"], "Ohio": [-82.8, 40.4, "OH"], "Oklahoma": [-97.5, 35.5, "OK"],
   "Oregon": [-120.5, 43.9, "OR"], "Pennsylvania": [-77.6, 41.0, "PA"],
