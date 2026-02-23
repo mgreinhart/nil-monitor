@@ -742,8 +742,9 @@ const MonitorPage = ({ onRefresh }) => {
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap" }}>
                   <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: "#fff", background: T.accent, padding: "3px 7px", borderRadius: 4, letterSpacing: ".5px", flexShrink: 0, lineHeight: 1.3 }}>NIL</span>
                   <Mono style={{ fontSize: 14, fontWeight: 400, letterSpacing: "1px", color: T.text }}>
-                    MONITOR BRIEFING
+                    MONITOR
                     {briefingGeneratedAt && <>{" \u00B7 "}{headerMonth} {headerDay}{" \u00B7 "}{headerPeriod}</>}
+                    {" "}NEWS BRIEF
                     {isStale && <span style={{ color: T.textDim }}>{" \u00B7 "}Latest available</span>}
                   </Mono>
                 </div>
