@@ -774,6 +774,15 @@ const MonitorPage = ({ onRefresh }) => {
                         {"\u25B6"} Read briefing
                       </span>
                     </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+                      <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: T.accent, flexShrink: 0 }} />
+                      <Mono style={{ fontSize: 13, color: T.accent }}>
+                        {briefingGeneratedAt ? `Generated ${(() => {
+                          const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
+                          return new Date(n).toLocaleString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short" }) + " · " + new Date(n).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                        })()}` : briefing ? "AI-generated" : "Sample briefing"}
+                      </Mono>
+                    </div>
                   </div>
                 )}
                 {/* ── Expanded: cascade reveal with full content ── */}
