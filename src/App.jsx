@@ -718,26 +718,27 @@ const MonitorPage = ({ onRefresh }) => {
             setTimeout(() => { setBriefingRevealed(false); setBriefingCollapsing(false); setBriefingOpen(null); }, 150);
           };
           return (
-            <div style={{
-              background: T.briefingBg,
-              border: `1.5px solid ${T.accent}`,
-              borderRadius: T.radius,
-              overflow: "hidden",
-              boxShadow: "0 2px 8px rgba(0,0,0,.08)",
-              animation: "fadeIn 0.3s ease-in",
-            }}>
+            <div
+              onClick={() => {
+                if (briefingRevealed) handleCollapse();
+                else handleExpand();
+              }}
+              style={{
+                background: T.briefingBg,
+                border: `1.5px solid ${T.accent}`,
+                borderRadius: T.radius,
+                overflow: "hidden",
+                boxShadow: "0 2px 8px rgba(0,0,0,.08)",
+                animation: "fadeIn 0.3s ease-in",
+                cursor: "pointer",
+              }}>
               {/* ── Branded header ── */}
               <div
-                onClick={() => {
-                  if (briefingRevealed) handleCollapse();
-                  else handleExpand();
-                }}
                 style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                   padding: "8px 14px",
                   borderBottom: `1px solid ${T.border}`,
                   minHeight: 36,
-                  cursor: "pointer",
                   userSelect: "none",
                 }}
               >
@@ -757,10 +758,7 @@ const MonitorPage = ({ onRefresh }) => {
               <div style={{ padding: 14 }}>
                 {/* ── Collapsed: short titles + Read briefing button ── */}
                 {!briefingRevealed && (
-                  <div
-                    onClick={handleExpand}
-                    style={{ cursor: "pointer" }}
-                  >
+                  <div>
                     <div style={{ paddingLeft: 6, marginTop: -2 }}>
                       {briefingSource.map((s, i) => (
                         <div key={i} style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, lineHeight: 1.5, color: T.text, padding: "2px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -792,12 +790,15 @@ const MonitorPage = ({ onRefresh }) => {
                           animation: briefingAnimating ? `briefingSlideIn 200ms ease-out ${i * 80}ms both` : "none",
                         }}>
                           <div
-                            onClick={() => setBriefingOpen(prev => {
-                              const current = prev ?? new Set(briefingSource.map((_, i) => i));
-                              const next = new Set(current);
-                              next.has(i) ? next.delete(i) : next.add(i);
-                              return next;
-                            })}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setBriefingOpen(prev => {
+                                const current = prev ?? new Set(briefingSource.map((_, i) => i));
+                                const next = new Set(current);
+                                next.has(i) ? next.delete(i) : next.add(i);
+                                return next;
+                              });
+                            }}
                             style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: i === 0 ? "0 0 10px 0" : "10px 0", cursor: "pointer" }}
                           >
                             <Mono style={{ fontSize: 12, color: T.textDim, lineHeight: 1.6, flexShrink: 0, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none" }}>{"\u25B8"}</Mono>
