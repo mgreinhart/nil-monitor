@@ -297,7 +297,7 @@ const STATE_DATA_BY_NAME = Object.fromEntries(stateNilData.map(s => [s.name, s])
 const STATE_LABELS = {
   "Alabama": [-86.8, 32.8, "AL"], "Alaska": [-153.5, 64.2, "AK"], "Arizona": [-111.7, 34.3, "AZ"],
   "Arkansas": [-92.4, 34.8, "AR"], "California": [-119.5, 37.2, "CA"], "Colorado": [-105.5, 39.0, "CO"],
-  "Connecticut": [-72.7, 41.6, "CT", "start", -0.3],
+  "Connecticut": [-72.7, 41.6, "CT"],
   "Delaware": [-75.0, 38.7, "DE", "start", 0.5],
   "Florida": [-81.7, 28.7, "FL"],
   "Georgia": [-83.4, 32.7, "GA"], "Hawaii": [-155.5, 21.5, "HI"], "Idaho": [-114.5, 43.3, "ID"],
