@@ -161,8 +161,8 @@ const Panel = ({ title, accent, children, style, right, noPad, size, onHeaderCli
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: isLg ? 5 : isSm ? 3 : 4, height: isLg ? 18 : 14, borderRadius: 2, background: ac, flexShrink: 0 }} />
-            <Mono style={{ fontSize: isLg ? 17 : isSm ? 14 : 16, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: ac }}>{title}</Mono>
+            <div style={{ width: isLg ? 5 : isSm ? 3 : 4, height: isLg ? 20 : 16, borderRadius: 2, background: ac, flexShrink: 0 }} />
+            <Mono style={{ fontSize: isLg ? 19 : isSm ? 16 : 19, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: ac }}>{title}</Mono>
           </div>
           {right}
         </div>
@@ -740,8 +740,8 @@ const MonitorPage = ({ onRefresh }) => {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap" }}>
-                  <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: "#fff", background: T.accent, padding: "3px 7px", borderRadius: 4, letterSpacing: ".5px", flexShrink: 0, lineHeight: 1.3 }}>NIL</span>
-                  <Mono style={{ fontSize: 14, fontWeight: 400, letterSpacing: "1px", color: T.text }}>
+                  <span style={{ fontFamily: T.mono, fontSize: 14, fontWeight: 700, color: "#fff", background: T.accent, padding: "4px 8px", borderRadius: 4, letterSpacing: ".5px", flexShrink: 0, lineHeight: 1.3 }}>NIL</span>
+                  <Mono style={{ fontSize: 17, fontWeight: 400, letterSpacing: "1px", color: T.text }}>
                     MONITOR
                     {briefingGeneratedAt && <>{" \u00B7 "}{headerMonth} {headerDay}{" \u00B7 "}{headerPeriod}</>}
                     {" "}NEWS BRIEF
