@@ -778,7 +778,7 @@ const MonitorPage = ({ onRefresh }) => {
                 )}
                 {/* ── Expanded: cascade reveal with full content ── */}
                 {briefingRevealed && (
-                  <div onClick={(e) => e.stopPropagation()} style={{ animation: briefingCollapsing ? "briefingFadeOut 150ms ease-in forwards" : "none", cursor: "default" }}>
+                  <div style={{ animation: briefingCollapsing ? "briefingFadeOut 150ms ease-in forwards" : "none" }}>
                     {briefingSource.map((s, i) => (
                       <div key={i} style={{
                         borderBottom: i < briefingSource.length - 1 ? `1px solid ${T.borderLight}` : "none",
