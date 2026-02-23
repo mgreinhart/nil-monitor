@@ -314,7 +314,7 @@ const STATE_LABELS = {
   "New Mexico": [-106.0, 34.5, "NM"], "New York": [-75.5, 43.0, "NY"], "North Carolina": [-79.4, 35.5, "NC"],
   "North Dakota": [-100.5, 47.4, "ND"], "Ohio": [-82.8, 40.4, "OH"], "Oklahoma": [-97.5, 35.5, "OK"],
   "Oregon": [-120.5, 43.9, "OR"], "Pennsylvania": [-77.6, 41.0, "PA"],
-  "Rhode Island": [-70.5, 41.0, "RI", "start", 0.3],
+  "Rhode Island": [-71.2, 41.0, "RI", "start", 0.3],
   "South Carolina": [-80.9, 34.0, "SC"], "South Dakota": [-100.2, 44.4, "SD"], "Tennessee": [-86.3, 35.8, "TN"],
   "Texas": [-99.0, 31.5, "TX"], "Utah": [-111.7, 39.3, "UT"],
   "Vermont": [-72.6, 44.2, "VT"],
