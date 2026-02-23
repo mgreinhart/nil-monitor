@@ -300,7 +300,7 @@ const STATE_LABELS = {
   "Connecticut": [-72.7, 41.6, "CT", "start", -0.3],
   "Delaware": [-75.0, 38.7, "DE", "start", 0.5],
   "Florida": [-81.7, 28.7, "FL"],
-  "Georgia": [-83.4, 32.7, "GA"], "Hawaii": [-155.5, 21.5, "HI"], "Idaho": [-114.5, 44.8, "ID"],
+  "Georgia": [-83.4, 32.7, "GA"], "Hawaii": [-155.5, 21.5, "HI"], "Idaho": [-114.5, 43.3, "ID"],
   "Illinois": [-89.2, 40.0, "IL"], "Indiana": [-86.2, 39.8, "IN"], "Iowa": [-93.5, 42.0, "IA"],
   "Kansas": [-98.3, 38.5, "KS"], "Kentucky": [-85.3, 37.8, "KY"], "Louisiana": [-92.5, 31.2, "LA"],
   "Maine": [-69.2, 45.4, "ME"],
