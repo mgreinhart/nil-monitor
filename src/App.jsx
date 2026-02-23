@@ -211,27 +211,35 @@ const XListEmbed = () => (
 );
 
 const PodcastsSection = () => {
-  const [freshIds, setFreshIds] = useState(new Set());
+  const [podcastDates, setPodcastDates] = useState({});
   useEffect(() => {
     fetch("/api/podcasts").then(r => r.ok ? r.json() : []).then(data => {
-      const now = Date.now();
-      const fresh = new Set();
+      const dates = {};
       for (const p of data) {
-        if (p.latest_date && (now - new Date(p.latest_date).getTime()) < 48 * 3600000) {
-          fresh.add(p.spotify_id);
-        }
+        if (p.latest_date) dates[p.spotify_id] = new Date(p.latest_date).getTime();
       }
-      setFreshIds(fresh);
+      setPodcastDates(dates);
     }).catch(() => {});
   }, []);
+  const now = Date.now();
+  const sorted = [...NIL_PODCASTS].sort((a, b) => {
+    const aDate = podcastDates[a.id] || 0;
+    const bDate = podcastDates[b.id] || 0;
+    const aFresh = aDate && (now - aDate) < 48 * 3600000;
+    const bFresh = bDate && (now - bDate) < 48 * 3600000;
+    if (aFresh && !bFresh) return -1;
+    if (!aFresh && bFresh) return 1;
+    if (aFresh && bFresh) return bDate - aDate;
+    return 0;
+  });
   return (
     <Panel title="NIL Podcasts" accent={T.accent} size="sm" noPad>
       <div style={{ display: "flex", flexDirection: "column", gap: 0, padding: 4 }}>
-        {NIL_PODCASTS.map((p, i) => {
-          const isFresh = freshIds.has(p.id);
+        {sorted.map((p, i) => {
+          const isFresh = podcastDates[p.id] && (now - podcastDates[p.id]) < 48 * 3600000;
           return (
             <div key={p.id} style={{
-              borderBottom: i < NIL_PODCASTS.length - 1 ? `1px solid ${T.border}` : "none",
+              borderBottom: i < sorted.length - 1 ? `1px solid ${T.border}` : "none",
               padding: "2px 0",
               borderLeft: isFresh ? `3px solid ${T.accent}` : "3px solid transparent",
               paddingLeft: 4,
