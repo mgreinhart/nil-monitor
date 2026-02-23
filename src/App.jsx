@@ -1181,10 +1181,6 @@ export default function NILMonitor() {
         </div>
         <Mono style={{ fontSize: 12, color: "rgba(255,255,255,.65)" }}>
           {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-          {lastRefresh && (() => {
-            const mins = Math.floor((now - lastRefresh.getTime()) / 60000);
-            return ` · Updated ${mins < 1 ? "just now" : mins < 60 ? `${mins}m ago` : `${Math.floor(mins / 60)}h ago`}`;
-          })()}
         </Mono>
 
         {/* Spacer */}
