@@ -84,7 +84,7 @@ async function buildAdminDashboard(env) {
   const issues = [];
   const now = new Date();
   const etHour = getETHour();
-  const todayStr = now.toISOString().split('T')[0];
+  const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
   for (const f of fetchers) {
     if (!f.lastRun) {
