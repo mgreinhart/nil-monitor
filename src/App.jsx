@@ -852,9 +852,6 @@ const MonitorPage = ({ onRefresh }) => {
             BELOW THE FOLD — Detail Sections
            ══════════════════════════════════════════════════════════ */}
 
-        {/* ── State NIL Legislation Map ── */}
-        <StateLegislationMap />
-
         {/* ── Litigation ── */}
         <Panel
           title="The Courtroom"
@@ -962,6 +959,9 @@ const MonitorPage = ({ onRefresh }) => {
           )}
           </>}
         </Panel>
+
+        {/* ── State NIL Legislation Map ── */}
+        <StateLegislationMap />
 
         {/* ── Outside View ── */}
         <Panel title="The Outside View" accent={T.textDim} size="sm">
