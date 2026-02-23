@@ -692,121 +692,144 @@ const MonitorPage = ({ onRefresh }) => {
             ABOVE THE FOLD — Briefing + Headlines (stacked)
            ══════════════════════════════════════════════════════════ */}
 
-        {/* ── Briefing (collapsed by default, cascade reveal on expand) ── */}
-        <Panel size="lg" style={{ animation: "fadeIn 0.3s ease-in" }} title={(() => {
-          if (!briefingGeneratedAt) return "Briefing";
-          const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
-          const d = new Date(n);
-          const month = d.toLocaleString("en-US", { month: "short", timeZone: "America/New_York" }).toUpperCase();
-          const day = d.toLocaleString("en-US", { day: "numeric", timeZone: "America/New_York" });
-          const hour = parseInt(d.toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" }));
-          const period = hour < 12 ? "AM" : "PM";
-          const todayET = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-          const isStale = briefingDate && briefingDate !== todayET;
-          return `${month} ${day} · ${period} BRIEFING${isStale ? " · Latest available" : ""}`;
-        })()} accent={T.accent} onHeaderClick={() => {
-          if (briefingAnimating || briefingCollapsing) return;
-          if (briefingRevealed) {
-            setBriefingCollapsing(true);
-            setTimeout(() => { setBriefingRevealed(false); setBriefingCollapsing(false); setBriefingOpen(null); }, 150);
-          } else {
+        {/* ── Briefing (premium branded panel, collapsed by default) ── */}
+        {(() => {
+          // Compute header parts
+          let headerMonth = "", headerDay = "", headerPeriod = "AM", isStale = false;
+          if (briefingGeneratedAt) {
+            const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
+            const d = new Date(n);
+            headerMonth = d.toLocaleString("en-US", { month: "short", timeZone: "America/New_York" }).toUpperCase();
+            headerDay = d.toLocaleString("en-US", { day: "numeric", timeZone: "America/New_York" });
+            const hour = parseInt(d.toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" }));
+            headerPeriod = hour < 12 ? "AM" : "PM";
+            const todayET = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+            isStale = briefingDate && briefingDate !== todayET;
+          }
+          const handleExpand = () => {
+            if (briefingAnimating || briefingCollapsing) return;
             setBriefingRevealed(true);
             setBriefingAnimating(true);
             setTimeout(() => setBriefingAnimating(false), briefingSource.length * 80 + 200);
-          }
-        }} right={briefingRevealed && briefingSource.length > 0 && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setBriefingOpen(prev => {
-                const current = prev ?? new Set(briefingSource.map((_, i) => i));
-                return current.size === briefingSource.length ? new Set() : new Set(briefingSource.map((_, i) => i));
-              });
-            }}
-            style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: T.textDim, background: "transparent", border: "none", cursor: "pointer", letterSpacing: ".3px" }}
-          >{briefingExpanded.size === briefingSource.length ? "Collapse all" : "Expand all"}</button>
-        )}>
-          {/* ── Collapsed: headline teasers + CTA ── */}
-          {!briefingRevealed && (
-            <div
-              onClick={() => {
-                if (briefingAnimating) return;
-                setBriefingRevealed(true);
-                setBriefingAnimating(true);
-                setTimeout(() => setBriefingAnimating(false), briefingSource.length * 80 + 200);
-              }}
-              style={{ cursor: "pointer", padding: "4px 0" }}
-            >
-              {briefingSource.map((s, i) => (
-                <div key={i} style={{ fontFamily: T.sans, fontSize: 14, lineHeight: 1.5, color: T.textMid, padding: "2px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  <span style={{ fontFamily: T.mono, fontSize: 13, color: T.textDim, marginRight: 6 }}>{"\u00BB"}</span>
-                  {s.headline}
-                </div>
-              ))}
-              <div style={{ marginTop: 8 }}>
-                <span className="briefing-cta" style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, color: T.accent, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  Read briefing <span className="briefing-cta-arrow" style={{ display: "inline-block", transition: "transform 0.15s ease" }}>{"\u2192"}</span>
-                </span>
-              </div>
-            </div>
-          )}
-          {/* ── Expanded: cascade reveal with full content ── */}
-          {briefingRevealed && (
-            <div style={{ animation: briefingCollapsing ? "briefingFadeOut 150ms ease-in forwards" : "none" }}>
-              {briefingSource.map((s, i) => {
-                const isOpen = briefingExpanded.has(i);
-                return (
-                  <div key={i} style={{
-                    borderBottom: i < briefingSource.length - 1 ? `1px solid ${T.borderLight}` : "none",
-                    animation: briefingAnimating ? `briefingSlideIn 200ms ease-out ${i * 80}ms both` : "none",
-                  }}>
-                    <div
-                      onClick={() => setBriefingOpen(prev => {
-                        const current = prev ?? new Set(briefingSource.map((_, i) => i));
-                        const next = new Set(current);
-                        next.has(i) ? next.delete(i) : next.add(i);
-                        return next;
-                      })}
-                      style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: i === 0 ? "0 0 10px 0" : "10px 0", cursor: "pointer" }}
-                    >
-                      <Mono style={{ fontSize: 12, color: T.textDim, lineHeight: 1.6, flexShrink: 0, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none" }}>{"\u25B8"}</Mono>
-                      <span style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 600, lineHeight: 1.5, color: T.text }}>{s.headline}</span>
-                    </div>
-                    <div style={{
-                      maxHeight: isOpen ? 400 : 0, overflow: "hidden",
-                      transition: "max-height .2s ease, opacity .2s ease",
-                      opacity: isOpen ? 1 : 0,
-                    }}>
-                      <div style={{ fontFamily: T.sans, fontSize: 15, lineHeight: 1.6, color: T.textMid, padding: "0 0 12px 20px" }}>
-                        {s.body}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: T.accent, flexShrink: 0 }} />
-                  <Mono style={{ fontSize: 13, color: T.accent }}>
-                    {briefingGeneratedAt ? `Generated ${(() => {
-                      const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
-                      return new Date(n).toLocaleString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short" }) + " · " + new Date(n).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-                    })()}` : briefing ? "AI-generated" : "Sample briefing"}
+          };
+          const handleCollapse = () => {
+            if (briefingAnimating || briefingCollapsing) return;
+            setBriefingCollapsing(true);
+            setTimeout(() => { setBriefingRevealed(false); setBriefingCollapsing(false); setBriefingOpen(null); }, 150);
+          };
+          return (
+            <div style={{
+              background: T.briefingBg,
+              border: `1.5px solid ${T.accent}`,
+              borderRadius: T.radius,
+              overflow: "hidden",
+              boxShadow: "0 2px 8px rgba(0,0,0,.08)",
+              animation: "fadeIn 0.3s ease-in",
+            }}>
+              {/* ── Branded header ── */}
+              <div
+                onClick={() => {
+                  if (briefingRevealed) handleCollapse();
+                  else handleExpand();
+                }}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "8px 14px",
+                  borderBottom: `1px solid ${T.border}`,
+                  minHeight: 36,
+                  cursor: "pointer",
+                  userSelect: "none",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap" }}>
+                  <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: "#fff", background: T.accent, padding: "3px 7px", borderRadius: 4, letterSpacing: ".5px", flexShrink: 0, lineHeight: 1.3 }}>NIL</span>
+                  <Mono style={{ fontSize: 14, fontWeight: 400, letterSpacing: "1px", color: T.text }}>
+                    MONITOR BRIEFING
+                    {briefingGeneratedAt && <>{" \u00B7 "}{headerMonth} {headerDay}{" \u00B7 "}{headerPeriod}</>}
+                    {isStale && <span style={{ color: T.textDim }}>{" \u00B7 "}Latest available</span>}
                   </Mono>
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (briefingAnimating || briefingCollapsing) return;
-                    setBriefingCollapsing(true);
-                    setTimeout(() => { setBriefingRevealed(false); setBriefingCollapsing(false); setBriefingOpen(null); }, 150);
-                  }}
-                  style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 600, color: T.textDim, background: "transparent", border: "none", cursor: "pointer", letterSpacing: ".3px" }}
-                >Collapse</button>
+                {briefingRevealed && (
+                  <Mono style={{ fontSize: 11, fontWeight: 600, color: T.textDim, letterSpacing: ".3px" }}>{"\u25BE"} Collapse</Mono>
+                )}
+              </div>
+              {/* ── Panel body ── */}
+              <div style={{ padding: 14 }}>
+                {/* ── Collapsed: short titles + Read briefing button ── */}
+                {!briefingRevealed && (
+                  <div
+                    onClick={handleExpand}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div style={{ paddingLeft: 6, marginTop: -2 }}>
+                      {briefingSource.map((s, i) => (
+                        <div key={i} style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, lineHeight: 1.5, color: T.text, padding: "2px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <span style={{ fontFamily: T.mono, fontSize: 13, color: T.accent, marginRight: 8 }}>{"\u00BB"}</span>
+                          {s.short_title || (s.headline && s.headline.length > 60 ? s.headline.slice(0, 57) + "..." : s.headline)}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ textAlign: "center", marginTop: 10, marginBottom: 2 }}>
+                      <span className="briefing-cta" style={{
+                        display: "inline-block",
+                        fontFamily: T.sans, fontSize: 13, fontWeight: 600, color: T.accent,
+                        background: "rgba(220,74,45,.08)", borderRadius: 6, padding: "8px 20px",
+                        cursor: "pointer",
+                      }}>
+                        {"\u25B6"} Read briefing
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {/* ── Expanded: cascade reveal with full content ── */}
+                {briefingRevealed && (
+                  <div style={{ animation: briefingCollapsing ? "briefingFadeOut 150ms ease-in forwards" : "none" }}>
+                    {briefingSource.map((s, i) => {
+                      const isOpen = briefingExpanded.has(i);
+                      return (
+                        <div key={i} style={{
+                          borderBottom: i < briefingSource.length - 1 ? `1px solid ${T.borderLight}` : "none",
+                          animation: briefingAnimating ? `briefingSlideIn 200ms ease-out ${i * 80}ms both` : "none",
+                        }}>
+                          <div
+                            onClick={() => setBriefingOpen(prev => {
+                              const current = prev ?? new Set(briefingSource.map((_, i) => i));
+                              const next = new Set(current);
+                              next.has(i) ? next.delete(i) : next.add(i);
+                              return next;
+                            })}
+                            style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: i === 0 ? "0 0 10px 0" : "10px 0", cursor: "pointer" }}
+                          >
+                            <Mono style={{ fontSize: 12, color: T.textDim, lineHeight: 1.6, flexShrink: 0, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none" }}>{"\u25B8"}</Mono>
+                            <span style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 600, lineHeight: 1.5, color: T.text }}>{s.headline}</span>
+                          </div>
+                          <div style={{
+                            maxHeight: isOpen ? 400 : 0, overflow: "hidden",
+                            transition: "max-height .2s ease, opacity .2s ease",
+                            opacity: isOpen ? 1 : 0,
+                          }}>
+                            <div style={{ fontFamily: T.sans, fontSize: 15, lineHeight: 1.6, color: T.textMid, padding: "0 0 12px 20px" }}>
+                              {s.body}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+                      <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: T.accent, flexShrink: 0 }} />
+                      <Mono style={{ fontSize: 13, color: T.accent }}>
+                        {briefingGeneratedAt ? `Generated ${(() => {
+                          const n = briefingGeneratedAt.includes("T") ? briefingGeneratedAt : briefingGeneratedAt.replace(" ", "T") + "Z";
+                          return new Date(n).toLocaleString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York", timeZoneName: "short" }) + " · " + new Date(n).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                        })()}` : briefing ? "AI-generated" : "Sample briefing"}
+                      </Mono>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-        </Panel>
+          );
+        })()}
 
         {/* ── Latest Headlines ── */}
         <Panel title="Latest Headlines" accent={T.accent} noPad style={{ animation: "fadeIn 0.3s ease-in" }}>
@@ -1142,9 +1165,10 @@ export default function NILMonitor() {
         button:hover { filter: brightness(0.95); }
         @keyframes pulse-live { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
         @keyframes fadeIn { from { opacity: 0.95; } to { opacity: 1; } }
-        @keyframes briefingSlideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes briefingSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes briefingFadeOut { from { opacity: 1; } to { opacity: 0; } }
-        .briefing-cta:hover .briefing-cta-arrow { transform: translateX(3px); }
+        .briefing-cta:hover { background: rgba(220,74,45,.15) !important; transform: translateX(2px); }
+        .briefing-cta { transition: background 150ms ease, transform 150ms ease; }
       `}</style>
 
       {/* ── Navigation ── */}

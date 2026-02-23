@@ -316,7 +316,10 @@ If the answer is no, don't include it.
 
 STRICT FORMAT RULES:
 - Always produce EXACTLY 4 sections. No more, no fewer.
-- Each section: ONE bold opening sentence stating what happened + TWO sentences max of detail/context/action items.
+- For each section, provide three fields:
+  - "short_title": A punchy 6-10 word title that captures the core development. Written like a news ticker or push notification. No periods. Examples: "Nevada judge strikes NCAA eligibility rules", "'Street agents' draw multi-conference alarm", "Power 4 participation deadline holds at March 1"
+  - "headline": ONE bold opening sentence stating what happened.
+  - "body": ONE to TWO sentences max of detail/context/action items.
 - Lead with the most important item. Group related developments.
 - Cite sources parenthetically (e.g., "per ESPN" or "(CourtListener)").
 - If something requires institutional action, say so explicitly.
@@ -359,10 +362,11 @@ ${headlineList || 'No new headlines today.'}
 UPCOMING DEADLINES (next 14 days):
 ${deadlineList || 'No imminent deadlines.'}
 
-Return JSON (EXACTLY 4 sections, each headline is ONE sentence, each body is MAX 2 sentences):
+Return JSON (EXACTLY 4 sections):
 {
   "sections": [
     {
+      "short_title": "Punchy 6-10 word title for this item",
       "headline": "Bold opening sentence stating what happened.",
       "body": "One to two sentences of context or action items. No more."
     }
@@ -392,10 +396,11 @@ ${headlineList || 'No headlines yet today.'}
 UPCOMING DEADLINES (next 14 days):
 ${deadlineList || 'No imminent deadlines.'}
 
-Return JSON (EXACTLY 4 sections, each headline is ONE sentence, each body is MAX 2 sentences):
+Return JSON (EXACTLY 4 sections):
 {
   "sections": [
     {
+      "short_title": "Punchy 6-10 word title for this item",
       "headline": "Bold opening sentence stating what happened.",
       "body": "One to two sentences of context or action items. No more."
     }
