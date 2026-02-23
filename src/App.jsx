@@ -285,7 +285,7 @@ const isWithinHour = (dateStr) => {
   if (!dateStr) return false;
   const normalized = dateStr.includes("T") ? dateStr : dateStr.replace(" ", "T") + "Z";
   const diff = Date.now() - new Date(normalized).getTime();
-  return !isNaN(diff) && diff >= 0 && diff < 3600000;
+  return !isNaN(diff) && diff >= 0 && diff < 10800000;
 };
 
 // ── State NIL Legislation Map ─────────────────────────────────────
