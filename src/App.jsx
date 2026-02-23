@@ -788,10 +788,10 @@ const MonitorPage = ({ onRefresh }) => {
                         padding: i === 0 ? "0 0 10px 0" : "10px 0",
                       }}>
                         {s.url ? (
-                          <a href={s.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 600, lineHeight: 1.5, color: T.text, textDecoration: "none" }}
-                            onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
-                            onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}
-                          >{s.headline}</a>
+                          <a href={s.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 600, lineHeight: 1.5, color: T.accent, textDecoration: "underline", textDecorationColor: "rgba(220,74,45,.3)", textUnderlineOffset: "3px" }}
+                            onMouseEnter={e => e.currentTarget.style.textDecorationColor = T.accent}
+                            onMouseLeave={e => e.currentTarget.style.textDecorationColor = "rgba(220,74,45,.3)"}
+                          >{s.headline} <span style={{ fontSize: 13, opacity: 0.5 }}>{"\u2197"}</span></a>
                         ) : (
                           <span style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 600, lineHeight: 1.5, color: T.text }}>{s.headline}</span>
                         )}
