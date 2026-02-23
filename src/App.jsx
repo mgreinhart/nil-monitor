@@ -261,16 +261,6 @@ const PodcastsSection = () => {
   );
 };
 
-// ── Nav Resources ────────────────────────────────────────────────
-const RESOURCES = [
-  { label: "NIL Monitor X List", href: X_LIST_URL },
-  { label: "College Sports Litigation Tracker", href: "https://www.collegesportslitigationtracker.com" },
-  { label: "Troutman Pepper NIL Tracker", href: "https://www.troutman.com/nil-legislation-tracker" },
-  { label: "NIL Revolution Blog", href: "https://www.nilrevolution.com" },
-  { label: "Saul Ewing NIL State Tracker", href: "https://www.saul.com/nil" },
-  { label: "CourtListener", href: "https://www.courtlistener.com" },
-];
-
 // ── Utility Functions ────────────────────────────────────────────
 const formatDate = (dateStr) => {
   if (!dateStr) return "";
@@ -1004,7 +994,7 @@ const MonitorPage = ({ onRefresh }) => {
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {[
                   { label: "College Sports Litigation Tracker", href: "https://www.collegesportslitigationtracker.com" },
-                  { label: "Troutman Pepper NIL Tracker", href: "https://www.troutman.com/nil-legislation-tracker" },
+                  { label: "Troutman Pepper NIL Tracker", href: "https://www.troutman.com/state-and-federal-nil-legislation-tracker/" },
                   { label: "NIL Revolution Blog", href: "https://www.nilrevolution.com" },
                   { label: "Saul Ewing NIL State Tracker", href: "https://www.saul.com/nil" },
                   { label: "CourtListener", href: "https://www.courtlistener.com" },
@@ -1105,7 +1095,6 @@ const InfoModal = ({ onClose }) => (
 //  APP SHELL — Single-page dashboard
 // ╚═══════════════════════════════════════════════════════════════════
 export default function NILMonitor() {
-  const [showResources, setShowResources] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [now, setNow] = useState(Date.now());
@@ -1115,14 +1104,6 @@ export default function NILMonitor() {
     const id = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(id);
   }, []);
-
-  // Close dropdown on any outside click
-  useEffect(() => {
-    if (!showResources) return;
-    const close = () => setShowResources(false);
-    document.addEventListener("click", close);
-    return () => document.removeEventListener("click", close);
-  }, [showResources]);
 
   return (
     <div style={{ background: T.bg, minHeight: "100vh", fontFamily: T.sans }}>
@@ -1164,37 +1145,6 @@ export default function NILMonitor() {
         {/* Spacer */}
         <div style={{ flex: 1 }} />
 
-        {/* Right: Resources dropdown + Info icon */}
-        <div style={{ position: "relative" }}>
-          <button
-            onClick={e => { e.stopPropagation(); setShowResources(prev => !prev); }}
-            style={{
-              fontFamily: T.sans, fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,.6)",
-              background: "transparent", border: "none", cursor: "pointer",
-              padding: "8px 12px", letterSpacing: ".3px",
-            }}
-          >Resources ▾</button>
-          {showResources && (
-            <div onClick={e => e.stopPropagation()} style={{
-              position: "absolute", top: "100%", right: 0, marginTop: 4,
-              background: T.navy, border: `1px solid ${T.navySoft}`,
-              borderRadius: 4, padding: "4px 0", minWidth: 220, zIndex: 110,
-              boxShadow: "0 8px 24px rgba(0,0,0,.4)",
-            }}>
-              {RESOURCES.map((r, i) => (
-                <a key={i} href={r.href} target="_blank" rel="noopener noreferrer"
-                  style={{
-                    display: "block", padding: "8px 16px", textDecoration: "none",
-                    fontFamily: T.mono, fontSize: 11, color: "rgba(255,255,255,.8)",
-                    borderBottom: i < RESOURCES.length - 1 ? `1px solid ${T.navySoft}` : "none",
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = T.navySoft}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                >{r.label}</a>
-              ))}
-            </div>
-          )}
-        </div>
         <button
           onClick={() => setShowInfo(true)}
           title="About NIL Monitor"
