@@ -896,8 +896,8 @@ const MonitorPage = ({ onRefresh }) => {
                   <Mono style={{ fontSize: 13, fontWeight: 600, color: isPast ? T.textDim : T.accent, flexShrink: 0, width: 48 }}>
                     {formatDate(d.date)}
                   </Mono>
-                  <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 700, color: isPast ? T.textDim : T.text, flexShrink: 0 }}>{d.case_name}</strong>
-                  <Mono style={{ fontSize: 12, color: isPast ? T.textDim : T.textMid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {d.description}</Mono>
+                  <strong style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 700, color: isPast ? T.textDim : T.text, flexShrink: 0 }}>{d.case_name}</strong>
+                  <Mono style={{ fontSize: 12.5, color: isPast ? T.textDim : T.textMid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {d.description}</Mono>
                 </div>
               );
             }) : (
@@ -937,8 +937,8 @@ const MonitorPage = ({ onRefresh }) => {
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     >
                       <Mono style={{ fontSize: 11, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>
-                      <strong style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 700, color: T.text, flexShrink: 0 }}>{c.name}</strong>
-                      {eventSnippet && <Mono style={{ fontSize: 12, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&nbsp;· {eventSnippet}</Mono>}
+                      <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.text, flexShrink: 0 }}>{c.name}</strong>
+                      {eventSnippet && <Mono style={{ fontSize: 13, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&nbsp;· {eventSnippet}</Mono>}
                       <div style={{ flex: 1 }} />
                       {c.last_event_date && (
                         <Mono style={{ fontSize: 13, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap" }}>Last: {formatDate(c.last_event_date)}</Mono>
@@ -1060,7 +1060,7 @@ const MonitorPage = ({ onRefresh }) => {
       </div>
 
       {/* ══ SIDEBAR ══ */}
-      <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: 52 }}>
+      <div style={{ flex: "0 0 340px", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: 52 }}>
         <PodcastsSection />
       </div>
     </div>
@@ -1202,7 +1202,7 @@ export default function NILMonitor() {
       </nav>
 
       {/* ── Dashboard ── */}
-      <main style={{ maxWidth: 1280, margin: "0 auto", padding: "16px 16px 40px" }}>
+      <main style={{ maxWidth: 1440, margin: "0 auto", padding: "16px 16px 40px" }}>
         <MonitorPage onRefresh={setLastRefresh} />
       </main>
 
