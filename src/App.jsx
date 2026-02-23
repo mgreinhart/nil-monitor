@@ -996,7 +996,7 @@ const MonitorPage = ({ onRefresh }) => {
                   { label: "College Sports Litigation Tracker", href: "https://www.collegesportslitigationtracker.com" },
                   { label: "Troutman Pepper NIL Tracker", href: "https://www.troutman.com/state-and-federal-nil-legislation-tracker/" },
                   { label: "NIL Revolution Blog", href: "https://www.nilrevolution.com" },
-                  { label: "Opendorse NIL State Law Tracker", href: "https://biz.opendorse.com/blog/comparing-state-nil-laws-proposed-legislation/" },
+                  { label: "On3 NIL", href: "https://www.on3.com/nil/" },
                   { label: "CourtListener", href: "https://www.courtlistener.com" },
                   { label: "NIL Monitor X List", href: X_LIST_URL },
                 ].map((r, i) => (
