@@ -403,14 +403,25 @@ Return JSON (EXACTLY 4 sections, each headline is ONE sentence, each body is MAX
 }`;
   }
 
-  try {
-    const result = await callClaude(env, system, userContent);
-    return result.sections || null;
-  } catch (err) {
-    console.error('Briefing generation failed:', err.message);
-    PIPELINE_ERRORS.push(`briefing: ${err.message}`);
-    return null;
+  // Retry once on failure (2-min wait between attempts for cron runs)
+  let sections = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const result = await callClaude(env, system, userContent);
+      sections = result.sections || null;
+      break;
+    } catch (err) {
+      console.error(`Briefing generation attempt ${attempt} failed:`, err.message);
+      if (attempt < 2) {
+        console.log('Retrying briefing generation in 2 minutes...');
+        await new Promise(resolve => setTimeout(resolve, 120000));
+      } else {
+        PIPELINE_ERRORS.push(`briefing: ${err.message} (after 2 attempts)`);
+        return null;
+      }
+    }
   }
+  return sections;
 }
 
 // ── Write results to D1 ─────────────────────────────────────────
@@ -461,13 +472,44 @@ async function writeCSCActivity(db, items) {
 }
 
 async function writeBriefing(db, sections) {
-  if (!sections) return 0;
+  if (!sections || !Array.isArray(sections)) return 0;
+
+  // Validate: only keep sections with non-empty headline and body
+  const valid = sections.filter(s =>
+    s && typeof s.headline === 'string' && s.headline.trim().length > 0
+      && typeof s.body === 'string' && s.body.trim().length > 0
+  );
+  if (valid.length < 2) {
+    console.error(`Briefing validation failed: only ${valid.length} valid sections (need >= 2)`);
+    PIPELINE_ERRORS.push(`briefing: validation failed, ${valid.length} valid sections`);
+    return 0;
+  }
+
   const today = new Date().toISOString().split('T')[0];
+
+  // Never overwrite a good briefing with a worse one
+  try {
+    const existing = await db.prepare(
+      'SELECT content FROM briefings WHERE date = ?'
+    ).bind(today).first();
+    if (existing?.content) {
+      const existingSections = JSON.parse(existing.content);
+      const existingValid = existingSections.filter(s =>
+        s && typeof s.headline === 'string' && s.headline.trim().length > 0
+          && typeof s.body === 'string' && s.body.trim().length > 0
+      );
+      if (existingValid.length > valid.length) {
+        console.log(`Briefing: keeping existing (${existingValid.length} sections) over new (${valid.length} sections)`);
+        return 0;
+      }
+    }
+  } catch { /* existing content malformed, overwrite is fine */ }
+
   try {
     await db.prepare(
       `INSERT OR REPLACE INTO briefings (date, content, generated_at)
        VALUES (?, ?, datetime('now'))`
-    ).bind(today, JSON.stringify(sections)).run();
+    ).bind(today, JSON.stringify(valid)).run();
     return 1;
   } catch (err) {
     console.error('Failed to write briefing:', err.message);
