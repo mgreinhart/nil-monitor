@@ -551,7 +551,6 @@ const MonitorPage = ({ onRefresh }) => {
   const [courtroomOpen, setCourtroomOpen] = useState(true);
   const [headlineCatFilt, setHeadlineCatFilt] = useState("All");
   const [hlPage, setHlPage] = useState(0);
-  const [briefingOpen, setBriefingOpen] = useState(null);
   const [briefingRevealed, setBriefingRevealed] = useState(false);
   const [briefingAnimating, setBriefingAnimating] = useState(false);
   const [briefingCollapsing, setBriefingCollapsing] = useState(false);
@@ -668,8 +667,6 @@ const MonitorPage = ({ onRefresh }) => {
   // Briefing: API or mock
   const briefingSource = briefing || MOCK.briefing.map(([headline, body]) => ({ headline, body }));
 
-  // Briefing defaults to all expanded; null = user hasn't interacted
-  const briefingExpanded = briefingOpen ?? new Set(briefingSource.map((_, i) => i));
 
   // Headlines: normalize for feed (include severity when AI-tagged)
   const hlSource = headlines ? headlines.map(h => ({
@@ -715,7 +712,7 @@ const MonitorPage = ({ onRefresh }) => {
           const handleCollapse = () => {
             if (briefingAnimating || briefingCollapsing) return;
             setBriefingCollapsing(true);
-            setTimeout(() => { setBriefingRevealed(false); setBriefingCollapsing(false); setBriefingOpen(null); }, 150);
+            setTimeout(() => { setBriefingRevealed(false); setBriefingCollapsing(false); }, 150);
           };
           return (
             <div
@@ -761,9 +758,9 @@ const MonitorPage = ({ onRefresh }) => {
                   <div>
                     <div style={{ paddingLeft: 6, marginTop: -2 }}>
                       {briefingSource.map((s, i) => (
-                        <div key={i} style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, lineHeight: 1.5, color: T.text, padding: "2px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          <span style={{ fontFamily: T.mono, fontSize: 13, color: T.accent, marginRight: 8 }}>{"\u00BB"}</span>
-                          {s.short_title || (s.headline && s.headline.length > 60 ? s.headline.slice(0, 57) + "..." : s.headline)}
+                        <div key={i} style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 600, lineHeight: 1.5, color: T.text, padding: "2px 0" }}>
+                          <span style={{ fontFamily: T.mono, fontSize: 14, color: T.accent, marginRight: 8 }}>{"\u00BB"}</span>
+                          {s.short_title || s.headline}
                         </div>
                       ))}
                     </div>
@@ -781,41 +778,19 @@ const MonitorPage = ({ onRefresh }) => {
                 )}
                 {/* ── Expanded: cascade reveal with full content ── */}
                 {briefingRevealed && (
-                  <div style={{ animation: briefingCollapsing ? "briefingFadeOut 150ms ease-in forwards" : "none" }}>
-                    {briefingSource.map((s, i) => {
-                      const isOpen = briefingExpanded.has(i);
-                      return (
-                        <div key={i} style={{
-                          borderBottom: i < briefingSource.length - 1 ? `1px solid ${T.borderLight}` : "none",
-                          animation: briefingAnimating ? `briefingSlideIn 200ms ease-out ${i * 80}ms both` : "none",
-                        }}>
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setBriefingOpen(prev => {
-                                const current = prev ?? new Set(briefingSource.map((_, i) => i));
-                                const next = new Set(current);
-                                next.has(i) ? next.delete(i) : next.add(i);
-                                return next;
-                              });
-                            }}
-                            style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: i === 0 ? "0 0 10px 0" : "10px 0", cursor: "pointer" }}
-                          >
-                            <Mono style={{ fontSize: 12, color: T.textDim, lineHeight: 1.6, flexShrink: 0, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none" }}>{"\u25B8"}</Mono>
-                            <span style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 600, lineHeight: 1.5, color: T.text }}>{s.headline}</span>
-                          </div>
-                          <div style={{
-                            maxHeight: isOpen ? 400 : 0, overflow: "hidden",
-                            transition: "max-height .2s ease, opacity .2s ease",
-                            opacity: isOpen ? 1 : 0,
-                          }}>
-                            <div style={{ fontFamily: T.sans, fontSize: 15, lineHeight: 1.6, color: T.textMid, padding: "0 0 12px 20px" }}>
-                              {s.body}
-                            </div>
-                          </div>
+                  <div onClick={(e) => e.stopPropagation()} style={{ animation: briefingCollapsing ? "briefingFadeOut 150ms ease-in forwards" : "none", cursor: "default" }}>
+                    {briefingSource.map((s, i) => (
+                      <div key={i} style={{
+                        borderBottom: i < briefingSource.length - 1 ? `1px solid ${T.borderLight}` : "none",
+                        animation: briefingAnimating ? `briefingSlideIn 200ms ease-out ${i * 80}ms both` : "none",
+                        padding: i === 0 ? "0 0 10px 0" : "10px 0",
+                      }}>
+                        <span style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 600, lineHeight: 1.5, color: T.text }}>{s.headline}</span>
+                        <div style={{ fontFamily: T.sans, fontSize: 15, lineHeight: 1.6, color: T.textMid, padding: "6px 0 2px 0" }}>
+                          {s.body}
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
                       <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: T.accent, flexShrink: 0 }} />
                       <Mono style={{ fontSize: 13, color: T.accent }}>
