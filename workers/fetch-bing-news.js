@@ -28,6 +28,8 @@ const QUERIES = [
   '"College Sports Commission" enforcement',
   '"NCAA revenue sharing" compliance',
   '"college athlete" employment classification',
+  '"private equity" college sports OR NCAA',
+  '"college sports" investment OR ownership',
 ];
 
 function getCooldown() {

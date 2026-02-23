@@ -28,6 +28,7 @@ const QUERIES = [
   'college athlete union',
   'revenue sharing NCAA',
   'House v NCAA settlement',
+  'private equity college sports',
 ];
 
 function getCooldown() {

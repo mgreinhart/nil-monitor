@@ -35,6 +35,8 @@ const QUERIES = [
   '"NCAA revenue sharing" compliance',
   '"college athlete" employment classification',
   '"House v NCAA" settlement implementation',
+  '"private equity" college sports OR NCAA',
+  '"college sports" investment OR ownership stake',
 ];
 
 function getCooldown() {

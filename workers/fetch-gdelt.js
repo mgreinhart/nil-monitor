@@ -11,7 +11,7 @@ const FETCHER = 'gdelt';
 
 // Construct URL with proper encoding — GDELT expects + for spaces
 const GDELT_URL = 'https://api.gdeltproject.org/api/v2/doc/doc'
-  + '?query=(NIL+OR+%22name+image+likeness%22+OR+NCAA+OR+%22transfer+portal%22+OR+%22college+athlete%22+OR+%22revenue+sharing%22+OR+%22House+v+NCAA%22)'
+  + '?query=(NIL+OR+%22name+image+likeness%22+OR+NCAA+OR+%22transfer+portal%22+OR+%22college+athlete%22+OR+%22revenue+sharing%22+OR+%22House+v+NCAA%22+OR+%22private+equity%22+%22college+sports%22)'
   + '&mode=TimelineVolRaw&TIMESPAN=1m&format=json';
 
 function getCooldown() {
