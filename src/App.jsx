@@ -1060,7 +1060,7 @@ const MonitorPage = ({ onRefresh }) => {
       </div>
 
       {/* ══ SIDEBAR ══ */}
-      <div style={{ flex: "0 0 340px", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: 52 }}>
+      <div style={{ flex: "0 0 340px", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: 62 }}>
         <PodcastsSection />
       </div>
     </div>
@@ -1167,17 +1167,17 @@ export default function NILMonitor() {
       {/* ── Navigation ── */}
       <nav style={{
         position: "sticky", top: 0, zIndex: 100, background: T.navy,
-        padding: "0 16px", display: "flex", alignItems: "center", height: 44,
+        padding: "0 20px", display: "flex", alignItems: "center", height: 54,
         borderBottom: `1px solid ${T.navySoft}`,
       }}>
         {/* Left: brand + live + date */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 16 }}>
-          <span style={{ fontFamily: T.mono, fontSize: 14, fontWeight: 700, color: "#fff", background: T.accent, padding: "4px 8px", borderRadius: 4, letterSpacing: ".5px" }}>NIL</span>
-          <span style={{ fontFamily: T.mono, fontSize: 14, fontWeight: 400, color: "#fff", letterSpacing: "1.5px" }}>MONITOR</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, marginRight: 18 }}>
+          <span style={{ fontFamily: T.mono, fontSize: 15, fontWeight: 700, color: "#fff", background: T.accent, padding: "5px 9px", borderRadius: 4, letterSpacing: ".5px" }}>NIL</span>
+          <span style={{ fontFamily: T.mono, fontSize: 15, fontWeight: 400, color: "#fff", letterSpacing: "1.5px" }}>MONITOR</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 20 }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: T.green, display: "inline-block", animation: "pulse-live 2s ease-in-out infinite" }} />
-          <Mono style={{ fontSize: 11, fontWeight: 700, color: T.green, letterSpacing: ".5px" }}>LIVE</Mono>
+          <span style={{ width: 9, height: 9, borderRadius: "50%", background: T.green, display: "inline-block", animation: "pulse-live 2s ease-in-out infinite" }} />
+          <Mono style={{ fontSize: 12, fontWeight: 700, color: T.green, letterSpacing: ".5px" }}>LIVE</Mono>
         </div>
         <Mono style={{ fontSize: 12, color: "rgba(255,255,255,.65)" }}>
           {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
@@ -1194,9 +1194,9 @@ export default function NILMonitor() {
           onClick={() => setShowInfo(true)}
           title="About NIL Monitor"
           style={{
-            fontFamily: T.sans, fontSize: 15, color: "rgba(255,255,255,.4)",
+            fontFamily: T.sans, fontSize: 18, color: "rgba(255,255,255,.4)",
             background: "transparent", border: "none", cursor: "pointer",
-            padding: "8px", marginLeft: 4,
+            padding: "10px", marginLeft: 4,
           }}
         >&#9432;</button>
       </nav>
