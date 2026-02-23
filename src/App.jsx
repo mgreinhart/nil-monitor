@@ -761,8 +761,8 @@ const MonitorPage = ({ onRefresh }) => {
                   <div>
                     <div style={{ paddingLeft: 6, marginTop: -2 }}>
                       {briefingSource.map((s, i) => (
-                        <div key={i} style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 600, lineHeight: 1.5, color: T.text, padding: "2px 0" }}>
-                          <span style={{ fontFamily: T.mono, fontSize: 16, color: T.accent, marginRight: 8 }}>{"\u00BB"}</span>
+                        <div key={i} style={{ fontFamily: T.sans, fontSize: 22, fontWeight: 600, lineHeight: 1.4, color: T.text, padding: "2px 0" }}>
+                          <span style={{ fontFamily: T.mono, fontSize: 20, color: T.accent, marginRight: 8 }}>{"\u00BB"}</span>
                           {s.short_title || s.headline}
                         </div>
                       ))}
@@ -788,12 +788,12 @@ const MonitorPage = ({ onRefresh }) => {
                         padding: i === 0 ? "0 0 10px 0" : "10px 0",
                       }}>
                         {s.url ? (
-                          <a href={s.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 600, lineHeight: 1.5, color: T.accent, textDecoration: "underline", textDecorationColor: "rgba(220,74,45,.3)", textUnderlineOffset: "3px" }}
+                          <a href={s.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ fontFamily: T.sans, fontSize: 22, fontWeight: 600, lineHeight: 1.4, color: T.accent, textDecoration: "underline", textDecorationColor: "rgba(220,74,45,.3)", textUnderlineOffset: "3px" }}
                             onMouseEnter={e => e.currentTarget.style.textDecorationColor = T.accent}
                             onMouseLeave={e => e.currentTarget.style.textDecorationColor = "rgba(220,74,45,.3)"}
                           >{s.headline} <span style={{ fontSize: 13, opacity: 0.5 }}>{"\u2197"}</span></a>
                         ) : (
-                          <span style={{ fontFamily: T.sans, fontSize: 18, fontWeight: 600, lineHeight: 1.5, color: T.text }}>{s.headline}</span>
+                          <span style={{ fontFamily: T.sans, fontSize: 22, fontWeight: 600, lineHeight: 1.4, color: T.text }}>{s.headline}</span>
                         )}
                         <div style={{ fontFamily: T.sans, fontSize: 15, lineHeight: 1.6, color: T.textMid, padding: "6px 0 2px 0" }}>
                           {s.body}
