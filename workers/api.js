@@ -66,15 +66,9 @@ function getFetcherStatus(lastRunStr, cfg, etHour) {
   const d = new Date(lastRunStr.includes('T') ? lastRunStr : lastRunStr.replace(' ', 'T') + 'Z');
   const elapsed = (Date.now() - d.getTime()) / 60000;
 
-  // If we're in the skip window, the fetcher is healthy as long as it ran
-  // sometime before the skip started (i.e., elapsed < cooldown + skip duration so far)
+  // Sleeping — the fetcher is off by design, so it's healthy
   if (isInSkipWindow(etHour, cfg.activeStart, cfg.activeEnd)) {
-    const skipMins = minutesSinceSkipStart(etHour);
-    const adjustedElapsed = elapsed - skipMins;
-    // Healthy if last run was within normal range before the skip started
-    if (adjustedElapsed <= cfg.cooldown * 2) return { status: 'green', label: adminTimestamp(lastRunStr) };
-    if (adjustedElapsed <= cfg.cooldown * 4) return { status: 'amber', label: adminTimestamp(lastRunStr) };
-    return { status: 'red', label: adminTimestamp(lastRunStr) };
+    return { status: 'sleep', label: adminTimestamp(lastRunStr) };
   }
 
   if (elapsed > cfg.cooldown * 4) return { status: 'red', label: adminTimestamp(lastRunStr) };
@@ -194,6 +188,7 @@ h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;
 .dot.green{background:#10b981}
 .dot.amber{background:#f59e0b}
 .dot.red{background:#ef4444}
+.dot.sleep{background:#475569}
 .issue{padding:5px 0;display:flex;align-items:center;gap:8px;font-size:12px;color:#e2e8f0}
 table{width:100%;border-collapse:collapse}
 th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#475569;padding:4px 8px;border-bottom:1px solid #1e293b}
