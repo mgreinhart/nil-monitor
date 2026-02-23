@@ -425,7 +425,7 @@ const StateLegislationMap = () => {
             const isEnacted = stateData?.status === "enacted";
             const textAnchor = anchor || "middle";
             // Outside-placed labels (anchor="start") use dark color always for visibility
-            const fill = (anchor && anchor !== "middle") ? "#3d4a5c" : (isEnacted ? "#fff" : "#3d4a5c");
+            const fill = (anchor && anchor !== "middle") || customSize ? "#3d4a5c" : (isEnacted ? "#fff" : "#3d4a5c");
             return (
               <Marker key={abbr} coordinates={[lon, lat]}>
                 <text
