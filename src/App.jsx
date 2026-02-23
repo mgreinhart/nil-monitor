@@ -749,7 +749,7 @@ const MonitorPage = ({ onRefresh }) => {
                   </Mono>
                 </div>
                 {briefingRevealed ? (
-                  <Mono style={{ fontSize: 11, fontWeight: 600, color: T.textDim, letterSpacing: ".3px" }}>{"\u25BE"} Click to collapse</Mono>
+                  <Mono style={{ fontSize: 13, fontWeight: 700, color: T.accent, letterSpacing: ".5px" }}>CLICK TO COLLAPSE</Mono>
                 ) : (
                   <Mono style={{ fontSize: 13, fontWeight: 700, color: T.accent, letterSpacing: ".5px" }}>CLICK TO EXPAND</Mono>
                 )}
