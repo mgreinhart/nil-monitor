@@ -890,10 +890,11 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
             };
 
             // Build unified items
-            const items = [];
+            const upcomingItems = [];
+            const restItems = [];
             if (keyDates) for (const d of keyDates) {
               const isUpcoming = d.date >= today;
-              items.push({
+              const item = {
                 kind: isUpcoming ? "upcoming" : "past-keydate",
                 sortDate: d.date,
                 date: d.date,
@@ -901,10 +902,11 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                 detail: d.description,
                 label: isUpcoming ? null : keyDateLabel(d.description),
                 days: isUpcoming ? daysUntil(d.date) : null,
-              });
+              };
+              if (isUpcoming) upcomingItems.push(item); else restItems.push(item);
             }
             for (const c of recentActivity) {
-              items.push({
+              restItems.push({
                 kind: "filing",
                 sortDate: c.last_event_date || "1970-01-01",
                 date: c.last_event_date,
@@ -914,14 +916,10 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
               });
             }
 
-            // Sort: upcoming first (nearest date), then past (most recent first)
-            items.sort((a, b) => {
-              const aUp = a.kind === "upcoming" ? 0 : 1;
-              const bUp = b.kind === "upcoming" ? 0 : 1;
-              if (aUp !== bUp) return aUp - bUp;
-              if (a.kind === "upcoming") return a.sortDate < b.sortDate ? -1 : 1;
-              return a.sortDate > b.sortDate ? -1 : 1;
-            });
+            // Upcoming: nearest date first; rest: most recent first
+            upcomingItems.sort((a, b) => a.sortDate < b.sortDate ? -1 : 1);
+            restItems.sort((a, b) => a.sortDate > b.sortDate ? -1 : 1);
+            const items = [...upcomingItems, ...restItems];
 
             const visible = showAllTimeline ? items : items.slice(0, 10);
             const remaining = items.length - 10;
@@ -931,7 +929,10 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                 {visible.map((item, i) => {
                   if (item.kind === "upcoming") {
                     return (
-                      <div key={`t${i}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 16px", borderBottom: `1px solid ${T.borderLight}` }}>
+                      <div key={`t${i}`} style={{
+                        display: "flex", alignItems: "center", gap: 10, padding: "10px 16px",
+                        background: `${T.accent}08`, borderBottom: `1px solid ${T.accent}20`,
+                      }}>
                         <Mono style={{ fontSize: 15, fontWeight: 700, color: T.accent, flexShrink: 0, width: 56 }}>
                           {formatDate(item.date)}
                         </Mono>
@@ -1023,14 +1024,16 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                     </div>
                   );
                 })}
-                {!showAllTimeline && remaining > 0 && (
+                {remaining > 0 && (
                   <div
-                    onClick={() => setShowAllTimeline(true)}
+                    onClick={() => setShowAllTimeline(v => !v)}
                     style={{ padding: "8px 16px", cursor: "pointer", textAlign: "center" }}
                     onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                   >
-                    <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>Show {remaining} more →</Mono>
+                    <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>
+                      {showAllTimeline ? "Show fewer \u2191" : `Show ${remaining} more \u2192`}
+                    </Mono>
                   </div>
                 )}
               </div>
