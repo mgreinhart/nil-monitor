@@ -225,8 +225,8 @@ const PodcastsSection = () => {
   const sorted = [...NIL_PODCASTS].sort((a, b) => {
     const aDate = podcastDates[a.id] || 0;
     const bDate = podcastDates[b.id] || 0;
-    const aFresh = aDate && (now - aDate) < 48 * 3600000;
-    const bFresh = bDate && (now - bDate) < 48 * 3600000;
+    const aFresh = aDate && (now - aDate) < 24 * 3600000;
+    const bFresh = bDate && (now - bDate) < 24 * 3600000;
     if (aFresh && !bFresh) return -1;
     if (!aFresh && bFresh) return 1;
     if (aFresh && bFresh) return bDate - aDate;
@@ -236,7 +236,7 @@ const PodcastsSection = () => {
     <Panel title="NIL Podcasts" accent={T.accent} size="sm" noPad>
       <div style={{ display: "flex", flexDirection: "column", gap: 0, padding: 4 }}>
         {sorted.map((p, i) => {
-          const isFresh = podcastDates[p.id] && (now - podcastDates[p.id]) < 48 * 3600000;
+          const isFresh = podcastDates[p.id] && (now - podcastDates[p.id]) < 24 * 3600000;
           return (
             <div key={p.id} style={{
               borderBottom: i < sorted.length - 1 ? `1px solid ${T.border}` : "none",
