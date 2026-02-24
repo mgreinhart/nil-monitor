@@ -44,6 +44,10 @@ export function getETHour() {
 /**
  * Check if a fetcher should run based on its cooldown.
  * Returns true if enough time has elapsed since last run.
+ * 2-minute grace period prevents timing drift: fetchers take 1-2 min
+ * to process all queries, so recordRun writes at :01 or :02 instead
+ * of :00. Without grace, a 30-min cooldown recorded at :01 would skip
+ * the :30 cron (29 min elapsed) and not run until :45 (44-min gap).
  */
 export async function shouldRun(db, fetcherName, cooldownMinutes) {
   if (cooldownMinutes === null) return false;
@@ -56,7 +60,7 @@ export async function shouldRun(db, fetcherName, cooldownMinutes) {
 
   const lastRun = new Date(row.last_run.includes('T') ? row.last_run : row.last_run + 'Z');
   const elapsed = (Date.now() - lastRun.getTime()) / 60000;
-  return elapsed >= cooldownMinutes;
+  return elapsed >= cooldownMinutes - 2;
 }
 
 /**

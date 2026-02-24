@@ -17,21 +17,20 @@ function json(data, status = 200) {
 
 // ── Admin Dashboard Helpers ───────────────────────────────────────
 
-// Fetcher config: cooldown in minutes, active window in ET hours [start, end)
-// Note: some fetchers have variable cooldowns by time of day. Values here
-// represent the most common cooldown for status dot calculation.
+// Fetcher config: cooldown function returns current cooldown in minutes
+// (null = sleeping). Mirrors each fetcher's actual getCooldown() logic.
 const FETCHER_CONFIG = {
-  'google-news':    { cooldown: 15,  activeStart: 6, activeEnd: 22 },
-  'bing-news':      { cooldown: 15,  activeStart: 6, activeEnd: 22 },
-  'ncaa-rss':       { cooldown: 15,  activeStart: 6, activeEnd: 22 },
-  'newsdata':       { cooldown: 60,  activeStart: 6, activeEnd: 20 },  // complex: 30m morning, 60m midday, skip 4-7 PM, 1 run 7-8 PM, skip 8 PM+
-  'publications':   { cooldown: 30,  activeStart: 6, activeEnd: 22 },
-  'nil-revolution': { cooldown: 120, activeStart: 6, activeEnd: 22 },
-  'courtlistener':  { cooldown: 120, activeStart: 6, activeEnd: 22 },
-  'cslt':           { cooldown: 360, activeStart: 6, activeEnd: 22 },
-  'cslt-keydates':  { cooldown: 360, activeStart: 6, activeEnd: 22 },
-  'gdelt':          { cooldown: 360, activeStart: 6, activeEnd: 22 },
-  'podcasts':       { cooldown: 360, activeStart: 6, activeEnd: 22 },
+  'google-news':    { getCooldown: h => h >= 6 && h < 17 ? 15 : h >= 17 && h < 22 ? 30 : null },
+  'bing-news':      { getCooldown: h => h >= 6 && h < 17 ? 15 : h >= 17 && h < 22 ? 30 : null },
+  'ncaa-rss':       { getCooldown: h => h >= 6 && h < 17 ? 15 : h >= 17 && h < 22 ? 30 : null },
+  'newsdata':       { getCooldown: h => h >= 6 && h < 10 ? 30 : h >= 10 && h < 16 ? 60 : h >= 19 && h < 20 ? 60 : null },
+  'publications':   { getCooldown: h => h >= 6 && h < 22 ? 30 : null },
+  'nil-revolution': { getCooldown: h => h >= 6 && h < 22 ? 120 : null },
+  'courtlistener':  { getCooldown: h => h >= 6 && h < 17 ? 120 : h >= 17 && h < 22 ? 240 : null },
+  'cslt':           { getCooldown: h => h >= 6 && h < 22 ? 360 : null },
+  'cslt-keydates':  { getCooldown: h => h >= 6 && h < 22 ? 360 : null },
+  'gdelt':          { getCooldown: h => h >= 6 && h < 22 ? 360 : null },
+  'podcasts':       { getCooldown: h => h >= 6 && h < 22 ? 360 : null },
 };
 
 function adminTimestamp(ts) {
@@ -52,29 +51,18 @@ function getETHour() {
   return parseInt(new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' }));
 }
 
-function isInSkipWindow(etHour, activeStart, activeEnd) {
-  return etHour < activeStart || etHour >= activeEnd;
-}
-
-// Minutes since the skip window started (10 PM ET = hour 22)
-function minutesSinceSkipStart(etHour) {
-  if (etHour >= 22) return (etHour - 22) * 60;
-  if (etHour < 6) return (etHour + 2) * 60; // hours past 22
-  return 0;
-}
-
-function getFetcherStatus(lastRunStr, cfg, etHour) {
+function getFetcherStatus(lastRunStr, cooldown, etHour) {
   if (!lastRunStr) return { status: 'red', label: 'Never' };
   const d = new Date(lastRunStr.includes('T') ? lastRunStr : lastRunStr.replace(' ', 'T') + 'Z');
   const elapsed = (Date.now() - d.getTime()) / 60000;
 
-  // Sleeping — the fetcher is off by design, so it's healthy
-  if (isInSkipWindow(etHour, cfg.activeStart, cfg.activeEnd)) {
+  // Sleeping — cooldown is null means the fetcher is off by design
+  if (cooldown === null) {
     return { status: 'sleep', label: adminTimestamp(lastRunStr) };
   }
 
-  if (elapsed > cfg.cooldown * 4) return { status: 'red', label: adminTimestamp(lastRunStr) };
-  if (elapsed > cfg.cooldown * 2) return { status: 'amber', label: adminTimestamp(lastRunStr) };
+  if (elapsed > cooldown * 4) return { status: 'red', label: adminTimestamp(lastRunStr) };
+  if (elapsed > cooldown * 2) return { status: 'amber', label: adminTimestamp(lastRunStr) };
   return { status: 'green', label: adminTimestamp(lastRunStr) };
 }
 
@@ -106,9 +94,10 @@ async function buildAdminDashboard(env) {
   const etHour = getETHour();
   const fetchers = Object.entries(FETCHER_CONFIG).map(([name, cfg]) => {
     const lastRun = fetcherMap[name] || null;
-    const { status, label } = getFetcherStatus(lastRun, cfg, etHour);
-    const inSkip = isInSkipWindow(etHour, cfg.activeStart, cfg.activeEnd);
-    return { name, cooldown: cfg.cooldown, lastRun, status, label, inSkip };
+    const cooldown = cfg.getCooldown(etHour);
+    const { status, label } = getFetcherStatus(lastRun, cooldown, etHour);
+    const inSkip = cooldown === null;
+    return { name, cooldown, lastRun, status, label, inSkip };
   });
 
   // ── Issue detection ──
