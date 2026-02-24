@@ -970,12 +970,13 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
               </div>
             ) : null;
           })()}
-          {/* ── TIER 3: Everything else — link out ── */}
+          {/* ── Full tracker link ── */}
           {totalTracked > 0 && (
-            <div style={{ padding: "8px 16px" }}>
-              <Mono style={{ fontSize: 12, color: T.textDim }}>
-                <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" style={{ color: T.accent, textDecoration: "none", fontFamily: T.mono }}>View all {totalTracked} cases on College Sports Litigation Tracker →</a>
-              </Mono>
+            <div style={{ padding: "10px 16px", background: T.surfaceAlt, borderTop: `1px solid ${T.borderLight}` }}>
+              <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" style={{ color: T.accent, textDecoration: "none", fontFamily: T.mono, fontSize: 13, fontWeight: 600, display: "block" }}>
+                View all {totalTracked} cases on College Sports Litigation Tracker →
+              </a>
+              <Mono style={{ fontSize: 11, color: T.textDim, marginTop: 2 }}>Full case details, documents, and court filings</Mono>
             </div>
           )}
           </>}
