@@ -122,11 +122,13 @@ function parseUpcomingDates(statusHtml) {
     while ((liMatch = liRe.exec(ulMatch[1])) !== null) {
       const text = cleanText(liMatch[1]);
       if (text && !text.match(/^N\/A/i)) {
-        // Try to extract date prefix: "February 18, 2026: Reply Briefs Due"
-        // Also handles: "February 27, 2026 at 9:30 AM PT: Hearing on Motion to Dismiss"
-        const dateTextMatch = text.match(/^([\w\s]+\d{1,2},\s*\d{4})(?:\s+at\s+\d{1,2}:\d{2}(?:\s*(?:AM|PM))?(?:\s+[A-Z]{1,5})?)?:\s*(.+)/);
+        // Extract date prefix from various formats:
+        //   "February 18, 2026: Reply Briefs Due"
+        //   "February 27, 2026 at 9:30 AM PT: Hearing on Motion to Dismiss"
+        //   "October 12–22, 2027 at 8:30 AM PT: Jury Trial" (date range — use start date)
+        const dateTextMatch = text.match(/^([\w\s]+\d{1,2})(?:[–\-]\d{1,2})?(,\s*\d{4})(?:\s+at\s+\d{1,2}:\d{2}(?:\s*(?:AM|PM))?(?:\s+[A-Z]{1,5})?)?:\s*(.+)/);
         if (dateTextMatch) {
-          dates.push({ date: dateTextMatch[1].trim(), text: dateTextMatch[2].trim() });
+          dates.push({ date: (dateTextMatch[1] + dateTextMatch[2]).trim(), text: dateTextMatch[3].trim() });
         } else {
           dates.push({ date: null, text: text });
         }
@@ -434,6 +436,13 @@ export async function fetchCSLT(env, { force = false } = {}) {
 
   // Parse cases
   const cases = parseCases(html);
+
+  // Clean up orphaned rows: old entries had case_number=NULL, new ones use ''.
+  // SQLite treats NULL != '' in UNIQUE constraints, causing duplicates.
+  await env.DB.prepare(
+    `DELETE FROM cases WHERE case_number IS NULL`
+  ).run();
+
   let casesUpserted = 0;
   for (const c of cases) {
     try {
