@@ -125,12 +125,11 @@ const Badge = ({ children, color = T.accent }) => (
 );
 
 const Pill = ({ active, children, onClick }) => (
-  <button onClick={onClick} style={{
-    fontFamily: T.mono, fontSize: 11, fontWeight: 600, padding: "10px 14px", borderRadius: 4,
+  <button onClick={onClick} className="pill" style={{
+    fontFamily: T.mono, fontSize: 11, fontWeight: 600, padding: "8px 12px", borderRadius: 4,
     border: `1px solid ${active ? T.accent : "#9ca3af"}`,
     background: active ? T.accent : "transparent",
     color: active ? "#fff" : "#3d4a5c", cursor: "pointer", whiteSpace: "nowrap", letterSpacing: ".3px",
-    minHeight: 44,
   }}>{children}</button>
 );
 
@@ -154,9 +153,9 @@ const Panel = ({ title, accent, children, style, right, noPad, size, onHeaderCli
           onClick={onHeaderClick}
           style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: isSm ? "10px 12px" : "10px 16px",
+            padding: isSm ? "8px 12px" : "8px 16px",
             borderBottom: `1px solid ${T.border}`,
-            minHeight: 44,
+            minHeight: isLg ? 36 : 32,
             cursor: onHeaderClick ? "pointer" : "default",
             userSelect: onHeaderClick ? "none" : "auto",
           }}
@@ -840,7 +839,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                 display: "flex", alignItems: "center", gap: 8, padding: isMobile ? "10px 12px" : "6px 16px",
                 borderBottom: `1px solid ${T.borderLight}`,
                 background: "transparent",
-                textDecoration: "none", cursor: "pointer", minHeight: 44,
+                textDecoration: "none", cursor: "pointer", minHeight: isMobile ? 44 : undefined,
               }}
               onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
@@ -852,9 +851,9 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
             </a>
           ))}
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, padding: "8px 16px", borderTop: `1px solid ${T.borderLight}` }}>
-            <button onClick={() => setHlPage(hlPageClamped - 1)} disabled={hlPageClamped === 0} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: hlPageClamped > 0 ? T.accent : T.borderLight, background: "transparent", border: "none", cursor: hlPageClamped > 0 ? "pointer" : "default", minHeight: 44, padding: "8px 16px" }}>← Prev</button>
+            <button onClick={() => setHlPage(hlPageClamped - 1)} disabled={hlPageClamped === 0} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: hlPageClamped > 0 ? T.accent : T.borderLight, background: "transparent", border: "none", cursor: hlPageClamped > 0 ? "pointer" : "default", padding: "8px 16px" }}>← Prev</button>
             <Mono style={{ fontSize: 12, color: T.textDim }}>{hlPageClamped + 1} of {hlTotalPages}</Mono>
-            <button onClick={() => setHlPage(hlPageClamped + 1)} disabled={hlPageClamped >= hlTotalPages - 1} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: hlPageClamped < hlTotalPages - 1 ? T.accent : T.borderLight, background: "transparent", border: "none", cursor: hlPageClamped < hlTotalPages - 1 ? "pointer" : "default", minHeight: 44, padding: "8px 16px" }}>Next →</button>
+            <button onClick={() => setHlPage(hlPageClamped + 1)} disabled={hlPageClamped >= hlTotalPages - 1} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: hlPageClamped < hlTotalPages - 1 ? T.accent : T.borderLight, background: "transparent", border: "none", cursor: hlPageClamped < hlTotalPages - 1 ? "pointer" : "default", padding: "8px 16px" }}>Next →</button>
           </div>
         </Panel>
 
@@ -1166,6 +1165,7 @@ export default function NILMonitor() {
         @media (max-width: 768px) {
           .pill-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
           .pill-scroll::-webkit-scrollbar { display: none; }
+          .pill { min-height: 44px !important; padding: 10px 14px !important; }
         }
       `}</style>
 
