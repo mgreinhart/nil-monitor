@@ -546,8 +546,8 @@ const StateLegislationMap = () => {
 //  MONITOR PAGE — The Dashboard (live from D1, falls back to mock)
 // ╚═══════════════════════════════════════════════════════════════════
 const MonitorPage = ({ onRefresh, isMobile }) => {
-  const [expCase, setExpCase] = useState(null);
-  const [recentOpen, setRecentOpen] = useState(false);
+  const [expCases, setExpCases] = useState(null); // null = default (first 5 open)
+  const [recentOpen, setRecentOpen] = useState(true);
   const [courtroomOpen, setCourtroomOpen] = useState(true);
   const [headlineCatFilt, setHeadlineCatFilt] = useState("All");
   const [hlPage, setHlPage] = useState(0);
@@ -874,32 +874,81 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
           }
         >
           {!courtroomOpen ? null : <>
-          {/* ── KEY DATES (curated by CSLT) ── */}
-          <div style={{ borderBottom: `1px solid ${T.border}` }}>
-            <div style={{ padding: "10px 16px 4px" }}>
-              <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
-                Key Dates{keyDates?.[0]?.month ? ` · ${keyDates[0].month}` : ""}
-              </Mono>
-            </div>
-            {keyDates && keyDates.length > 0 ? keyDates.map((d, i) => {
-              const isPast = d.date < new Date().toISOString().split("T")[0];
-              return (
-                <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "4px 16px", opacity: isPast ? 0.5 : 1 }}>
-                  <Mono style={{ fontSize: 13, fontWeight: 600, color: isPast ? T.textDim : T.accent, flexShrink: 0, width: 48 }}>
-                    {formatDate(d.date)}
-                  </Mono>
-                  <strong style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 700, color: isPast ? T.textDim : T.text, flexShrink: 0 }}>{d.case_name}</strong>
-                  <Mono style={{ fontSize: 12.5, color: isPast ? T.textDim : T.textMid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {d.description}</Mono>
+          {/* ── KEY DATES (curated by CSLT) — split UPCOMING / PAST ── */}
+          {(() => {
+            const today = new Date().toISOString().split("T")[0];
+            const upcoming = keyDates ? keyDates.filter(d => d.date >= today) : [];
+            const past = keyDates ? keyDates.filter(d => d.date < today).reverse() : [];
+            const daysUntil = (dateStr) => {
+              const target = new Date(dateStr + "T00:00:00");
+              const now = new Date(); now.setHours(0, 0, 0, 0);
+              return Math.ceil((target - now) / 86400000);
+            };
+            const countdownLabel = (days) => days === 0 ? "TODAY" : days === 1 ? "1 DAY" : `${days} DAYS`;
+            const pastMonth = past.length > 0 && past[0].date
+              ? new Date(past[0].date + "T00:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase()
+              : "";
+            return <>
+              {/* UPCOMING */}
+              {upcoming.length > 0 && (
+                <div style={{ borderBottom: `1px solid ${T.border}` }}>
+                  <div style={{ padding: "10px 16px 4px" }}>
+                    <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
+                      Upcoming
+                    </Mono>
+                  </div>
+                  {upcoming.map((d, i) => {
+                    const days = daysUntil(d.date);
+                    return (
+                      <div key={`u${i}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 16px" }}>
+                        <Mono style={{ fontSize: 15, fontWeight: 700, color: T.accent, flexShrink: 0, width: 56 }}>
+                          {formatDate(d.date)}
+                        </Mono>
+                        <strong style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 700, color: T.text, flexShrink: 0 }}>{d.case_name}</strong>
+                        <Mono style={{ fontSize: 13, color: T.textMid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {d.description}</Mono>
+                        <div style={{ flex: 1 }} />
+                        <span style={{
+                          fontFamily: T.mono, fontSize: 10, fontWeight: 700, letterSpacing: "0.5px",
+                          color: days <= 3 ? "#fff" : T.accent,
+                          background: days <= 3 ? T.accent : `${T.accent}18`,
+                          padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
+                        }}>
+                          {countdownLabel(days)}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            }) : (
-              <div style={{ padding: "6px 16px 8px" }}>
-                <a href="https://www.collegesportslitigationtracker.com/" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
-                  <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>View key dates on CSLT →</Mono>
-                </a>
-              </div>
-            )}
-          </div>
+              )}
+              {/* PAST */}
+              {past.length > 0 && (
+                <div style={{ borderBottom: `1px solid ${T.border}` }}>
+                  <div style={{ padding: "10px 16px 4px" }}>
+                    <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
+                      Past{pastMonth ? ` · ${pastMonth}` : ""}
+                    </Mono>
+                  </div>
+                  {past.map((d, i) => (
+                    <div key={`p${i}`} style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "4px 16px", opacity: 0.5 }}>
+                      <Mono style={{ fontSize: 13, fontWeight: 600, color: T.textDim, flexShrink: 0, width: 48 }}>
+                        {formatDate(d.date)}
+                      </Mono>
+                      <strong style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 700, color: T.textDim, flexShrink: 0 }}>{d.case_name}</strong>
+                      <Mono style={{ fontSize: 12.5, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {d.description}</Mono>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Fallback if no key dates at all */}
+              {(!keyDates || keyDates.length === 0) && (
+                <div style={{ borderBottom: `1px solid ${T.border}`, padding: "6px 16px 8px" }}>
+                  <a href="https://www.collegesportslitigationtracker.com/" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                    <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>View key dates on CSLT →</Mono>
+                  </a>
+                </div>
+              )}
+            </>;
+          })()}
           {/* ── TIER 2: RECENT ACTIVITY (collapsed by default) ── */}
           {recentActivity.length > 0 && (
             <div style={{ borderBottom: `1px solid ${T.border}` }}>
@@ -914,8 +963,15 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                   Recent Activity <span style={{ fontWeight: 400 }}>({recentActivity.length} case{recentActivity.length !== 1 ? "s" : ""})</span>
                 </Mono>
               </div>
-              {recentOpen && recentActivity.map((c) => {
-                const isOpen = expCase === c.id;
+              {recentOpen && recentActivity.map((c, idx) => {
+                const isOpen = expCases === null ? idx < 5 : expCases.has(c.id);
+                const toggleCase = () => setExpCases(prev => {
+                  const s = prev === null
+                    ? new Set(recentActivity.slice(0, 5).map(x => x.id))
+                    : new Set(prev);
+                  if (s.has(c.id)) s.delete(c.id); else s.add(c.id);
+                  return s;
+                });
                 const eventSnippet = c.last_event_text
                   ? (c.last_event_text.length > 80 ? c.last_event_text.slice(0, 80) + "..." : c.last_event_text)
                   : "";
@@ -923,7 +979,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                 return (
                   <div key={c.id} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
                     <div
-                      onClick={() => setExpCase(isOpen ? null : c.id)}
+                      onClick={toggleCase}
                       style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 16px", cursor: "pointer" }}
                       onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}
