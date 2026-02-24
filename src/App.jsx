@@ -866,7 +866,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
           title="The Courtroom"
           accent={T.accent}
           noPad
-          onHeaderClick={() => setCourtroomOpen(o => !o)}
+          onHeaderClick={undefined}
           right={
             <Mono style={{ fontSize: 11, color: T.textDim, fontWeight: 400 }}>
               {totalTracked} tracked cases &middot; Source: <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ color: T.textDim, textDecoration: "none" }}>CSLT</a>
