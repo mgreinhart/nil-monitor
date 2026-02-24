@@ -753,7 +753,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                 </Mono>
               </div>
               {/* ── Panel body ── */}
-              <div style={{ padding: 14 }}>
+              <div style={{ padding: "6px 14px 14px" }}>
                 {/* ── Collapsed: short titles + Read briefing button ── */}
                 {!briefingRevealed && (
                   <div>
