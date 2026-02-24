@@ -126,10 +126,11 @@ const Badge = ({ children, color = T.accent }) => (
 
 const Pill = ({ active, children, onClick }) => (
   <button onClick={onClick} style={{
-    fontFamily: T.mono, fontSize: 11, fontWeight: 600, padding: "8px 12px", borderRadius: 4,
+    fontFamily: T.mono, fontSize: 11, fontWeight: 600, padding: "10px 14px", borderRadius: 4,
     border: `1px solid ${active ? T.accent : "#9ca3af"}`,
     background: active ? T.accent : "transparent",
     color: active ? "#fff" : "#3d4a5c", cursor: "pointer", whiteSpace: "nowrap", letterSpacing: ".3px",
+    minHeight: 44,
   }}>{children}</button>
 );
 
@@ -153,9 +154,9 @@ const Panel = ({ title, accent, children, style, right, noPad, size, onHeaderCli
           onClick={onHeaderClick}
           style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: isSm ? "8px 12px" : "8px 16px",
+            padding: isSm ? "10px 12px" : "10px 16px",
             borderBottom: `1px solid ${T.border}`,
-            minHeight: isLg ? 36 : 32,
+            minHeight: 44,
             cursor: onHeaderClick ? "pointer" : "default",
             userSelect: onHeaderClick ? "none" : "auto",
           }}
@@ -545,7 +546,7 @@ const StateLegislationMap = () => {
 // ╔═══════════════════════════════════════════════════════════════════
 //  MONITOR PAGE — The Dashboard (live from D1, falls back to mock)
 // ╚═══════════════════════════════════════════════════════════════════
-const MonitorPage = ({ onRefresh }) => {
+const MonitorPage = ({ onRefresh, isMobile }) => {
   const [expCase, setExpCase] = useState(null);
   const [recentOpen, setRecentOpen] = useState(false);
   const [courtroomOpen, setCourtroomOpen] = useState(true);
@@ -681,9 +682,9 @@ const MonitorPage = ({ onRefresh }) => {
   const hlPageItems = hlFiltered.slice(hlPageClamped * HL_PER_PAGE, (hlPageClamped + 1) * HL_PER_PAGE);
 
   return (
-    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 12, alignItems: "flex-start" }}>
       {/* ══ MAIN COLUMN ══ */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ flex: 1, minWidth: 0, width: isMobile ? "100%" : "auto", display: "flex", flexDirection: "column", gap: 8 }}>
 
         {/* ══════════════════════════════════════════════════════════
             ABOVE THE FOLD — Briefing + Headlines (stacked)
@@ -818,7 +819,7 @@ const MonitorPage = ({ onRefresh }) => {
 
         {/* ── Latest Headlines ── */}
         <Panel title="Latest Headlines" accent={T.accent} noPad style={{ animation: "fadeIn 0.3s ease-in" }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "nowrap", padding: "4px 16px", borderBottom: `1px solid ${T.borderLight}` }}>
+          <div className="pill-scroll" style={{ display: "flex", gap: 8, flexWrap: "nowrap", padding: isMobile ? "6px 12px" : "4px 16px", borderBottom: `1px solid ${T.borderLight}` }}>
             {[
               ["All", "All"], ["Legislation", "Legislation"], ["Litigation", "Litigation"],
               ["NCAA Governance", "Governance"], ["CSC / Enforcement", "CSC"],
@@ -836,24 +837,24 @@ const MonitorPage = ({ onRefresh }) => {
           ) : hlPageItems.map((h, i) => (
             <a key={i} href={h.url} target="_blank" rel="noopener noreferrer"
               style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "6px 16px",
+                display: "flex", alignItems: "center", gap: 8, padding: isMobile ? "10px 12px" : "6px 16px",
                 borderBottom: `1px solid ${T.borderLight}`,
                 background: "transparent",
-                textDecoration: "none", cursor: "pointer",
+                textDecoration: "none", cursor: "pointer", minHeight: 44,
               }}
               onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
-              <Mono style={{ flex: "0 0 96px", fontSize: 12, fontWeight: 600, color: T.textDim, textTransform: "uppercase", letterSpacing: ".3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.src}</Mono>
+              {!isMobile && <Mono style={{ flex: "0 0 96px", fontSize: 12, fontWeight: 600, color: T.textDim, textTransform: "uppercase", letterSpacing: ".3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.src}</Mono>}
               <div style={{ flex: 1, fontFamily: T.sans, fontSize: 15, fontWeight: h.sev === "critical" ? 600 : 500, color: T.text, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
               {h.isNew && <span style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, color: "#fff", background: T.green, padding: "2px 6px", borderRadius: 3, letterSpacing: ".5px", flexShrink: 0, textTransform: "uppercase", lineHeight: 1.3 }}>NEW</span>}
               <Mono style={{ flex: "0 0 48px", fontSize: 12, color: T.textDim, textAlign: "right" }}>{h.time}</Mono>
             </a>
           ))}
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, padding: "8px 16px", borderTop: `1px solid ${T.borderLight}` }}>
-            <button onClick={() => setHlPage(hlPageClamped - 1)} disabled={hlPageClamped === 0} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: hlPageClamped > 0 ? T.accent : T.borderLight, background: "transparent", border: "none", cursor: hlPageClamped > 0 ? "pointer" : "default" }}>← Prev</button>
+            <button onClick={() => setHlPage(hlPageClamped - 1)} disabled={hlPageClamped === 0} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: hlPageClamped > 0 ? T.accent : T.borderLight, background: "transparent", border: "none", cursor: hlPageClamped > 0 ? "pointer" : "default", minHeight: 44, padding: "8px 16px" }}>← Prev</button>
             <Mono style={{ fontSize: 12, color: T.textDim }}>{hlPageClamped + 1} of {hlTotalPages}</Mono>
-            <button onClick={() => setHlPage(hlPageClamped + 1)} disabled={hlPageClamped >= hlTotalPages - 1} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: hlPageClamped < hlTotalPages - 1 ? T.accent : T.borderLight, background: "transparent", border: "none", cursor: hlPageClamped < hlTotalPages - 1 ? "pointer" : "default" }}>Next →</button>
+            <button onClick={() => setHlPage(hlPageClamped + 1)} disabled={hlPageClamped >= hlTotalPages - 1} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: hlPageClamped < hlTotalPages - 1 ? T.accent : T.borderLight, background: "transparent", border: "none", cursor: hlPageClamped < hlTotalPages - 1 ? "pointer" : "default", minHeight: 44, padding: "8px 16px" }}>Next →</button>
           </div>
         </Panel>
 
@@ -1052,7 +1053,7 @@ const MonitorPage = ({ onRefresh }) => {
       </div>
 
       {/* ══ SIDEBAR ══ */}
-      <div style={{ flex: "0 0 340px", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: 68 }}>
+      <div style={{ flex: isMobile ? "none" : "0 0 340px", width: isMobile ? "100%" : undefined, display: "flex", flexDirection: "column", gap: 8, position: isMobile ? "static" : "sticky", top: isMobile ? undefined : 68 }}>
         <PodcastsSection />
       </div>
     </div>
@@ -1129,11 +1130,21 @@ export default function NILMonitor() {
   const [showInfo, setShowInfo] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [now, setNow] = useState(Date.now());
+  const [isMobile, setIsMobile] = useState(false);
 
   // Tick every 60s so "Updated X min ago" stays fresh
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(id);
+  }, []);
+
+  // Responsive breakpoint
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    setIsMobile(mq.matches);
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
   }, []);
 
   return (
@@ -1152,26 +1163,30 @@ export default function NILMonitor() {
         @keyframes briefingFadeOut { from { opacity: 1; } to { opacity: 0; } }
         .briefing-cta:hover { background: rgba(220,74,45,.15) !important; transform: translateX(2px); }
         .briefing-cta { transition: background 150ms ease, transform 150ms ease; }
+        @media (max-width: 768px) {
+          .pill-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+          .pill-scroll::-webkit-scrollbar { display: none; }
+        }
       `}</style>
 
       {/* ── Navigation ── */}
       <nav style={{
         position: "sticky", top: 0, zIndex: 100, background: T.navy,
-        padding: "0 24px", display: "flex", alignItems: "center", height: 60,
+        padding: isMobile ? "0 12px" : "0 24px", display: "flex", alignItems: "center", height: 60,
         borderBottom: `1px solid ${T.navySoft}`,
       }}>
         {/* Left: brand + live + date */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: isMobile ? 12 : 20 }}>
           <span style={{ fontFamily: T.mono, fontSize: 17, fontWeight: 700, color: "#fff", background: T.accent, padding: "5px 10px", borderRadius: 5, letterSpacing: ".5px" }}>NIL</span>
-          <span style={{ fontFamily: T.mono, fontSize: 17, fontWeight: 400, color: "#fff", letterSpacing: "1.5px" }}>MONITOR</span>
+          {!isMobile && <span style={{ fontFamily: T.mono, fontSize: 17, fontWeight: 400, color: "#fff", letterSpacing: "1.5px" }}>MONITOR</span>}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: isMobile ? 0 : 20 }}>
           <span style={{ width: 10, height: 10, borderRadius: "50%", background: T.green, display: "inline-block", animation: "pulse-live 2s ease-in-out infinite" }} />
           <Mono style={{ fontSize: 13, fontWeight: 700, color: T.green, letterSpacing: ".5px" }}>LIVE</Mono>
         </div>
-        <Mono style={{ fontSize: 13, color: "rgba(255,255,255,.65)" }}>
+        {!isMobile && <Mono style={{ fontSize: 13, color: "rgba(255,255,255,.65)" }}>
           {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-        </Mono>
+        </Mono>}
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />
@@ -1188,8 +1203,8 @@ export default function NILMonitor() {
       </nav>
 
       {/* ── Dashboard ── */}
-      <main style={{ maxWidth: 1440, margin: "0 auto", padding: "16px 16px 40px" }}>
-        <MonitorPage onRefresh={setLastRefresh} />
+      <main style={{ maxWidth: 1440, margin: "0 auto", padding: isMobile ? "12px 8px 40px" : "16px 16px 40px" }}>
+        <MonitorPage onRefresh={setLastRefresh} isMobile={isMobile} />
       </main>
 
       {/* ── Info Modal ── */}
