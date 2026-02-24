@@ -35,6 +35,8 @@ const QUERIES = [
   'NCAA "tournament expansion"',
   '"athletic department" deficit OR budget',
   '"Title IX" revenue sharing',
+  '"Athletes.org" college',
+  '"Otro Capital" OR "Elevate Sports" college athletics',
 ];
 
 function getCooldown() {
