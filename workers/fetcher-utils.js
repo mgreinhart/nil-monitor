@@ -4,6 +4,34 @@
 //  entity decoding, URL normalization, noise filtering.
 // ═══════════════════════════════════════════════════════════════════
 
+// ── Dedup Cache ─────────────────────────────────────────────────────
+// Pre-loaded once per cron invocation to avoid per-headline DB queries.
+// Without this, every insertHeadline() call does a full 7-day table scan,
+// causing hundreds of concurrent D1 queries when fetchers run in parallel.
+let _dedupCache = null;
+
+export async function loadDedupCache(db) {
+  const { results } = await db.prepare(
+    `SELECT title FROM headlines WHERE published_at >= date('now', '-7 days')`
+  ).all();
+
+  const exactTitles = new Set();
+  const normalizedTitles = [];
+
+  for (const r of results) {
+    exactTitles.add(r.title);
+    const norm = r.title.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+    if (norm.length >= 20) normalizedTitles.push(norm);
+  }
+
+  _dedupCache = { exactTitles, normalizedTitles };
+  console.log(`Dedup cache loaded: ${results.length} titles`);
+}
+
+export function clearDedupCache() {
+  _dedupCache = null;
+}
+
 /**
  * Get current hour in America/New_York (handles DST automatically).
  */
@@ -213,18 +241,30 @@ export async function insertHeadline(db, { source, title, url, category, publish
   // Categorize with cleaned title
   const cat = category || categorizeByKeyword(cleanTitle);
 
-  // Title dedup — exact match + fuzzy cross-source matching
-  const { results: recent } = await db.prepare(
-    `SELECT title FROM headlines WHERE published_at >= date('now', '-7 days')`
-  ).all();
-  if (recent.some(r => r.title === cleanTitle)) return false;
-
-  // Fuzzy dedup: normalize (lowercase, strip punctuation), then check
-  // exact normalized match + substring containment across all sources
-  const norm = cleanTitle.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-  if (norm.length >= 20) {
+  // Title dedup — use pre-loaded cache if available, otherwise query DB
+  let exactTitles, normalizedTitles;
+  if (_dedupCache) {
+    exactTitles = _dedupCache.exactTitles;
+    normalizedTitles = _dedupCache.normalizedTitles;
+  } else {
+    const { results: recent } = await db.prepare(
+      `SELECT title FROM headlines WHERE published_at >= date('now', '-7 days')`
+    ).all();
+    exactTitles = new Set(recent.map(r => r.title));
+    normalizedTitles = [];
     for (const r of recent) {
       const rn = r.title.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+      if (rn.length >= 20) normalizedTitles.push(rn);
+    }
+  }
+
+  // Exact title match
+  if (exactTitles.has(cleanTitle)) return false;
+
+  // Fuzzy dedup: normalized match + substring containment across all sources
+  const norm = cleanTitle.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+  if (norm.length >= 20) {
+    for (const rn of normalizedTitles) {
       if (rn === norm) return false;
       if (rn.length >= 30 && norm.length >= 30 &&
           (rn.includes(norm) || norm.includes(rn))) return false;
@@ -237,6 +277,11 @@ export async function insertHeadline(db, { source, title, url, category, publish
       `INSERT OR IGNORE INTO headlines (source, title, url, category, published_at)
        VALUES (?, ?, ?, ?, ?)`
     ).bind(source, cleanTitle, cleanUrl, cat, published).run();
+    // Update cache so parallel fetchers see this insert
+    if (_dedupCache) {
+      _dedupCache.exactTitles.add(cleanTitle);
+      if (norm.length >= 20) _dedupCache.normalizedTitles.push(norm);
+    }
     return true;
   } catch {
     return false;

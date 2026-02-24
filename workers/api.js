@@ -487,11 +487,14 @@ export async function handleApi(request, env) {
 
     // Manual trigger for scheduled tasks (dev/admin use)
     if (path === '/api/trigger') {
+      const { loadDedupCache, clearDedupCache } = await import('./fetcher-utils.js');
       const { fetchGoogleNews } = await import('./fetch-google-news.js');
+      const { fetchBingNews } = await import('./fetch-bing-news.js');
       const { fetchNCAANews } = await import('./fetch-ncaa-rss.js');
       const { fetchNewsData } = await import('./fetch-newsdata.js');
       const { fetchCourtListener } = await import('./fetch-courtlistener.js');
       const { fetchNILRevolution } = await import('./fetch-nil-revolution.js');
+      const { fetchPublications } = await import('./fetch-publications.js');
       const { fetchCSLT, fetchCSLTKeyDates } = await import('./fetch-cslt.js');
       const { fetchPodcasts } = await import('./fetch-podcasts.js');
       const { fetchGDELT } = await import('./fetch-gdelt.js');
@@ -502,17 +505,21 @@ export async function handleApi(request, env) {
       const log = [];
       try {
         if (phase === 'fetch' || phase === 'all') {
+          await loadDedupCache(env.DB);
           await Promise.all([
             fetchGoogleNews(env).then(() => log.push('google-news: ok')).catch(e => log.push(`google-news: ${e.message}`)),
+            fetchBingNews(env).then(() => log.push('bing-news: ok')).catch(e => log.push(`bing-news: ${e.message}`)),
             fetchNCAANews(env).then(() => log.push('ncaa-rss: ok')).catch(e => log.push(`ncaa-rss: ${e.message}`)),
             fetchNewsData(env).then(() => log.push('newsdata: ok')).catch(e => log.push(`newsdata: ${e.message}`)),
             fetchCourtListener(env).then(() => log.push('courtlistener: ok')).catch(e => log.push(`courtlistener: ${e.message}`)),
             fetchNILRevolution(env).then(() => log.push('nil-revolution: ok')).catch(e => log.push(`nil-revolution: ${e.message}`)),
+            fetchPublications(env).then(() => log.push('publications: ok')).catch(e => log.push(`publications: ${e.message}`)),
             fetchCSLT(env, { force: true }).then(() => log.push('cslt: ok')).catch(e => log.push(`cslt: ${e.message}`)),
             fetchCSLTKeyDates(env, { force: true }).then(() => log.push('cslt-keydates: ok')).catch(e => log.push(`cslt-keydates: ${e.message}`)),
             fetchPodcasts(env, { force: true }).then(() => log.push('podcasts: ok')).catch(e => log.push(`podcasts: ${e.message}`)),
             fetchGDELT(env, { force: true }).then(() => log.push('gdelt: ok')).catch(e => log.push(`gdelt: ${e.message}`)),
           ]);
+          clearDedupCache();
         }
         if (phase === 'ai' || phase === 'all') {
           log.push(`anthropic-key: ${env.ANTHROPIC_KEY ? 'set' : 'missing'}`);

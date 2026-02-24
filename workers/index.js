@@ -6,6 +6,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { handleApi } from './api.js';
+import { loadDedupCache, clearDedupCache } from './fetcher-utils.js';
 import { fetchCourtListener } from './fetch-courtlistener.js';
 import { fetchGoogleNews } from './fetch-google-news.js';
 import { fetchNCAANews } from './fetch-ncaa-rss.js';
@@ -33,6 +34,8 @@ export default {
       ctx.waitUntil(runAIPipeline(env, { includeBriefing: true, isAfternoon }));
     } else {
       // */15 trigger — all fetchers run (each self-governs its cooldown)
+      // Pre-load dedup cache: 1 query replaces hundreds of per-headline queries
+      await loadDedupCache(env.DB);
       ctx.waitUntil(
         Promise.all([
           fetchGoogleNews(env).catch(e => console.error('google-news:', e.message)),
@@ -46,7 +49,7 @@ export default {
           fetchCSLTKeyDates(env).catch(e => console.error('cslt-keydates:', e.message)),
           fetchPodcasts(env).catch(e => console.error('podcasts:', e.message)),
           fetchGDELT(env).catch(e => console.error('gdelt:', e.message)),
-        ])
+        ]).finally(clearDedupCache)
       );
     }
   },
