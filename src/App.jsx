@@ -547,7 +547,7 @@ const StateLegislationMap = () => {
 // ╚═══════════════════════════════════════════════════════════════════
 const MonitorPage = ({ onRefresh, isMobile }) => {
   const [expCases, setExpCases] = useState(new Set());
-  const [recentOpen, setRecentOpen] = useState(true);
+  const [showAllTimeline, setShowAllTimeline] = useState(false);
   const [courtroomOpen, setCourtroomOpen] = useState(true);
   const [headlineCatFilt, setHeadlineCatFilt] = useState("All");
   const [hlPage, setHlPage] = useState(0);
@@ -874,144 +874,168 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
           }
         >
           {!courtroomOpen ? null : <>
-          {/* ── KEY DATES (curated by CSLT) — split UPCOMING / PAST ── */}
+          {/* ── UNIFIED TIMELINE — Key Dates + Recent Activity merged ── */}
           {(() => {
             const today = new Date().toISOString().split("T")[0];
-            const upcoming = keyDates ? keyDates.filter(d => d.date >= today) : [];
-            const past = keyDates ? keyDates.filter(d => d.date < today).reverse() : [];
             const daysUntil = (dateStr) => {
               const target = new Date(dateStr + "T00:00:00");
               const now = new Date(); now.setHours(0, 0, 0, 0);
               return Math.ceil((target - now) / 86400000);
             };
             const countdownLabel = (days) => days === 0 ? "TODAY" : days === 1 ? "1 DAY" : `${days} DAYS`;
-            const pastMonth = past.length > 0 && past[0].date
-              ? new Date(past[0].date + "T00:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase()
-              : "";
-            return <>
-              {/* UPCOMING */}
-              {upcoming.length > 0 && (
-                <div style={{ borderBottom: `1px solid ${T.border}` }}>
-                  <div style={{ padding: "10px 16px 4px" }}>
-                    <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
-                      Upcoming
-                    </Mono>
-                  </div>
-                  {upcoming.map((d, i) => {
-                    const days = daysUntil(d.date);
+            const keyDateLabel = (desc) => {
+              const d = (desc || "").toLowerCase();
+              if (/hearing|oral argument|conference|trial/.test(d)) return "HEARING";
+              return "BRIEF";
+            };
+
+            // Build unified items
+            const items = [];
+            if (keyDates) for (const d of keyDates) {
+              const isUpcoming = d.date >= today;
+              items.push({
+                kind: isUpcoming ? "upcoming" : "past-keydate",
+                sortDate: d.date,
+                date: d.date,
+                name: d.case_name,
+                detail: d.description,
+                label: isUpcoming ? null : keyDateLabel(d.description),
+                days: isUpcoming ? daysUntil(d.date) : null,
+              });
+            }
+            for (const c of recentActivity) {
+              items.push({
+                kind: "filing",
+                sortDate: c.last_event_date || "1970-01-01",
+                date: c.last_event_date,
+                name: c.name,
+                detail: c.last_event_text,
+                caseData: c,
+              });
+            }
+
+            // Sort: upcoming first (nearest date), then past (most recent first)
+            items.sort((a, b) => {
+              const aUp = a.kind === "upcoming" ? 0 : 1;
+              const bUp = b.kind === "upcoming" ? 0 : 1;
+              if (aUp !== bUp) return aUp - bUp;
+              if (a.kind === "upcoming") return a.sortDate < b.sortDate ? -1 : 1;
+              return a.sortDate > b.sortDate ? -1 : 1;
+            });
+
+            const visible = showAllTimeline ? items : items.slice(0, 10);
+            const remaining = items.length - 10;
+
+            return items.length > 0 ? (
+              <div style={{ borderBottom: `1px solid ${T.border}` }}>
+                {visible.map((item, i) => {
+                  if (item.kind === "upcoming") {
                     return (
-                      <div key={`u${i}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 16px" }}>
+                      <div key={`t${i}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 16px", borderBottom: `1px solid ${T.borderLight}` }}>
                         <Mono style={{ fontSize: 15, fontWeight: 700, color: T.accent, flexShrink: 0, width: 56 }}>
-                          {formatDate(d.date)}
+                          {formatDate(item.date)}
                         </Mono>
-                        <strong style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 700, color: T.text, flexShrink: 0 }}>{d.case_name}</strong>
-                        <Mono style={{ fontSize: 13, color: T.textMid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {d.description}</Mono>
+                        <strong style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 700, color: T.text, flexShrink: 0 }}>{item.name}</strong>
+                        <Mono style={{ fontSize: 13, color: T.textMid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {item.detail}</Mono>
                         <div style={{ flex: 1 }} />
                         <span style={{
                           fontFamily: T.mono, fontSize: 10, fontWeight: 700, letterSpacing: "0.5px",
-                          color: days <= 3 ? "#fff" : T.accent,
-                          background: days <= 3 ? T.accent : `${T.accent}18`,
+                          color: item.days <= 3 ? "#fff" : T.accent,
+                          background: item.days <= 3 ? T.accent : `${T.accent}18`,
                           padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
                         }}>
-                          {countdownLabel(days)}
+                          {countdownLabel(item.days)}
                         </span>
                       </div>
                     );
-                  })}
-                </div>
-              )}
-              {/* PAST */}
-              {past.length > 0 && (
-                <div style={{ borderBottom: `1px solid ${T.border}` }}>
-                  <div style={{ padding: "10px 16px 4px" }}>
-                    <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
-                      Past{pastMonth ? ` · ${pastMonth}` : ""}
-                    </Mono>
-                  </div>
-                  {past.map((d, i) => (
-                    <div key={`p${i}`} style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "4px 16px", opacity: 0.5 }}>
-                      <Mono style={{ fontSize: 13, fontWeight: 600, color: T.textDim, flexShrink: 0, width: 48 }}>
-                        {formatDate(d.date)}
-                      </Mono>
-                      <strong style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 700, color: T.textDim, flexShrink: 0 }}>{d.case_name}</strong>
-                      <Mono style={{ fontSize: 12.5, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {d.description}</Mono>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {/* Fallback if no key dates at all */}
-              {(!keyDates || keyDates.length === 0) && (
-                <div style={{ borderBottom: `1px solid ${T.border}`, padding: "6px 16px 8px" }}>
-                  <a href="https://www.collegesportslitigationtracker.com/" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
-                    <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>View key dates on CSLT →</Mono>
-                  </a>
-                </div>
-              )}
-            </>;
-          })()}
-          {/* ── TIER 2: RECENT ACTIVITY (collapsed by default) ── */}
-          {recentActivity.length > 0 && (
-            <div style={{ borderBottom: `1px solid ${T.border}` }}>
-              <div
-                onClick={() => setRecentOpen(o => !o)}
-                style={{ padding: "10px 16px 6px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
-                onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-              >
-                <Mono style={{ fontSize: 11, color: T.textDim, transition: "transform .15s", transform: recentOpen ? "rotate(90deg)" : "none" }}>▸</Mono>
-                <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
-                  Recent Activity <span style={{ fontWeight: 400 }}>({Math.min(5, recentActivity.length)} of {recentActivity.length} case{recentActivity.length !== 1 ? "s" : ""})</span>
-                </Mono>
-              </div>
-              {recentOpen && recentActivity.slice(0, 5).map((c, idx) => {
-                const isOpen = expCases !== null && expCases.has(c.id);
-                const toggleCase = () => setExpCases(prev => {
-                  const s = new Set(prev);
-                  if (s.has(c.id)) s.delete(c.id); else s.add(c.id);
-                  return s;
-                });
-                const eventSnippet = c.last_event_text
-                  ? (c.last_event_text.length > 80 ? c.last_event_text.slice(0, 80) + "..." : c.last_event_text)
-                  : "";
-                const descSnippet = c.description || "";
-                return (
-                  <div key={c.id} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
-                    <div
-                      onClick={toggleCase}
-                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 16px", cursor: "pointer" }}
-                      onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                    >
-                      <Mono style={{ fontSize: 11, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>
-                      <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.text, flexShrink: 0 }}>{c.name}</strong>
-                      {eventSnippet && <Mono style={{ fontSize: 13, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&nbsp;· {eventSnippet}</Mono>}
-                      <div style={{ flex: 1 }} />
-                      {c.last_event_date && (
-                        <Mono style={{ fontSize: 13, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap" }}>Last: {formatDate(c.last_event_date)}</Mono>
-                      )}
-                    </div>
-                    <div style={{
-                      maxHeight: isOpen ? 1000 : 0, overflow: "hidden",
-                      transition: "max-height .2s ease, opacity .2s ease",
-                      opacity: isOpen ? 1 : 0,
-                    }}>
-                      <div style={{ padding: "8px 16px 12px 24px" }}>
-                        <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 8, display: "block" }}>
-                          {[c.court, c.judge && `Judge ${c.judge}`, c.case_number, c.filed_date].filter(Boolean).join(" · ")}
+                  }
+                  if (item.kind === "past-keydate") {
+                    return (
+                      <div key={`t${i}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 16px", opacity: 0.5, borderBottom: `1px solid ${T.borderLight}` }}>
+                        <Mono style={{ fontSize: 13, fontWeight: 600, color: T.textDim, flexShrink: 0, width: 48 }}>
+                          {formatDate(item.date)}
                         </Mono>
-                        {descSnippet && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textMid, lineHeight: 1.5, marginBottom: 8 }}>{descSnippet}</div>}
-                        {c.cslt_url && (
-                          <a href={c.cslt_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}>
-                            <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>Full case detail →</Mono>
-                          </a>
+                        <strong style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 700, color: T.textDim, flexShrink: 0 }}>{item.name}</strong>
+                        <Mono style={{ fontSize: 12.5, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {item.detail}</Mono>
+                        <div style={{ flex: 1 }} />
+                        <span style={{
+                          fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px",
+                          color: T.textDim, background: `${T.textDim}15`,
+                          padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
+                        }}>
+                          {item.label}
+                        </span>
+                      </div>
+                    );
+                  }
+                  // filing — expandable
+                  const c = item.caseData;
+                  const isOpen = expCases.has(c.id);
+                  const toggleCase = () => setExpCases(prev => {
+                    const s = new Set(prev);
+                    if (s.has(c.id)) s.delete(c.id); else s.add(c.id);
+                    return s;
+                  });
+                  const eventSnippet = c.last_event_text
+                    ? (c.last_event_text.length > 80 ? c.last_event_text.slice(0, 80) + "..." : c.last_event_text)
+                    : "";
+                  const descSnippet = c.description || "";
+                  return (
+                    <div key={`t${i}`} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
+                      <div
+                        onClick={toggleCase}
+                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 16px", cursor: "pointer" }}
+                        onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                      >
+                        <Mono style={{ fontSize: 11, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>
+                        <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.text, flexShrink: 0 }}>{c.name}</strong>
+                        {eventSnippet && <Mono style={{ fontSize: 13, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&nbsp;· {eventSnippet}</Mono>}
+                        <div style={{ flex: 1 }} />
+                        <span style={{
+                          fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px",
+                          color: T.textDim, background: `${T.textDim}15`,
+                          padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0, marginRight: c.last_event_date ? 8 : 0,
+                        }}>
+                          FILING
+                        </span>
+                        {c.last_event_date && (
+                          <Mono style={{ fontSize: 13, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap" }}>Last: {formatDate(c.last_event_date)}</Mono>
                         )}
                       </div>
+                      <div style={{
+                        maxHeight: isOpen ? 1000 : 0, overflow: "hidden",
+                        transition: "max-height .2s ease, opacity .2s ease",
+                        opacity: isOpen ? 1 : 0,
+                      }}>
+                        <div style={{ padding: "8px 16px 12px 24px" }}>
+                          <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 8, display: "block" }}>
+                            {[c.court, c.judge && `Judge ${c.judge}`, c.case_number, c.filed_date].filter(Boolean).join(" · ")}
+                          </Mono>
+                          {descSnippet && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textMid, lineHeight: 1.5, marginBottom: 8 }}>{descSnippet}</div>}
+                          {c.cslt_url && (
+                            <a href={c.cslt_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}>
+                              <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>Full case detail →</Mono>
+                            </a>
+                          )}
+                        </div>
+                      </div>
                     </div>
+                  );
+                })}
+                {!showAllTimeline && remaining > 0 && (
+                  <div
+                    onClick={() => setShowAllTimeline(true)}
+                    style={{ padding: "8px 16px", cursor: "pointer", textAlign: "center" }}
+                    onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  >
+                    <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>Show {remaining} more →</Mono>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                )}
+              </div>
+            ) : null;
+          })()}
           {/* ── TIER 3: Everything else — link out ── */}
           {totalTracked > 0 && (
             <div style={{ padding: "8px 16px" }}>
