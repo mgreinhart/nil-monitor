@@ -72,7 +72,7 @@ async function getNewCaseUpdates(db, since) {
 async function tagHeadlines(env, db) {
   // Find headlines without category or severity
   const { results: untagged } = await db.prepare(
-    'SELECT id, source, title, url FROM headlines WHERE category IS NULL OR severity IS NULL ORDER BY published_at DESC LIMIT 50'
+    'SELECT id, source, title, url FROM headlines WHERE category IS NULL OR severity IS NULL ORDER BY published_at DESC LIMIT 200'
   ).all();
 
   if (untagged.length === 0) return 0;
@@ -142,81 +142,7 @@ Return JSON:
   }
 }
 
-// ── Task 2: Deadline Extraction ──────────────────────────────────
-async function extractDeadlines(env, headlines, caseUpdates, db) {
-  if (headlines.length === 0 && caseUpdates.length === 0) return [];
-
-  // Fetch existing deadlines to avoid duplicates
-  const { results: existingDeadlines } = await db.prepare(
-    "SELECT date, text FROM deadlines WHERE date >= date('now') ORDER BY date ASC"
-  ).all();
-
-  const system = `You extract upcoming deadlines from college athletics news and court data for a regulatory dashboard.
-A deadline is a specific future date that requires action or attention — a hearing date, a filing deadline, a reporting window, a legislative hearing, a vote date, a portal window, an implementation date.
-
-Do NOT extract:
-- Dates that have already passed
-- Vague timeframes ("sometime in spring")
-- Publication dates of articles
-
-For severity:
-- critical: Institutional action required, affects compliance or legal standing
-- important: Significant date that affects strategy or planning
-- routine: Worth tracking but no immediate action needed
-
-CRITICAL DEDUPLICATION RULE: You will be given a list of already-tracked deadlines. Do NOT create duplicates of those. Only return genuinely new deadlines not already in the list. If a headline mentions a date that's already tracked, skip it.
-
-Return ONLY valid JSON, no other text.`;
-
-  const headlineList = headlines.slice(0, 50).map(h =>
-    `[${h.category}] ${h.source}: ${h.title}`
-  ).join('\n');
-
-  const caseList = caseUpdates.map(c =>
-    `${c.name}: status=${c.status_summary || ''}, last_event=${c.last_event_text || ''}, last_event_date=${c.last_event_date || ''}`
-  ).join('\n');
-
-  const existingList = existingDeadlines.length > 0
-    ? existingDeadlines.map(d => `${d.date}: ${d.text}`).join('\n')
-    : 'None';
-
-  const today = new Date().toISOString().split('T')[0];
-
-  const userContent = `Today is ${today}. Extract any upcoming deadlines from these items. Only include dates that are in the future.
-
-HEADLINES:
-${headlineList || 'None'}
-
-CASE DATA:
-${caseList || 'None'}
-
-ALREADY TRACKED DEADLINES (do NOT create duplicates of these):
-${existingList}
-
-Return JSON:
-{
-  "deadlines": [
-    {
-      "date": "YYYY-MM-DD",
-      "category": "Legislation|Litigation|NCAA Governance|CSC / Enforcement|Revenue Sharing|Roster / Portal|Realignment",
-      "text": "Brief description of what happens on this date",
-      "severity": "routine|important|critical",
-      "source": "Where this date was found"
-    }
-  ]
-}`;
-
-  try {
-    const result = await callClaude(env, system, userContent);
-    return result.deadlines || [];
-  } catch (err) {
-    console.error('Deadline extraction failed:', err.message);
-    PIPELINE_ERRORS.push(`deadlines: ${err.message}`);
-    return [];
-  }
-}
-
-// ── Task 3: CSC Activity Detection ───────────────────────────────
+// ── Task 2: CSC Activity Detection ───────────────────────────────
 async function detectCSCActivity(env, headlines, db) {
   // Filter to only potentially CSC-related headlines
   const cscKeywords = /college sports commission|csc|enforcement|bryan seeley|katie medearis|compliance|investigation|tip line|valid business purpose/i;
@@ -287,7 +213,7 @@ If none of these are actually NEW CSC activity (not already tracked), return: {"
   }
 }
 
-// ── Task 4: Daily Briefing ───────────────────────────────────────
+// ── Task 3: Daily Briefing ───────────────────────────────────────
 async function generateBriefing(env, db, isAfternoon = false) {
   // AM briefing (6 AM ET / 11 UTC): headlines since yesterday's PM briefing (~14h window)
   // PM briefing (4 PM ET / 21 UTC): full day's headlines (~24h window, can reference AM items)
@@ -433,35 +359,6 @@ Return JSON (EXACTLY 4 sections):
 }
 
 // ── Write results to D1 ─────────────────────────────────────────
-async function writeDeadlines(db, deadlines) {
-  let count = 0;
-  for (const d of deadlines) {
-    // Check if a deadline already exists on the same date in the same category
-    const existing = await db.prepare(
-      'SELECT id FROM deadlines WHERE date = ? AND category = ?'
-    ).bind(d.date, d.category).first();
-    if (existing) continue;
-
-    // Also check for same date + similar text (cross-category)
-    const textPrefix = d.text.substring(0, 30);
-    const similar = await db.prepare(
-      "SELECT id FROM deadlines WHERE date = ? AND text LIKE ? || '%'"
-    ).bind(d.date, textPrefix).first();
-    if (similar) continue;
-
-    try {
-      await db.prepare(
-        `INSERT INTO deadlines (date, category, text, severity, source)
-         VALUES (?, ?, ?, ?, ?)`
-      ).bind(d.date, d.category, d.text, d.severity, d.source || 'ai-extracted').run();
-      count++;
-    } catch (err) {
-      // Skip errors
-    }
-  }
-  return count;
-}
-
 async function writeCSCActivity(db, items) {
   let count = 0;
   for (const item of items) {
@@ -541,33 +438,25 @@ export async function runAIPipeline(env, options = {}) {
   const lastRun = await getLastRunTime(db);
   console.log(`AI Pipeline: processing data since ${lastRun}`);
 
-  // 2. Fetch new data
-  const headlines = await getNewHeadlines(db, lastRun);
-  const caseUpdates = await getNewCaseUpdates(db, lastRun);
-
-  const totalNew = headlines.length + caseUpdates.length;
-  if (totalNew === 0) {
-    console.log('AI Pipeline: no new data, skipping');
-    return;
-  }
-
-  console.log(`AI Pipeline: ${headlines.length} new headlines, ${caseUpdates.length} case updates`);
-
-  // 3. Tag untagged headlines with category + severity
+  // 2. Tag untagged headlines — always runs regardless of new data
   const headlinesTagged = await tagHeadlines(env, db);
   console.log(`AI Pipeline: tagged ${headlinesTagged} headlines`);
 
-  // 4. Extract deadlines
-  const deadlines = await extractDeadlines(env, headlines, caseUpdates, db);
-  const deadlinesWritten = await writeDeadlines(db, deadlines);
-  console.log(`AI Pipeline: extracted ${deadlines.length} deadlines, wrote ${deadlinesWritten}`);
+  // 3. Fetch new data since last run (for CSC detection + briefing)
+  const headlines = await getNewHeadlines(db, lastRun);
+  const caseUpdates = await getNewCaseUpdates(db, lastRun);
+  const totalNew = headlines.length + caseUpdates.length;
+  console.log(`AI Pipeline: ${headlines.length} new headlines, ${caseUpdates.length} case updates`);
 
-  // 5. Detect CSC activity
-  const cscItems = await detectCSCActivity(env, headlines, db);
-  const cscWritten = await writeCSCActivity(db, cscItems);
-  console.log(`AI Pipeline: detected ${cscItems.length} CSC items, wrote ${cscWritten}`);
+  // 4. Detect CSC activity (only if new headlines)
+  let cscWritten = 0;
+  if (headlines.length > 0) {
+    const cscItems = await detectCSCActivity(env, headlines, db);
+    cscWritten = await writeCSCActivity(db, cscItems);
+    console.log(`AI Pipeline: detected ${cscItems.length} CSC items, wrote ${cscWritten}`);
+  }
 
-  // 6. Generate briefing (only on briefing-eligible runs)
+  // 5. Generate briefing (only on briefing-eligible runs)
   let briefingWritten = 0;
   if (includeBriefing) {
     const briefingSections = await generateBriefing(env, db, isAfternoon);
@@ -581,12 +470,11 @@ export async function runAIPipeline(env, options = {}) {
     console.log('AI Pipeline: briefing skipped (non-briefing run)');
   }
 
-  // 7. Record pipeline run
-  // (Case summaries are provided by CSLT — no AI summarization needed)
+  // 6. Record pipeline run
   await db.prepare(
     `INSERT INTO pipeline_runs (items_processed, headlines_tagged, deadlines_created, csc_items_created, briefing_generated)
      VALUES (?, ?, ?, ?, ?)`
-  ).bind(totalNew, headlinesTagged, deadlinesWritten, cscWritten, briefingWritten).run();
+  ).bind(totalNew, headlinesTagged, 0, cscWritten, briefingWritten).run();
 
   console.log('AI Pipeline: complete');
   if (PIPELINE_ERRORS.length > 0) {

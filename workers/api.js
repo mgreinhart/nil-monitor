@@ -255,7 +255,6 @@ ${fetcherRowsHtml}
 ${latestPipeline ? `<div class="grid">
   <div class="card"><div class="label">Ran At</div><div class="value" style="font-size:14px">${adminTimestamp(pipe.ran_at)}</div></div>
   <div class="card"><div class="label">AI Tagged (Last Run)</div><div class="value">${pipe.headlines_tagged}</div><div class="sub">${untaggedHeadlines?.cnt || 0} awaiting tagging</div></div>
-  <div class="card"><div class="label">Deadlines</div><div class="value">${pipe.deadlines_created}</div></div>
   <div class="card"><div class="label">CSC Items</div><div class="value">${pipe.csc_items_created}</div></div>
   <div class="card"><div class="label">Briefing</div><div class="value">${pipe.briefing_generated ? 'Yes' : 'No'}</div></div>
 </div>` : '<div style="color:#475569">No pipeline runs recorded.</div>'}
@@ -496,7 +495,7 @@ export async function handleApi(request, env) {
       const { fetchGDELT } = await import('./fetch-gdelt.js');
       const { runAIPipeline } = await import('./ai-pipeline.js');
 
-      const phase = url.searchParams.get('phase') || 'all';
+      const phase = url.searchParams.get('phase') || 'fetch';
 
       const log = [];
       try {
@@ -519,7 +518,8 @@ export async function handleApi(request, env) {
         }
         if (phase === 'ai' || phase === 'all') {
           log.push(`anthropic-key: ${env.ANTHROPIC_KEY ? 'set' : 'missing'}`);
-          await runAIPipeline(env);
+          const isAfternoon = new Date().getUTCHours() >= 20;
+          await runAIPipeline(env, { includeBriefing: true, isAfternoon });
           log.push('ai-pipeline: ok');
         }
       } catch (e) {
