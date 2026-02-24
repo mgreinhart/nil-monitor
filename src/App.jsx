@@ -888,13 +888,14 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
               return "BRIEF";
             };
 
-            // ONE array — every item same shape
+            // ONE array — every item same shape, Date object for sorting
+            const toTimestamp = (s) => { const d = new Date(s); return isNaN(d) ? 0 : d.getTime(); };
             const items = [];
             if (keyDates) for (const d of keyDates) {
               const isUp = d.date >= today;
               items.push({
                 upcoming: isUp,
-                sortDate: d.date,
+                sortTs: toTimestamp(d.date),
                 name: d.case_name,
                 detail: d.description,
                 label: isUp ? countdownLabel(daysUntil(d.date)) : keyDateLabel(d.description),
@@ -905,7 +906,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
             for (const c of recentActivity) {
               items.push({
                 upcoming: false,
-                sortDate: c.last_event_date || "1970-01-01",
+                sortTs: toTimestamp(c.last_event_date),
                 name: c.name,
                 detail: c.last_event_text,
                 label: "FILING",
@@ -917,8 +918,8 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
             // ONE sort: upcoming pinned to top (nearest first), then everything else date descending
             items.sort((a, b) => {
               if (a.upcoming !== b.upcoming) return a.upcoming ? -1 : 1;
-              if (a.upcoming) return a.sortDate < b.sortDate ? -1 : 1;
-              return a.sortDate > b.sortDate ? -1 : 1;
+              if (a.upcoming) return a.sortTs - b.sortTs;
+              return b.sortTs - a.sortTs;
             });
 
             const visible = showAllTimeline ? items : items.slice(0, 10);
