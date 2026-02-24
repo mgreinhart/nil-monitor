@@ -123,7 +123,8 @@ function parseUpcomingDates(statusHtml) {
       const text = cleanText(liMatch[1]);
       if (text && !text.match(/^N\/A/i)) {
         // Try to extract date prefix: "February 18, 2026: Reply Briefs Due"
-        const dateTextMatch = text.match(/^([\w\s]+\d{1,2},\s*\d{4}):\s*(.+)/);
+        // Also handles: "February 27, 2026 at 9:30 AM PT: Hearing on Motion to Dismiss"
+        const dateTextMatch = text.match(/^([\w\s]+\d{1,2},\s*\d{4})(?:\s+at\s+\d{1,2}:\d{2}(?:\s*(?:AM|PM))?(?:\s+[A-Z]{1,5})?)?:\s*(.+)/);
         if (dateTextMatch) {
           dates.push({ date: dateTextMatch[1].trim(), text: dateTextMatch[2].trim() });
         } else {
