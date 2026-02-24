@@ -30,6 +30,11 @@ const QUERIES = [
   '"college athlete" employment classification',
   '"private equity" college sports OR NCAA',
   '"college sports" investment OR ownership',
+  '"donor fatigue" college sports OR NIL collective funding',
+  '"SCORE Act" OR "SAFE Act" college sports',
+  'NCAA "tournament expansion"',
+  '"athletic department" deficit OR budget',
+  '"Title IX" revenue sharing',
 ];
 
 function getCooldown() {

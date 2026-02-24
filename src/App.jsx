@@ -1090,8 +1090,8 @@ const InfoModal = ({ onClose }) => (
       <h3 style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, color: T.text, margin: "0 0 8px" }}>Data Sources</h3>
       <div style={{ marginBottom: 16 }}>
         {[
-          ["Google News RSS", "News aggregation (21 targeted queries)", "Free"],
-          ["Bing News RSS", "News aggregation (17 targeted queries)", "Free"],
+          ["Google News RSS", "News aggregation (26 targeted queries)", "Free"],
+          ["Bing News RSS", "News aggregation (22 targeted queries)", "Free"],
           ["NewsData.io", "News aggregation (87K+ sources)", "API"],
           ["GDELT", "Global news volume tracking (30-day trends)", "Free"],
           ["Sportico", "Sports business journalism", "RSS"],

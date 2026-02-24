@@ -12,7 +12,7 @@ import { getETHour, shouldRun, recordRun, insertHeadline, isTitleRelevant } from
 
 const FETCHER = 'google-news';
 
-// 19 diverse queries — each targets a distinct topic to minimize overlap.
+// 26 diverse queries — each targets a distinct topic to minimize overlap.
 // Bing News covers the same space with its own index, so no need to
 // duplicate every permutation here.
 const QUERIES = [
@@ -37,6 +37,11 @@ const QUERIES = [
   '"House v NCAA" settlement implementation',
   '"private equity" college sports OR NCAA',
   '"college sports" investment OR ownership stake',
+  '"collective bargaining" college athletes',
+  '"employee status" college athletes',
+  'NCAA eligibility lawsuit',
+  '"roster cap" college sports',
+  'college sports "media rights"',
 ];
 
 function getCooldown() {
