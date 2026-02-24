@@ -1058,7 +1058,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                   >
                     <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>
-                      {showAllTimeline ? "Show fewer \u2191" : `Show ${remaining} more \u2192`}
+                      {showAllTimeline ? "Show fewer \u2191" : "Show more \u2192"}
                     </Mono>
                   </div>
                 )}
