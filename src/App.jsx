@@ -595,11 +595,9 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
     return () => clearInterval(id);
   }, []);
 
-  // Tier-based case filtering: Key Dates (Tier 1) handled separately via API.
-  // Tier 2: recent activity (last 30 days), no upcoming action.
-  // Tier 3+: everything else — don't show, link to CSLT.
-  const { recentActivity, totalTracked } = (() => {
-    if (!cases?.length) return { recentActivity: [], totalTracked: 0 };
+  // Case filtering: extract upcoming dates + recent activity from cases data.
+  const { recentActivity, upcomingCaseDates, totalTracked } = (() => {
+    if (!cases?.length) return { recentActivity: [], upcomingCaseDates: [], totalTracked: 0 };
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sixMonthsAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
@@ -634,33 +632,37 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
     }
 
     const recent = [];
+    const upcoming = [];
     let total = 0;
 
     for (const c of deduped.values()) {
       const g = c.case_group || "Other";
-      // Remove archived completely — no count, no link
       if (c.is_active === 0 || c.is_active === '0' || /archived|dismissed|resolved|withdrawn/i.test(g)) continue;
 
       total++;
       const lastDate = c.last_event_date ? new Date(c.last_event_date) : null;
 
-      // Remove: >6 months stale with no upcoming, or no date info at all
-      if (!c.soonest && (!lastDate || lastDate < sixMonthsAgo)) continue;
+      // Collect nearest upcoming date per case
+      if (c.soonest) {
+        upcoming.push({ name: c.name, date: c.soonest.date, detail: c.soonest.text });
+      }
 
-      // Include all cases with activity in last 30 days
+      if (!c.soonest && (!lastDate || lastDate < sixMonthsAgo)) continue;
       if (lastDate && lastDate >= thirtyDaysAgo) {
         recent.push(c);
       }
     }
 
-    // Sort Tier 2 by most recent activity first
     recent.sort((a, b) => {
       const aLast = a.last_event_date ? new Date(a.last_event_date) : new Date(0);
       const bLast = b.last_event_date ? new Date(b.last_event_date) : new Date(0);
       return bLast - aLast;
     });
 
-    return { recentActivity: recent, totalTracked: total };
+    // Sort upcoming by nearest date first
+    upcoming.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    return { recentActivity: recent, upcomingCaseDates: upcoming, totalTracked: total };
   })();
 
   // Briefing: API or mock
@@ -873,49 +875,75 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
           }
         >
           {!courtroomOpen ? null : <>
-          {/* ── UNIFIED TIMELINE — one merged, sorted array ── */}
+          {/* ── UPCOMING KEY DATES ── */}
           {(() => {
-            const today = new Date().toISOString().split("T")[0];
             const daysUntil = (dateStr) => {
-              const target = new Date(dateStr + "T00:00:00");
+              const target = new Date(dateStr);
               const now = new Date(); now.setHours(0, 0, 0, 0);
               return Math.ceil((target - now) / 86400000);
             };
             const countdownLabel = (days) => days === 0 ? "TODAY" : days === 1 ? "1 DAY" : `${days} DAYS`;
-            const keyDateLabel = (desc) => {
-              const d = (desc || "").toLowerCase();
-              if (/hearing|oral argument|conference|trial/.test(d)) return "HEARING";
-              return "BRIEF";
+            const typeLabel = (text) => {
+              const t = (text || "").toLowerCase();
+              if (/hearing|oral argument|conference/.test(t)) return "HEARING";
+              if (/trial|jury/.test(t)) return "TRIAL";
+              return "DEADLINE";
             };
-
-            // ONE array — every item same shape, Date object for sorting
+            const top5 = upcomingCaseDates.slice(0, 5);
+            return top5.length > 0 ? (
+              <div style={{ borderBottom: `1px solid ${T.border}` }}>
+                <div style={{ padding: "10px 16px 4px" }}>
+                  <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
+                    Upcoming
+                  </Mono>
+                </div>
+                {top5.map((item, i) => {
+                  const days = daysUntil(item.date);
+                  const snippet = item.detail
+                    ? (item.detail.length > 60 ? item.detail.slice(0, 60) + "..." : item.detail)
+                    : "";
+                  return (
+                    <div key={`up${i}`} style={{
+                      display: "flex", alignItems: "center", gap: 8, padding: "6px 16px",
+                      background: `${T.accent}08`, borderBottom: `1px solid ${T.borderLight}`,
+                    }}>
+                      <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.accent, flexShrink: 0 }}>{item.name}</strong>
+                      {snippet && <Mono style={{ fontSize: 13, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {snippet}</Mono>}
+                      <div style={{ flex: 1 }} />
+                      <span style={{
+                        fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px",
+                        color: T.textDim, background: `${T.textDim}15`,
+                        padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
+                      }}>
+                        {typeLabel(item.detail)}
+                      </span>
+                      <span style={{
+                        fontFamily: T.mono, fontSize: 10, fontWeight: 700, letterSpacing: "0.5px",
+                        color: days <= 3 ? "#fff" : T.accent,
+                        background: days <= 3 ? T.accent : `${T.accent}18`,
+                        padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
+                      }}>
+                        {countdownLabel(days)}
+                      </span>
+                      <Mono style={{ fontSize: 13, color: T.accent, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
+                        {formatDate(item.date)}
+                      </Mono>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null;
+          })()}
+          {/* ── RECENT ACTIVITY ── */}
+          {(() => {
             const toTimestamp = (s) => { const d = new Date(s); return isNaN(d) ? 0 : d.getTime(); };
-            const items = [];
-            if (keyDates) for (const d of keyDates) {
-              const isUp = d.date >= today;
-              items.push({
-                id: `kd-${d.id || d.date}-${d.case_name}`,
-                upcoming: isUp,
-                sortTs: toTimestamp(d.date),
-                name: d.case_name,
-                detail: d.description,
-                label: isUp ? countdownLabel(daysUntil(d.date)) : keyDateLabel(d.description),
-                days: isUp ? daysUntil(d.date) : null,
-                dateStr: formatDate(d.date),
-                expandDetail: null,
-              });
-            }
-            for (const c of recentActivity) {
-              // Clean case_group: strip "(Click here...)" and similar parentheticals
+            const items = recentActivity.map(c => {
               const group = (c.case_group || "").replace(/\s*\(.*?\)\s*/g, "").trim();
-              items.push({
+              return {
                 id: `cl-${c.id}`,
-                upcoming: false,
                 sortTs: toTimestamp(c.last_event_date),
                 name: c.name,
                 detail: group,
-                label: "FILING",
-                days: null,
                 dateStr: c.last_event_date ? formatDate(c.last_event_date) : "",
                 expandDetail: {
                   meta: [c.court, c.judge && `Judge ${c.judge}`, c.case_number, c.filed_date].filter(Boolean).join(" · "),
@@ -923,53 +951,49 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                   description: c.description || "",
                   csltUrl: c.cslt_url,
                 },
-              });
-            }
-
-            // ONE sort: upcoming pinned to top (nearest first), then everything else date descending
-            items.sort((a, b) => {
-              if (a.upcoming !== b.upcoming) return a.upcoming ? -1 : 1;
-              if (a.upcoming) return a.sortTs - b.sortTs;
-              return b.sortTs - a.sortTs;
+              };
             });
+            items.sort((a, b) => b.sortTs - a.sortTs);
 
-            const visible = showAllTimeline ? items : items.slice(0, 10);
-            const remaining = items.length - 10;
+            const visible = showAllTimeline ? items : items.slice(0, 5);
+            const remaining = items.length - 5;
 
             return items.length > 0 ? (
               <div style={{ borderBottom: `1px solid ${T.border}` }}>
+                <div style={{ padding: "10px 16px 4px" }}>
+                  <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
+                    Recent Activity
+                  </Mono>
+                </div>
                 {visible.map((item, i) => {
-                  const isUp = item.upcoming;
+                  const hasExpand = item.expandDetail && (item.expandDetail.meta || item.expandDetail.description || item.expandDetail.lastEvent);
+                  const isOpen = expCase === item.id;
                   const snippet = item.detail
                     ? (item.detail.length > 80 ? item.detail.slice(0, 80) + "..." : item.detail)
                     : "";
-                  const hasExpand = item.expandDetail && (item.expandDetail.meta || item.expandDetail.description || item.expandDetail.lastEvent);
-                  const isOpen = expCase === item.id;
                   return (
-                    <div key={`t${i}`} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
+                    <div key={item.id} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
                       <div
                         onClick={hasExpand ? () => setExpCase(isOpen ? null : item.id) : undefined}
                         style={{
                           display: "flex", alignItems: "center", gap: 8, padding: "6px 16px",
                           ...(hasExpand ? { cursor: "pointer" } : {}),
-                          ...(isUp ? { background: `${T.accent}08` } : {}),
                         }}
-                        onMouseEnter={hasExpand ? e => { e.currentTarget.style.background = isUp ? `${T.accent}10` : T.surfaceAlt; } : undefined}
-                        onMouseLeave={hasExpand ? e => { e.currentTarget.style.background = isUp ? `${T.accent}08` : "transparent"; } : undefined}
+                        onMouseEnter={hasExpand ? e => { e.currentTarget.style.background = T.surfaceAlt; } : undefined}
+                        onMouseLeave={hasExpand ? e => { e.currentTarget.style.background = "transparent"; } : undefined}
                       >
                         {hasExpand && <Mono style={{ fontSize: 11, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>}
-                        <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: isUp ? T.accent : T.text, flexShrink: 0 }}>{item.name}</strong>
+                        <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.text, flexShrink: 0 }}>{item.name}</strong>
                         {snippet && <Mono style={{ fontSize: 13, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {snippet}</Mono>}
                         <div style={{ flex: 1 }} />
                         <span style={{
-                          fontFamily: T.mono, fontSize: 10, fontWeight: isUp ? 700 : 600, letterSpacing: "0.5px",
-                          color: isUp ? (item.days <= 3 ? "#fff" : T.accent) : T.textDim,
-                          background: isUp ? (item.days <= 3 ? T.accent : `${T.accent}18`) : `${T.textDim}15`,
+                          fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px",
+                          color: T.textDim, background: `${T.textDim}15`,
                           padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
                         }}>
-                          {item.label}
+                          FILING
                         </span>
-                        <Mono style={{ fontSize: 13, color: isUp ? T.accent : T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
+                        <Mono style={{ fontSize: 13, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
                           {item.dateStr}
                         </Mono>
                       </div>
