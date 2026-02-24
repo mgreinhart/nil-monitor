@@ -199,7 +199,7 @@ function parseCases(html) {
           // Get first <p> after <h4>Description heading (not the court info italic line)
           const descParagraphs = descHtml.match(/<p>(?!<em>\()[\s\S]*?<\/p>/gi);
           if (descParagraphs) {
-            description = truncate(cleanText(descParagraphs[0]));
+            description = cleanText(descParagraphs[0]);
           }
 
           // Court info from italic citation line
