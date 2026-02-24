@@ -564,7 +564,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
   const [gdeltVolume, setGdeltVolume] = useState(null);
   const [keyDates, setKeyDates] = useState(null);
   const [coverageIntel, setCoverageIntel] = useState(null);
-  const [chartRange, setChartRange] = useState(30);
+  const [chartRange, setChartRange] = useState(7);
   const [hoverDay, setHoverDay] = useState(null);
 
   const fetchHeadlines = () => {
@@ -1239,19 +1239,8 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                   </div>
                 </div>
 
-                {/* ── Time Range Pills ── */}
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-                  <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginRight: 8 }}>Coverage by Category</Mono>
-                  {[7, 30, 90].map(d => (
-                    <span key={d} onClick={() => setChartRange(d)} style={{
-                      fontFamily: T.mono, fontSize: 11, fontWeight: 600,
-                      padding: "3px 10px", borderRadius: 4, cursor: "pointer",
-                      background: chartRange === d ? T.accent : "transparent",
-                      color: chartRange === d ? "#fff" : T.textDim,
-                      border: `1px solid ${chartRange === d ? T.accent : T.border}`,
-                    }}>{d}d</span>
-                  ))}
-                </div>
+                {/* ── Chart Label ── */}
+                <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 10, display: "block" }}>Coverage by Category · Last 7 Days</Mono>
 
                 {/* ── Stacked Area Chart ── */}
                 {uniqueDays.length === 0 ? (

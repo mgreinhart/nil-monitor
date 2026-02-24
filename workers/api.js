@@ -457,7 +457,7 @@ export async function handleApi(request, env) {
       const [dailyRows, thisWeekRows, lastWeekRows, breadthRow, latestRows] = await Promise.all([
         env.DB.prepare(
           `SELECT date(published_at) as day, category, COUNT(*) as count
-           FROM headlines WHERE category IS NOT NULL AND published_at >= date('now', '-90 days')
+           FROM headlines WHERE category IS NOT NULL AND published_at >= date('now', '-14 days')
            GROUP BY day, category ORDER BY day ASC`
         ).all(),
         env.DB.prepare(
