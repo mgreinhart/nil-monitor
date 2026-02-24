@@ -547,6 +547,7 @@ const StateLegislationMap = () => {
 // ╚═══════════════════════════════════════════════════════════════════
 const MonitorPage = ({ onRefresh, isMobile }) => {
   const [showAllTimeline, setShowAllTimeline] = useState(false);
+  const [expCase, setExpCase] = useState(null);
   const [courtroomOpen, setCourtroomOpen] = useState(true);
   const [headlineCatFilt, setHeadlineCatFilt] = useState("All");
   const [hlPage, setHlPage] = useState(0);
@@ -894,6 +895,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
             if (keyDates) for (const d of keyDates) {
               const isUp = d.date >= today;
               items.push({
+                id: `kd-${d.id || d.date}-${d.case_name}`,
                 upcoming: isUp,
                 sortTs: toTimestamp(d.date),
                 name: d.case_name,
@@ -901,10 +903,12 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                 label: isUp ? countdownLabel(daysUntil(d.date)) : keyDateLabel(d.description),
                 days: isUp ? daysUntil(d.date) : null,
                 dateStr: formatDate(d.date),
+                expandDetail: null,
               });
             }
             for (const c of recentActivity) {
               items.push({
+                id: `cl-${c.id}`,
                 upcoming: false,
                 sortTs: toTimestamp(c.last_event_date),
                 name: c.name,
@@ -912,6 +916,11 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                 label: "FILING",
                 days: null,
                 dateStr: c.last_event_date ? formatDate(c.last_event_date) : "",
+                expandDetail: {
+                  meta: [c.court, c.judge && `Judge ${c.judge}`, c.case_number, c.filed_date].filter(Boolean).join(" · "),
+                  description: c.description || "",
+                  csltUrl: c.cslt_url,
+                },
               });
             }
 
@@ -932,26 +941,53 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                   const snippet = item.detail
                     ? (item.detail.length > 80 ? item.detail.slice(0, 80) + "..." : item.detail)
                     : "";
+                  const hasExpand = item.expandDetail && (item.expandDetail.meta || item.expandDetail.description);
+                  const isOpen = expCase === item.id;
                   return (
-                    <div key={`t${i}`} style={{
-                      display: "flex", alignItems: "center", gap: 8, padding: "6px 16px",
-                      borderBottom: `1px solid ${T.borderLight}`,
-                      ...(isUp ? { background: `${T.accent}08`, borderBottomColor: `${T.accent}20` } : {}),
-                    }}>
-                      <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: isUp ? T.accent : T.text, flexShrink: 0 }}>{item.name}</strong>
-                      {snippet && <Mono style={{ fontSize: 13, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {snippet}</Mono>}
-                      <div style={{ flex: 1 }} />
-                      <span style={{
-                        fontFamily: T.mono, fontSize: 10, fontWeight: isUp ? 700 : 600, letterSpacing: "0.5px",
-                        color: isUp ? (item.days <= 3 ? "#fff" : T.accent) : T.textDim,
-                        background: isUp ? (item.days <= 3 ? T.accent : `${T.accent}18`) : `${T.textDim}15`,
-                        padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
-                      }}>
-                        {item.label}
-                      </span>
-                      <Mono style={{ fontSize: 13, color: isUp ? T.accent : T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
-                        {item.dateStr}
-                      </Mono>
+                    <div key={`t${i}`} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
+                      <div
+                        onClick={hasExpand ? () => setExpCase(isOpen ? null : item.id) : undefined}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 8, padding: "6px 16px",
+                          ...(hasExpand ? { cursor: "pointer" } : {}),
+                          ...(isUp ? { background: `${T.accent}08` } : {}),
+                        }}
+                        onMouseEnter={hasExpand ? e => { e.currentTarget.style.background = isUp ? `${T.accent}10` : T.surfaceAlt; } : undefined}
+                        onMouseLeave={hasExpand ? e => { e.currentTarget.style.background = isUp ? `${T.accent}08` : "transparent"; } : undefined}
+                      >
+                        {hasExpand && <Mono style={{ fontSize: 11, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>}
+                        <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: isUp ? T.accent : T.text, flexShrink: 0 }}>{item.name}</strong>
+                        {snippet && <Mono style={{ fontSize: 13, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {snippet}</Mono>}
+                        <div style={{ flex: 1 }} />
+                        <span style={{
+                          fontFamily: T.mono, fontSize: 10, fontWeight: isUp ? 700 : 600, letterSpacing: "0.5px",
+                          color: isUp ? (item.days <= 3 ? "#fff" : T.accent) : T.textDim,
+                          background: isUp ? (item.days <= 3 ? T.accent : `${T.accent}18`) : `${T.textDim}15`,
+                          padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
+                        }}>
+                          {item.label}
+                        </span>
+                        <Mono style={{ fontSize: 13, color: isUp ? T.accent : T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
+                          {item.dateStr}
+                        </Mono>
+                      </div>
+                      {hasExpand && (
+                        <div style={{
+                          maxHeight: isOpen ? 500 : 0, overflow: "hidden",
+                          transition: "max-height .2s ease, opacity .2s ease",
+                          opacity: isOpen ? 1 : 0,
+                        }}>
+                          <div style={{ padding: "6px 16px 10px 30px" }}>
+                            {item.expandDetail.meta && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 6, display: "block" }}>{item.expandDetail.meta}</Mono>}
+                            {item.expandDetail.description && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textMid, lineHeight: 1.5, marginBottom: 6 }}>{item.expandDetail.description}</div>}
+                            {item.expandDetail.csltUrl && (
+                              <a href={item.expandDetail.csltUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}>
+                                <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>Full case detail →</Mono>
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
