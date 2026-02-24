@@ -563,6 +563,9 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
   const [headlines, setHeadlines] = useState(null);
   const [gdeltVolume, setGdeltVolume] = useState(null);
   const [keyDates, setKeyDates] = useState(null);
+  const [coverageIntel, setCoverageIntel] = useState(null);
+  const [chartRange, setChartRange] = useState(30);
+  const [hoverDay, setHoverDay] = useState(null);
 
   const fetchHeadlines = () => {
     fetch("/api/headlines?limit=100").then(r => r.ok ? r.json() : null).then(d => {
@@ -584,6 +587,9 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
     }).catch(() => {});
     fetch("/api/gdelt-volume").then(r => r.ok ? r.json() : null).then(d => {
       if (d) setGdeltVolume(d);
+    }).catch(() => {});
+    fetch("/api/coverage-intel").then(r => r.ok ? r.json() : null).then(d => {
+      if (d) setCoverageIntel(d);
     }).catch(() => {});
     fetch("/api/cslt-key-dates").then(r => r.ok ? r.json() : null).then(d => {
       if (d) setKeyDates(d);
@@ -1078,81 +1084,292 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
         {/* ── State NIL Legislation Map ── */}
         <StateLegislationMap />
 
-        {/* ── Outside View ── */}
-        <Panel title="The Outside View" accent={T.textDim} size="sm">
-          <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 24 }}>
-            {/* Left: GDELT News Volume Chart */}
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>News Volume · 30 Days</Mono>
-                {gdeltVolume?.total > 0 && (
-                  <Mono style={{ fontSize: 11, color: T.textMid }}>{gdeltVolume.total.toLocaleString()} articles · avg {gdeltVolume.avg}/day</Mono>
-                )}
-              </div>
-              {(() => {
-                const pts = gdeltVolume?.data || [];
-                if (pts.length === 0) return (
-                  <div style={{ height: 120, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Mono style={{ fontSize: 12, color: T.textDim }}>{gdeltVolume ? "No volume data available" : "Loading..."}</Mono>
+        {/* ── Coverage Intelligence ── */}
+        <Panel title="Coverage Intelligence" size="sm">
+          {(() => {
+            if (!coverageIntel) return <Mono style={{ fontSize: 12, color: T.textDim, padding: 12 }}>Loading coverage data...</Mono>;
+            const { thisWeek, lastWeek, sourceBreadth, latestByCategory, daily } = coverageIntel;
+            const CATS = ["Legislation", "Litigation", "NCAA Governance", "CSC / Enforcement", "Revenue Sharing", "Roster / Portal", "Realignment"];
+            const CAT_SHORT = { "Legislation": "Legislation", "Litigation": "Litigation", "NCAA Governance": "Governance", "CSC / Enforcement": "CSC", "Revenue Sharing": "Rev. Sharing", "Roster / Portal": "Portal", "Realignment": "Realignment" };
+
+            // ── Stat card computations ──
+            const totalThisWeek = CATS.reduce((s, c) => s + (thisWeek[c] || 0), 0);
+
+            // Coverage Shift: largest week-over-week increase
+            let shiftCat = null, shiftPct = -Infinity;
+            for (const c of CATS) {
+              const tw = thisWeek[c] || 0, lw = lastWeek[c] || 0;
+              if (tw === 0 && lw === 0) continue;
+              const pct = lw > 0 ? ((tw - lw) / lw) * 100 : (tw > 0 ? 100 : 0);
+              if (pct > shiftPct) { shiftPct = pct; shiftCat = c; }
+            }
+
+            // Dominant Topic: category with most headlines
+            let domCat = null, domCount = 0;
+            for (const c of CATS) {
+              if ((thisWeek[c] || 0) > domCount) { domCount = thisWeek[c]; domCat = c; }
+            }
+            const domPct = totalThisWeek > 0 ? Math.round((domCount / totalThisWeek) * 100) : 0;
+
+            // Quiet Zone: category with longest gap
+            const now = new Date();
+            let quietCat = null, quietDays = 0;
+            for (const c of CATS) {
+              const latest = latestByCategory[c];
+              if (!latest) { quietCat = c; quietDays = 999; break; }
+              const d = new Date(latest.includes("T") ? latest : latest.replace(" ", "T") + "Z");
+              const days = Math.floor((now - d) / 86400000);
+              if (days > quietDays) { quietDays = days; quietCat = c; }
+            }
+
+            // ── Chart data transformation ──
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - chartRange);
+            const cutoffStr = cutoff.toISOString().split("T")[0];
+            const filtered = daily.filter(r => r.day >= cutoffStr);
+
+            // Pivot into { day: { cat: count } }
+            const dayMap = {};
+            const allDays = [];
+            for (const r of filtered) {
+              if (!dayMap[r.day]) { dayMap[r.day] = {}; allDays.push(r.day); }
+              dayMap[r.day][r.category] = (dayMap[r.day][r.category] || 0) + r.count;
+            }
+            // Dedupe and sort
+            const uniqueDays = [...new Set(allDays)].sort();
+
+            // Compute stacked values
+            const stacked = uniqueDays.map(day => {
+              const vals = dayMap[day] || {};
+              let cumulative = 0;
+              const bands = CATS.map(cat => {
+                const v = vals[cat] || 0;
+                const y0 = cumulative;
+                cumulative += v;
+                return { cat, y0, y1: cumulative, count: v };
+              });
+              const total = cumulative;
+              return { day, bands, total };
+            });
+
+            // Comparison line: prior period total per day
+            const priorCutoff = new Date(cutoff);
+            priorCutoff.setDate(priorCutoff.getDate() - chartRange);
+            const priorStr = priorCutoff.toISOString().split("T")[0];
+            const priorFiltered = daily.filter(r => r.day >= priorStr && r.day < cutoffStr);
+            const priorDayTotals = {};
+            for (const r of priorFiltered) {
+              priorDayTotals[r.day] = (priorDayTotals[r.day] || 0) + r.count;
+            }
+            const priorDays = Object.keys(priorDayTotals).sort();
+
+            // SVG dimensions
+            const W = 700, H = 200, PX = 0, PY = 10;
+            const maxY = Math.max(...stacked.map(s => s.total), ...Object.values(priorDayTotals), 1);
+            const xStep = uniqueDays.length > 1 ? (W - PX * 2) / (uniqueDays.length - 1) : W;
+            const yScale = (v) => PY + (H - PY * 2) * (1 - v / maxY);
+            const fmtLabel = (d) => new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+            // Build stacked area paths (bottom to top)
+            const areaPaths = CATS.map((cat, ci) => {
+              if (uniqueDays.length === 0) return null;
+              const topLine = stacked.map((s, i) => `${PX + i * xStep},${yScale(s.bands[ci].y1)}`);
+              const bottomLine = stacked.map((s, i) => `${PX + i * xStep},${yScale(s.bands[ci].y0)}`).reverse();
+              return `M${topLine.join(" L")} L${bottomLine.join(" L")} Z`;
+            });
+
+            // Prior period comparison line
+            const priorLinePoints = priorDays.length > 0 && uniqueDays.length > 0
+              ? priorDays.slice(0, uniqueDays.length).map((_, i) => {
+                  const val = priorDayTotals[priorDays[i]] || 0;
+                  const x = PX + i * (uniqueDays.length > 1 ? (W - PX * 2) / (Math.min(priorDays.length, uniqueDays.length) - 1) : 0);
+                  return `${x},${yScale(val)}`;
+                }).join(" ")
+              : null;
+
+            const midIdx = Math.floor(uniqueDays.length / 2);
+
+            // Card styling
+            const cardStyle = { background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius, padding: "10px 14px", minWidth: 0 };
+            const cardLabel = { fontFamily: T.mono, fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 4 };
+            const cardValue = { fontFamily: T.sans, fontSize: 17, fontWeight: 700, lineHeight: 1.3 };
+            const cardSub = { fontFamily: T.mono, fontSize: 11, color: T.textDim, marginTop: 2 };
+
+            return (
+              <div>
+                {/* ── Stat Cards ── */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
+                  <div style={cardStyle}>
+                    <div style={cardLabel}>Coverage Shift</div>
+                    {shiftCat ? (
+                      <>
+                        <div style={{ ...cardValue, color: CAT_COLORS[shiftCat] || T.text }}>
+                          {CAT_SHORT[shiftCat]} {shiftPct >= 0 ? `↑${Math.round(shiftPct)}%` : `↓${Math.round(Math.abs(shiftPct))}%`}
+                        </div>
+                        <div style={cardSub}>vs. last week</div>
+                      </>
+                    ) : <div style={{ ...cardValue, color: T.textDim }}>No data</div>}
                   </div>
-                );
-                const W = 500, H = 120, PX = 0, PY = 8;
-                const max = Math.max(...pts.map(p => p.count), 1);
-                const xStep = (W - PX * 2) / (pts.length - 1 || 1);
-                const yScale = (v) => PY + (H - PY * 2) * (1 - v / max);
-                const linePoints = pts.map((p, i) => `${PX + i * xStep},${yScale(p.count)}`).join(" ");
-                const areaPath = `M${PX},${H - PY} ` + pts.map((p, i) => `L${PX + i * xStep},${yScale(p.count)}`).join(" ") + ` L${PX + (pts.length - 1) * xStep},${H - PY} Z`;
-                const midIdx = Math.floor(pts.length / 2);
-                const fmtLabel = (d) => new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
-                return (
-                  <div>
-                    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: 120, display: "block" }}>
+                  <div style={cardStyle}>
+                    <div style={cardLabel}>Dominant Topic</div>
+                    {domCat ? (
+                      <>
+                        <div style={{ ...cardValue, color: CAT_COLORS[domCat] || T.text }}>
+                          {CAT_SHORT[domCat]} · {domPct}%
+                        </div>
+                        <div style={cardSub}>of coverage this week</div>
+                      </>
+                    ) : <div style={{ ...cardValue, color: T.textDim }}>No data</div>}
+                  </div>
+                  <div style={cardStyle}>
+                    <div style={cardLabel}>Source Breadth</div>
+                    <div style={{ ...cardValue, color: T.text }}>{sourceBreadth}</div>
+                    <div style={cardSub}>publications this week</div>
+                  </div>
+                  <div style={cardStyle}>
+                    <div style={cardLabel}>Quiet Zone</div>
+                    {quietCat && quietDays > 7 ? (
+                      <>
+                        <div style={{ ...cardValue, color: CAT_COLORS[quietCat] || T.textDim, fontSize: 15 }}>
+                          {CAT_SHORT[quietCat]}
+                        </div>
+                        <div style={cardSub}>{quietDays >= 999 ? "No coverage recorded" : `No coverage in ${quietDays}d`}</div>
+                      </>
+                    ) : <div style={{ ...cardValue, color: T.green, fontSize: 14 }}>All active this week</div>}
+                  </div>
+                </div>
+
+                {/* ── Time Range Pills ── */}
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                  <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginRight: 8 }}>Coverage by Category</Mono>
+                  {[7, 30, 90].map(d => (
+                    <span key={d} onClick={() => setChartRange(d)} style={{
+                      fontFamily: T.mono, fontSize: 11, fontWeight: 600,
+                      padding: "3px 10px", borderRadius: 4, cursor: "pointer",
+                      background: chartRange === d ? T.accent : "transparent",
+                      color: chartRange === d ? "#fff" : T.textDim,
+                      border: `1px solid ${chartRange === d ? T.accent : T.border}`,
+                    }}>{d}d</span>
+                  ))}
+                </div>
+
+                {/* ── Stacked Area Chart ── */}
+                {uniqueDays.length === 0 ? (
+                  <div style={{ height: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Mono style={{ fontSize: 12, color: T.textDim }}>No headline data for this period</Mono>
+                  </div>
+                ) : (
+                  <div style={{ position: "relative" }}>
+                    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: 200, display: "block" }}
+                      onMouseLeave={() => setHoverDay(null)}>
                       <defs>
-                        <linearGradient id="gdelt-fill" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={T.accent} stopOpacity="0.15" />
-                          <stop offset="100%" stopColor={T.accent} stopOpacity="0" />
-                        </linearGradient>
+                        {CATS.map((cat, ci) => (
+                          <linearGradient key={cat} id={`cov-fill-${ci}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={CAT_COLORS[cat] || "#999"} stopOpacity="0.55" />
+                            <stop offset="100%" stopColor={CAT_COLORS[cat] || "#999"} stopOpacity="0.2" />
+                          </linearGradient>
+                        ))}
                       </defs>
-                      <path d={areaPath} fill="url(#gdelt-fill)" />
-                      <polyline points={linePoints} fill="none" stroke={T.accent} strokeOpacity="0.4" strokeWidth="1.5" strokeLinejoin="round" />
+                      {/* Stacked areas */}
+                      {areaPaths.map((path, ci) => path && (
+                        <path key={CATS[ci]} d={path} fill={`url(#cov-fill-${ci})`} />
+                      ))}
+                      {/* Prior period comparison line */}
+                      {priorLinePoints && (
+                        <polyline points={priorLinePoints} fill="none" stroke={T.textDim} strokeOpacity="0.35" strokeWidth="1.5" strokeDasharray="4,3" strokeLinejoin="round" />
+                      )}
+                      {/* Hover overlay rects */}
+                      {uniqueDays.map((day, i) => {
+                        const x = PX + i * xStep - xStep / 2;
+                        return (
+                          <rect key={day} x={Math.max(0, x)} y={0} width={xStep} height={H}
+                            fill="transparent" style={{ cursor: "pointer" }}
+                            onMouseEnter={() => setHoverDay(i)}
+                          />
+                        );
+                      })}
+                      {/* Hover vertical line */}
+                      {hoverDay !== null && hoverDay < uniqueDays.length && (
+                        <line x1={PX + hoverDay * xStep} y1={PY} x2={PX + hoverDay * xStep} y2={H - PY}
+                          stroke={T.text} strokeOpacity="0.15" strokeWidth="1" />
+                      )}
                     </svg>
+
+                    {/* Hover tooltip */}
+                    {hoverDay !== null && hoverDay < stacked.length && (() => {
+                      const s = stacked[hoverDay];
+                      const xPos = PX + hoverDay * xStep;
+                      const pctPos = (xPos / W) * 100;
+                      const alignRight = pctPos > 70;
+                      return (
+                        <div style={{
+                          position: "absolute", top: 4,
+                          left: alignRight ? undefined : `${pctPos}%`,
+                          right: alignRight ? `${100 - pctPos}%` : undefined,
+                          background: T.navy, color: "#e2e8f0", borderRadius: 6,
+                          padding: "8px 12px", fontSize: 12, fontFamily: T.mono,
+                          pointerEvents: "none", zIndex: 10, minWidth: 160,
+                          boxShadow: "0 4px 12px rgba(0,0,0,.25)",
+                        }}>
+                          <div style={{ fontWeight: 700, marginBottom: 4 }}>{fmtLabel(s.day)} · {s.total} articles</div>
+                          {s.bands.filter(b => b.count > 0).sort((a, b) => b.count - a.count).map(b => (
+                            <div key={b.cat} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 11, padding: "1px 0" }}>
+                              <span style={{ color: CAT_COLORS[b.cat] }}>{CAT_SHORT[b.cat]}</span>
+                              <span>{b.count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+
+                    {/* X-axis labels */}
                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
-                      <Mono style={{ fontSize: 11, color: T.textDim }}>{fmtLabel(pts[0].date)}</Mono>
-                      <Mono style={{ fontSize: 11, color: T.textDim }}>{fmtLabel(pts[midIdx].date)}</Mono>
-                      <Mono style={{ fontSize: 11, color: T.textDim }}>{fmtLabel(pts[pts.length - 1].date)}</Mono>
+                      <Mono style={{ fontSize: 11, color: T.textDim }}>{fmtLabel(uniqueDays[0])}</Mono>
+                      {uniqueDays.length > 2 && <Mono style={{ fontSize: 11, color: T.textDim }}>{fmtLabel(uniqueDays[midIdx])}</Mono>}
+                      <Mono style={{ fontSize: 11, color: T.textDim }}>{fmtLabel(uniqueDays[uniqueDays.length - 1])}</Mono>
                     </div>
                   </div>
-                );
-              })()}
-              <Mono style={{ fontSize: 10, color: T.textDim, marginTop: 6, display: "block" }}>
-                Articles mentioning NIL, NCAA, transfer portal across global media · GDELT
-              </Mono>
-            </div>
-            {/* Right: Resources */}
-            <div>
-              <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 10, display: "block" }}>Resources</Mono>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {[
-                  { label: "College Sports Litigation Tracker", href: "https://www.collegesportslitigationtracker.com" },
-                  { label: "Troutman Pepper NIL Tracker", href: "https://www.troutman.com/state-and-federal-nil-legislation-tracker/" },
-                  { label: "NIL Revolution Blog", href: "https://www.nilrevolution.com" },
-                  { label: "On3 NIL", href: "https://www.on3.com/nil/" },
-                  { label: "CourtListener", href: "https://www.courtlistener.com" },
-                  { label: "NIL Monitor X List", href: X_LIST_URL },
-                ].map((r, i) => (
-                  <a key={i} href={r.href} target="_blank" rel="noopener noreferrer"
-                    style={{ textDecoration: "none", fontFamily: T.mono, fontSize: 13, color: T.textDim, display: "flex", alignItems: "center", gap: 6 }}
-                    onMouseEnter={e => { e.currentTarget.style.color = T.accent; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = T.textDim; }}
-                  >
-                    <span style={{ color: T.accent }}>→</span> {r.label}
-                  </a>
-                ))}
+                )}
+
+                {/* ── Legend ── */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: 10 }}>
+                  {CATS.map(cat => (
+                    <div key={cat} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: CAT_COLORS[cat], flexShrink: 0 }} />
+                      <Mono style={{ fontSize: 11, color: T.textDim }}>{CAT_SHORT[cat]}</Mono>
+                    </div>
+                  ))}
+                  {priorLinePoints && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ width: 14, height: 0, borderTop: `1.5px dashed ${T.textDim}`, flexShrink: 0 }} />
+                      <Mono style={{ fontSize: 11, color: T.textDim }}>Prior {chartRange}d</Mono>
+                    </div>
+                  )}
+                </div>
               </div>
-              <Mono style={{ fontSize: 10, color: T.textDim, marginTop: 12, display: "block" }}>
-                Data sources for this dashboard
-              </Mono>
-            </div>
+            );
+          })()}
+        </Panel>
+
+        {/* ── Resources ── */}
+        <Panel title="Resources" accent={T.textDim} size="sm">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 24px" }}>
+            {[
+              { label: "College Sports Litigation Tracker", href: "https://www.collegesportslitigationtracker.com" },
+              { label: "Troutman Pepper NIL Tracker", href: "https://www.troutman.com/state-and-federal-nil-legislation-tracker/" },
+              { label: "NIL Revolution Blog", href: "https://www.nilrevolution.com" },
+              { label: "On3 NIL", href: "https://www.on3.com/nil/" },
+              { label: "CourtListener", href: "https://www.courtlistener.com" },
+              { label: "NIL Monitor X List", href: X_LIST_URL },
+            ].map((r, i) => (
+              <a key={i} href={r.href} target="_blank" rel="noopener noreferrer"
+                style={{ textDecoration: "none", fontFamily: T.mono, fontSize: 13, color: T.textDim, display: "flex", alignItems: "center", gap: 6 }}
+                onMouseEnter={e => { e.currentTarget.style.color = T.accent; }}
+                onMouseLeave={e => { e.currentTarget.style.color = T.textDim; }}
+              >
+                <span style={{ color: T.accent }}>→</span> {r.label}
+              </a>
+            ))}
           </div>
         </Panel>
       </div>

@@ -452,6 +452,52 @@ export async function handleApi(request, env) {
       return json(results);
     }
 
+    // Coverage Intelligence (stat cards + stacked area chart)
+    if (path === '/api/coverage-intel') {
+      const [dailyRows, thisWeekRows, lastWeekRows, breadthRow, latestRows] = await Promise.all([
+        env.DB.prepare(
+          `SELECT date(published_at) as day, category, COUNT(*) as count
+           FROM headlines WHERE category IS NOT NULL AND published_at >= date('now', '-90 days')
+           GROUP BY day, category ORDER BY day ASC`
+        ).all(),
+        env.DB.prepare(
+          `SELECT category, COUNT(*) as count FROM headlines
+           WHERE category IS NOT NULL AND published_at >= date('now', '-7 days')
+           GROUP BY category`
+        ).all(),
+        env.DB.prepare(
+          `SELECT category, COUNT(*) as count FROM headlines
+           WHERE category IS NOT NULL
+             AND published_at >= date('now', '-14 days')
+             AND published_at < date('now', '-7 days')
+           GROUP BY category`
+        ).all(),
+        env.DB.prepare(
+          `SELECT COUNT(DISTINCT source) as count FROM headlines
+           WHERE published_at >= date('now', '-7 days')`
+        ).first(),
+        env.DB.prepare(
+          `SELECT category, MAX(published_at) as latest FROM headlines
+           WHERE category IS NOT NULL GROUP BY category`
+        ).all(),
+      ]);
+
+      const thisWeek = {};
+      for (const r of (thisWeekRows?.results || [])) thisWeek[r.category] = r.count;
+      const lastWeek = {};
+      for (const r of (lastWeekRows?.results || [])) lastWeek[r.category] = r.count;
+      const latestByCategory = {};
+      for (const r of (latestRows?.results || [])) latestByCategory[r.category] = r.latest;
+
+      return json({
+        daily: dailyRows?.results || [],
+        thisWeek,
+        lastWeek,
+        sourceBreadth: breadthRow?.count || 0,
+        latestByCategory,
+      });
+    }
+
     // GDELT news volume (30-day chart)
     if (path === '/api/gdelt-volume') {
       const { results } = await env.DB.prepare(
