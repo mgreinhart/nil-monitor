@@ -907,17 +907,20 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
               });
             }
             for (const c of recentActivity) {
+              // Clean case_group: strip "(Click here...)" and similar parentheticals
+              const group = (c.case_group || "").replace(/\s*\(.*?\)\s*/g, "").trim();
               items.push({
                 id: `cl-${c.id}`,
                 upcoming: false,
                 sortTs: toTimestamp(c.last_event_date),
                 name: c.name,
-                detail: c.last_event_text,
+                detail: group,
                 label: "FILING",
                 days: null,
                 dateStr: c.last_event_date ? formatDate(c.last_event_date) : "",
                 expandDetail: {
                   meta: [c.court, c.judge && `Judge ${c.judge}`, c.case_number, c.filed_date].filter(Boolean).join(" · "),
+                  lastEvent: c.last_event_text || "",
                   description: c.description || "",
                   csltUrl: c.cslt_url,
                 },
@@ -941,7 +944,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                   const snippet = item.detail
                     ? (item.detail.length > 80 ? item.detail.slice(0, 80) + "..." : item.detail)
                     : "";
-                  const hasExpand = item.expandDetail && (item.expandDetail.meta || item.expandDetail.description);
+                  const hasExpand = item.expandDetail && (item.expandDetail.meta || item.expandDetail.description || item.expandDetail.lastEvent);
                   const isOpen = expCase === item.id;
                   return (
                     <div key={`t${i}`} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
@@ -980,6 +983,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                           <div style={{ padding: "6px 16px 10px 30px" }}>
                             {item.expandDetail.meta && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 6, display: "block" }}>{item.expandDetail.meta}</Mono>}
                             {item.expandDetail.description && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textMid, lineHeight: 1.5, marginBottom: 6 }}>{item.expandDetail.description}</div>}
+                            {item.expandDetail.lastEvent && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 6, display: "block" }}>Latest: {item.expandDetail.lastEvent}</Mono>}
                             {item.expandDetail.csltUrl && (
                               <a href={item.expandDetail.csltUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}>
                                 <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>Full case detail →</Mono>
