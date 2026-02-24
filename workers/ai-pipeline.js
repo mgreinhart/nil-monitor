@@ -7,6 +7,55 @@
 const MODEL = 'claude-sonnet-4-5-20250929';
 const PIPELINE_ERRORS = [];
 
+// ── Source Tiering for Briefing Quality ─────────────────────────
+const SOURCE_TIERS = {
+  1: ['espn', 'usa today', 'the athletic', 'sportico', 'associated press', 'ap news',
+      'reuters', 'sports illustrated', 'cbs sports', 'front office sports',
+      'new york times', 'nyt', 'washington post', 'wall street journal', 'wsj'],
+  2: ['extra points', 'business of college sports', 'nil revolution',
+      'on3', '247sports', 'yahoo sports'],
+  4: ['afrotech', 'thedetroitbureau', 'detroit bureau', 'africa.com'],
+};
+
+function getSourceTier(source) {
+  const s = (source || '').toLowerCase();
+  for (const [tier, names] of Object.entries(SOURCE_TIERS)) {
+    if (names.some(n => s.includes(n))) return Number(tier);
+  }
+  return 3;
+}
+
+function normalizeForDedup(title) {
+  return (title || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2);
+}
+
+function titleSimilarity(a, b) {
+  const wordsA = new Set(normalizeForDedup(a));
+  const wordsB = new Set(normalizeForDedup(b));
+  if (wordsA.size === 0 || wordsB.size === 0) return 0;
+  const overlap = [...wordsA].filter(w => wordsB.has(w)).length;
+  return overlap / Math.min(wordsA.size, wordsB.size);
+}
+
+function deduplicateHeadlines(headlines) {
+  const tiered = headlines.map(h => ({ ...h, _tier: getSourceTier(h.source) }));
+  tiered.sort((a, b) => a._tier - b._tier);
+
+  const kept = [];
+  for (const h of tiered) {
+    const dominated = kept.some(k => titleSimilarity(k.title, h.title) > 0.5);
+    if (dominated) continue;
+    kept.push(h);
+  }
+
+  const sevOrder = { critical: 1, important: 2, routine: 3 };
+  kept.sort((a, b) =>
+    (sevOrder[a.severity] || 3) - (sevOrder[b.severity] || 3)
+    || new Date(b.published_at) - new Date(a.published_at)
+  );
+  return kept;
+}
+
 async function callClaude(env, systemPrompt, userContent) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -239,12 +288,13 @@ If none of these are actually NEW CSC activity (not already tracked), return: {"
 
 // ── Task 3: Daily Briefing ───────────────────────────────────────
 async function generateBriefing(env, db, isAfternoon = false) {
-  // AM briefing (6 AM ET / 11 UTC): headlines since yesterday's PM briefing (~14h window)
-  // PM briefing (4 PM ET / 21 UTC): full day's headlines (~24h window, can reference AM items)
-  const lookbackHours = isAfternoon ? '-24 hours' : '-14 hours';
-  const { results: headlines } = await db.prepare(
-    `SELECT * FROM headlines WHERE category IS NOT NULL AND published_at >= datetime('now', '${lookbackHours}') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 50`
+  // 36-hour recency window on published_at — filters out old articles picked up late by aggregators
+  const { results: rawHeadlines } = await db.prepare(
+    `SELECT * FROM headlines WHERE category IS NOT NULL AND published_at >= datetime('now', '-36 hours') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 100`
   ).all();
+  // Deduplicate: group similar headlines, keep highest-tier source
+  const headlines = deduplicateHeadlines(rawHeadlines);
+  console.log(`Briefing: ${rawHeadlines.length} raw headlines → ${headlines.length} after dedup (36h window)`);
 
   const { results: deadlines } = await db.prepare(
     "SELECT * FROM deadlines WHERE date >= date('now') AND date <= date('now', '+14 days') ORDER BY date ASC"
@@ -259,6 +309,17 @@ Do NOT include:
 - Recruiting news
 - General roster management activity
 - Coach hires/fires (unless related to compliance violations)
+
+SOURCE PRIORITY:
+Tier 1 (always prioritize — original reporting): ESPN, USA Today, The Athletic, Sportico, Associated Press, Reuters, Sports Illustrated, CBS Sports, Front Office Sports, New York Times, Washington Post, Wall Street Journal
+Tier 2 (good analysis — reference frequently): Extra Points, Business of College Sports, NIL Revolution, On3, 247Sports, Yahoo Sports
+Tier 3 (use only if no better source covers it): Regional newspapers
+Tier 4 (deprioritize or skip): Aggregators, AI content farms, off-topic publications
+
+Prioritize original reporting from Tier 1 and 2 sources. Do not feature stories that only appear in Tier 3-4 sources unless they contain genuinely new information not covered elsewhere. If a Tier 1 source covers a topic, use their reporting over lower-tier sources.
+
+EDITORIAL FOCUS:
+Focus on developments that have institutional implications — things an athletic director needs to act on or be aware of. Prefer stories about enforcement actions, regulatory changes, new legislation, court rulings, policy shifts, and industry structural changes. Deprioritize individual athlete deals, celebrity gossip, and republished/aggregated stories that don't add new information.
 
 The audience is athletic directors managing institutional risk and compliance obligations.
 Every item should answer: "Does this require action, awareness, or preparation from our institution?"
@@ -280,7 +341,7 @@ STRICT FORMAT RULES:
 Return ONLY valid JSON, no other text.`;
 
   const headlineList = headlines.map(h =>
-    `[${h.severity?.toUpperCase()}] [${h.category}] ${h.source}: ${h.title}${h.url ? ` <${h.url}>` : ''}`
+    `[${h.severity?.toUpperCase()}] [${h.category}] [Tier ${h._tier || getSourceTier(h.source)}] ${h.source}: ${h.title}${h.url ? ` <${h.url}>` : ''}`
   ).join('\n');
 
   const deadlineList = deadlines.map(d =>
