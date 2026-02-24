@@ -873,7 +873,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
           }
         >
           {!courtroomOpen ? null : <>
-          {/* ── UNIFIED TIMELINE — single flat list ── */}
+          {/* ── UNIFIED TIMELINE — one merged, sorted array ── */}
           {(() => {
             const today = new Date().toISOString().split("T")[0];
             const daysUntil = (dateStr) => {
@@ -888,24 +888,22 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
               return "BRIEF";
             };
 
-            // Build unified items — one format
-            const upcomingItems = [];
-            const restItems = [];
+            // ONE array — every item same shape
+            const items = [];
             if (keyDates) for (const d of keyDates) {
-              const isUpcoming = d.date >= today;
-              const item = {
-                upcoming: isUpcoming,
+              const isUp = d.date >= today;
+              items.push({
+                upcoming: isUp,
                 sortDate: d.date,
                 name: d.case_name,
                 detail: d.description,
-                label: isUpcoming ? countdownLabel(daysUntil(d.date)) : keyDateLabel(d.description),
-                days: isUpcoming ? daysUntil(d.date) : null,
+                label: isUp ? countdownLabel(daysUntil(d.date)) : keyDateLabel(d.description),
+                days: isUp ? daysUntil(d.date) : null,
                 dateStr: formatDate(d.date),
-              };
-              if (isUpcoming) upcomingItems.push(item); else restItems.push(item);
+              });
             }
             for (const c of recentActivity) {
-              restItems.push({
+              items.push({
                 upcoming: false,
                 sortDate: c.last_event_date || "1970-01-01",
                 name: c.name,
@@ -916,9 +914,12 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
               });
             }
 
-            upcomingItems.sort((a, b) => a.sortDate < b.sortDate ? -1 : 1);
-            restItems.sort((a, b) => a.sortDate > b.sortDate ? -1 : 1);
-            const items = [...upcomingItems, ...restItems];
+            // ONE sort: upcoming pinned to top (nearest first), then everything else date descending
+            items.sort((a, b) => {
+              if (a.upcoming !== b.upcoming) return a.upcoming ? -1 : 1;
+              if (a.upcoming) return a.sortDate < b.sortDate ? -1 : 1;
+              return a.sortDate > b.sortDate ? -1 : 1;
+            });
 
             const visible = showAllTimeline ? items : items.slice(0, 10);
             const remaining = items.length - 10;
@@ -927,9 +928,6 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
               <div style={{ borderBottom: `1px solid ${T.border}` }}>
                 {visible.map((item, i) => {
                   const isUp = item.upcoming;
-                  const muted = !isUp && item.label !== "FILING";
-                  const textColor = muted ? T.textDim : T.text;
-                  const detailColor = muted ? T.textDim : T.textDim;
                   const snippet = item.detail
                     ? (item.detail.length > 80 ? item.detail.slice(0, 80) + "..." : item.detail)
                     : "";
@@ -937,11 +935,10 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                     <div key={`t${i}`} style={{
                       display: "flex", alignItems: "center", gap: 8, padding: "6px 16px",
                       borderBottom: `1px solid ${T.borderLight}`,
-                      opacity: muted ? 0.55 : 1,
                       ...(isUp ? { background: `${T.accent}08`, borderBottomColor: `${T.accent}20` } : {}),
                     }}>
-                      <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: isUp ? T.accent : textColor, flexShrink: 0 }}>{item.name}</strong>
-                      {snippet && <Mono style={{ fontSize: 13, color: detailColor, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {snippet}</Mono>}
+                      <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: isUp ? T.accent : T.text, flexShrink: 0 }}>{item.name}</strong>
+                      {snippet && <Mono style={{ fontSize: 13, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {snippet}</Mono>}
                       <div style={{ flex: 1 }} />
                       <span style={{
                         fontFamily: T.mono, fontSize: 10, fontWeight: isUp ? 700 : 600, letterSpacing: "0.5px",
