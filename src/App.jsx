@@ -951,7 +951,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                           <div style={{ padding: "6px 16px 10px 30px" }}>
                             {meta && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 6, display: "block" }}>{meta}</Mono>}
                             {c.description && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textMid, lineHeight: 1.5, marginBottom: 6 }}>{c.description}</div>}
-                            {c.last_event_text && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 6, display: "block" }}>Latest: {c.last_event_text}</Mono>}
+                            {c.last_event_text && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 6, display: "block" }}>Latest: {c.last_event_text}{c.last_event_date ? ` (${formatDate(c.last_event_date)})` : ""}</Mono>}
                             {c.cslt_url && (
                               <a href={c.cslt_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}>
                                 <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>Full case detail →</Mono>
@@ -980,6 +980,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                 expandDetail: {
                   meta: [c.court, c.judge && `Judge ${c.judge}`, c.case_number, c.filed_date].filter(Boolean).join(" · "),
                   lastEvent: c.last_event_text || "",
+                  lastEventDate: c.last_event_date || "",
                   description: c.description || "",
                   csltUrl: c.cslt_url,
                 },
@@ -1038,7 +1039,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                           <div style={{ padding: "6px 16px 10px 30px" }}>
                             {item.expandDetail.meta && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 6, display: "block" }}>{item.expandDetail.meta}</Mono>}
                             {item.expandDetail.description && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textMid, lineHeight: 1.5, marginBottom: 6 }}>{item.expandDetail.description}</div>}
-                            {item.expandDetail.lastEvent && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 6, display: "block" }}>Latest: {item.expandDetail.lastEvent}</Mono>}
+                            {item.expandDetail.lastEvent && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 6, display: "block" }}>Latest: {item.expandDetail.lastEvent}{item.expandDetail.lastEventDate ? ` (${formatDate(item.expandDetail.lastEventDate)})` : ""}</Mono>}
                             {item.expandDetail.csltUrl && (
                               <a href={item.expandDetail.csltUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}>
                                 <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>Full case detail →</Mono>
