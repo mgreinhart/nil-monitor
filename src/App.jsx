@@ -644,7 +644,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
 
       // Collect nearest upcoming date per case
       if (c.soonest) {
-        upcoming.push({ name: c.name, date: c.soonest.date, detail: c.soonest.text });
+        upcoming.push({ name: c.name, date: c.soonest.date, detail: c.soonest.text, caseData: c });
       }
 
       if (!c.soonest && (!lastDate || lastDate < sixMonthsAgo)) continue;
@@ -902,32 +902,64 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                   const snippet = item.detail
                     ? (item.detail.length > 60 ? item.detail.slice(0, 60) + "..." : item.detail)
                     : "";
+                  const c = item.caseData;
+                  const expandId = `up-${c.id}`;
+                  const isOpen = expCase === expandId;
+                  const meta = [c.court, c.judge && `Judge ${c.judge}`, c.case_number, c.filed_date].filter(Boolean).join(" · ");
+                  const hasExpand = meta || c.description || c.last_event_text;
                   return (
-                    <div key={`up${i}`} style={{
-                      display: "flex", alignItems: "center", gap: 8, padding: "6px 16px",
-                      background: `${T.accent}08`, borderBottom: `1px solid ${T.borderLight}`,
-                    }}>
-                      <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.accent, flexShrink: 0 }}>{item.name}</strong>
-                      {snippet && <Mono style={{ fontSize: 13, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {snippet}</Mono>}
-                      <div style={{ flex: 1 }} />
-                      <span style={{
-                        fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px",
-                        color: T.textDim, background: `${T.textDim}15`,
-                        padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
-                      }}>
-                        {typeLabel(item.detail)}
-                      </span>
-                      <span style={{
-                        fontFamily: T.mono, fontSize: 10, fontWeight: 700, letterSpacing: "0.5px",
-                        color: days <= 3 ? "#fff" : T.accent,
-                        background: days <= 3 ? T.accent : `${T.accent}18`,
-                        padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
-                      }}>
-                        {countdownLabel(days)}
-                      </span>
-                      <Mono style={{ fontSize: 13, color: T.accent, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
-                        {formatDate(item.date)}
-                      </Mono>
+                    <div key={`up${i}`} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
+                      <div
+                        onClick={hasExpand ? () => setExpCase(isOpen ? null : expandId) : undefined}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 8, padding: "6px 16px",
+                          background: `${T.accent}08`,
+                          ...(hasExpand ? { cursor: "pointer" } : {}),
+                        }}
+                        onMouseEnter={hasExpand ? e => { e.currentTarget.style.background = `${T.accent}10`; } : undefined}
+                        onMouseLeave={hasExpand ? e => { e.currentTarget.style.background = `${T.accent}08`; } : undefined}
+                      >
+                        {hasExpand && <Mono style={{ fontSize: 11, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>}
+                        <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.accent, flexShrink: 0 }}>{item.name}</strong>
+                        {snippet && <Mono style={{ fontSize: 13, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {snippet}</Mono>}
+                        <div style={{ flex: 1 }} />
+                        <span style={{
+                          fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px",
+                          color: T.textDim, background: `${T.textDim}15`,
+                          padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
+                        }}>
+                          {typeLabel(item.detail)}
+                        </span>
+                        <span style={{
+                          fontFamily: T.mono, fontSize: 10, fontWeight: 700, letterSpacing: "0.5px",
+                          color: days <= 3 ? "#fff" : T.accent,
+                          background: days <= 3 ? T.accent : `${T.accent}18`,
+                          padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
+                        }}>
+                          {countdownLabel(days)}
+                        </span>
+                        <Mono style={{ fontSize: 13, color: T.accent, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
+                          {formatDate(item.date)}
+                        </Mono>
+                      </div>
+                      {hasExpand && (
+                        <div style={{
+                          maxHeight: isOpen ? 500 : 0, overflow: "hidden",
+                          transition: "max-height .2s ease, opacity .2s ease",
+                          opacity: isOpen ? 1 : 0, background: `${T.accent}05`,
+                        }}>
+                          <div style={{ padding: "6px 16px 10px 30px" }}>
+                            {meta && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 6, display: "block" }}>{meta}</Mono>}
+                            {c.description && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textMid, lineHeight: 1.5, marginBottom: 6 }}>{c.description}</div>}
+                            {c.last_event_text && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 6, display: "block" }}>Latest: {c.last_event_text}</Mono>}
+                            {c.cslt_url && (
+                              <a href={c.cslt_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}>
+                                <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>Full case detail →</Mono>
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
