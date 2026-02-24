@@ -428,6 +428,27 @@ Return JSON (EXACTLY 4 sections):
     try {
       const result = await callClaude(env, system, userContent);
       sections = result.sections || null;
+
+      // Strip non-ASCII characters (Chinese, Japanese, Korean, Arabic, etc.)
+      if (sections) {
+        let hadNonAscii = false;
+        sections = sections.map(s => {
+          const cleaned = {};
+          for (const [key, val] of Object.entries(s)) {
+            if (typeof val === 'string' && /[^\x00-\x7F]/.test(val)) {
+              hadNonAscii = true;
+              cleaned[key] = val.replace(/[^\x00-\x7F]/g, '').replace(/\s{2,}/g, ' ').trim();
+            } else {
+              cleaned[key] = val;
+            }
+          }
+          return cleaned;
+        });
+        if (hadNonAscii) {
+          console.warn('Briefing: stripped non-ASCII characters from response');
+        }
+      }
+
       break;
     } catch (err) {
       console.error(`Briefing generation attempt ${attempt} failed:`, err.message);
