@@ -18,11 +18,13 @@ function json(data, status = 200) {
 // ── Admin Dashboard Helpers ───────────────────────────────────────
 
 // Fetcher config: cooldown in minutes, active window in ET hours [start, end)
+// Note: some fetchers have variable cooldowns by time of day. Values here
+// represent the most common cooldown for status dot calculation.
 const FETCHER_CONFIG = {
   'google-news':    { cooldown: 15,  activeStart: 6, activeEnd: 22 },
   'bing-news':      { cooldown: 15,  activeStart: 6, activeEnd: 22 },
   'ncaa-rss':       { cooldown: 15,  activeStart: 6, activeEnd: 22 },
-  'newsdata':       { cooldown: 30,  activeStart: 6, activeEnd: 22 },
+  'newsdata':       { cooldown: 60,  activeStart: 6, activeEnd: 20 },  // complex: 30m morning, 60m midday, skip 4-7 PM, 1 run 7-8 PM, skip 8 PM+
   'publications':   { cooldown: 30,  activeStart: 6, activeEnd: 22 },
   'nil-revolution': { cooldown: 120, activeStart: 6, activeEnd: 22 },
   'courtlistener':  { cooldown: 120, activeStart: 6, activeEnd: 22 },
@@ -81,6 +83,7 @@ async function buildAdminDashboard(env) {
   const [
     fetcherRows, headlineTotal, headlinesToday, headlinesWeek, headlines24h,
     activeCases, casesWithDates, latestBriefing, gdeltStats, csltStats, latestPipeline,
+    untaggedHeadlines,
   ] = await Promise.all([
     env.DB.prepare('SELECT fetcher_name, last_run FROM fetcher_runs').all(),
     env.DB.prepare('SELECT COUNT(*) as cnt FROM headlines').first(),
@@ -93,6 +96,7 @@ async function buildAdminDashboard(env) {
     env.DB.prepare('SELECT COUNT(DISTINCT date) as days, MAX(fetched_at) as latest FROM gdelt_volume').first(),
     env.DB.prepare('SELECT COUNT(*) as cnt, MAX(month) as latest_month FROM cslt_key_dates').first(),
     env.DB.prepare('SELECT * FROM pipeline_runs ORDER BY id DESC LIMIT 1').first(),
+    env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE category IS NULL OR severity IS NULL").first(),
   ]);
 
   // ── Fetcher status ──
@@ -119,11 +123,14 @@ async function buildAdminDashboard(env) {
       // Only flag overdue issues when outside the skip window
       const d = new Date(f.lastRun.includes('T') ? f.lastRun : f.lastRun.replace(' ', 'T') + 'Z');
       const hrs = (now - d) / 3600000;
+      const mins = Math.round((now - d) / 60000);
+      const elapsed = mins > 60 ? Math.round(mins / 60) + 'h' : mins + 'm';
       if (hrs > 24) {
         issues.push({ level: 'red', text: `${f.name} hasn't run in ${Math.round(hrs)} hours (last: ${adminTimestamp(f.lastRun)})` });
+      } else if (f.status === 'red') {
+        issues.push({ level: 'red', text: `${f.name} is overdue — last ran ${elapsed} ago (expected every ${adminCooldown(f.cooldown)})` });
       } else if (f.status === 'amber') {
-        const mins = Math.round((now - d) / 60000);
-        issues.push({ level: 'amber', text: `${f.name} is overdue — last ran ${mins > 60 ? Math.round(mins / 60) + 'h' : mins + 'm'} ago (expected every ${adminCooldown(f.cooldown)})` });
+        issues.push({ level: 'amber', text: `${f.name} is overdue — last ran ${elapsed} ago (expected every ${adminCooldown(f.cooldown)})` });
       }
     }
   }
@@ -258,7 +265,7 @@ ${fetcherRowsHtml}
 <h2>AI Pipeline (Last Run)</h2>
 ${latestPipeline ? `<div class="grid">
   <div class="card"><div class="label">Ran At</div><div class="value" style="font-size:14px">${adminTimestamp(pipe.ran_at)}</div></div>
-  <div class="card"><div class="label">Headlines Tagged</div><div class="value">${pipe.headlines_tagged}</div></div>
+  <div class="card"><div class="label">AI Tagged (Last Run)</div><div class="value">${pipe.headlines_tagged}</div><div class="sub">${untaggedHeadlines?.cnt || 0} awaiting tagging</div></div>
   <div class="card"><div class="label">Deadlines</div><div class="value">${pipe.deadlines_created}</div></div>
   <div class="card"><div class="label">CSC Items</div><div class="value">${pipe.csc_items_created}</div></div>
   <div class="card"><div class="label">Briefing</div><div class="value">${pipe.briefing_generated ? 'Yes' : 'No'}</div></div>
