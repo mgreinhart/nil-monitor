@@ -546,7 +546,7 @@ const StateLegislationMap = () => {
 //  MONITOR PAGE — The Dashboard (live from D1, falls back to mock)
 // ╚═══════════════════════════════════════════════════════════════════
 const MonitorPage = ({ onRefresh, isMobile }) => {
-  const [expCases, setExpCases] = useState(null); // null = default (first 5 open)
+  const [expCases, setExpCases] = useState(new Set());
   const [recentOpen, setRecentOpen] = useState(true);
   const [courtroomOpen, setCourtroomOpen] = useState(true);
   const [headlineCatFilt, setHeadlineCatFilt] = useState("All");
@@ -960,15 +960,13 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
               >
                 <Mono style={{ fontSize: 11, color: T.textDim, transition: "transform .15s", transform: recentOpen ? "rotate(90deg)" : "none" }}>▸</Mono>
                 <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
-                  Recent Activity <span style={{ fontWeight: 400 }}>({recentActivity.length} case{recentActivity.length !== 1 ? "s" : ""})</span>
+                  Recent Activity <span style={{ fontWeight: 400 }}>({Math.min(5, recentActivity.length)} of {recentActivity.length} case{recentActivity.length !== 1 ? "s" : ""})</span>
                 </Mono>
               </div>
-              {recentOpen && recentActivity.map((c, idx) => {
-                const isOpen = expCases === null ? idx < 5 : expCases.has(c.id);
+              {recentOpen && recentActivity.slice(0, 5).map((c, idx) => {
+                const isOpen = expCases !== null && expCases.has(c.id);
                 const toggleCase = () => setExpCases(prev => {
-                  const s = prev === null
-                    ? new Set(recentActivity.slice(0, 5).map(x => x.id))
-                    : new Set(prev);
+                  const s = new Set(prev);
                   if (s.has(c.id)) s.delete(c.id); else s.add(c.id);
                   return s;
                 });
