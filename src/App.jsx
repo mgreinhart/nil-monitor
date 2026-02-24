@@ -748,7 +748,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                     {isStale && <span style={{ color: T.textDim }}>{" \u00B7 "}Latest available</span>}
                   </Mono>
                 </div>
-                <Mono style={{ fontSize: 12, fontWeight: 700, color: T.accent, letterSpacing: ".5px", marginTop: 6 }}>
+                <Mono style={{ fontSize: 15, fontWeight: 700, color: T.accent, letterSpacing: ".5px", marginTop: 6 }}>
                   {briefingRevealed ? "CLICK TO COLLAPSE" : "CLICK TO EXPAND"}
                 </Mono>
               </div>
