@@ -69,15 +69,9 @@ async function getNewCaseUpdates(db, since) {
 }
 
 // ── Task 1: Tag Untagged Headlines ───────────────────────────────
-async function tagHeadlines(env, db) {
-  // Find headlines without category or severity
-  const { results: untagged } = await db.prepare(
-    'SELECT id, source, title, url FROM headlines WHERE category IS NULL OR severity IS NULL ORDER BY published_at DESC LIMIT 200'
-  ).all();
+const TAG_BATCH_SIZE = 50;  // Keep batches small so response JSON fits within max_tokens
 
-  if (untagged.length === 0) return 0;
-
-  const system = `You are tagging headlines for a college athletics regulatory dashboard called NIL Monitor.
+const TAG_SYSTEM_PROMPT = `You are tagging headlines for a college athletics regulatory dashboard called NIL Monitor.
 
 For each headline, assign:
 
@@ -104,7 +98,8 @@ Sub-category (ONLY for "CSC / Enforcement" headlines — omit for all other cate
 
 Return ONLY valid JSON, no other text.`;
 
-  const headlineList = untagged.map(h =>
+async function tagHeadlineBatch(env, db, batch) {
+  const headlineList = batch.map(h =>
     `ID ${h.id}: [${h.source}] ${h.title}`
   ).join('\n');
 
@@ -116,30 +111,59 @@ ${headlineList}
 Return JSON:
 {
   "tags": [
-    { "id": ${untagged[0].id}, "category": "Category Name", "severity": "routine|important|critical", "sub_category": "only for CSC / Enforcement, omit otherwise" }
+    { "id": ${batch[0].id}, "category": "Category Name", "severity": "routine|important|critical", "sub_category": "only for CSC / Enforcement, omit otherwise" }
   ]
 }`;
 
-  try {
-    const result = await callClaude(env, system, userContent);
-    const tags = result.tags || [];
-    let count = 0;
-    for (const tag of tags) {
-      try {
-        await db.prepare(
-          'UPDATE headlines SET category = ?, severity = ?, sub_category = ? WHERE id = ?'
-        ).bind(tag.category, tag.severity, tag.sub_category || null, tag.id).run();
-        count++;
-      } catch (err) {
-        // Skip errors
-      }
+  const result = await callClaude(env, TAG_SYSTEM_PROMPT, userContent);
+  const tags = result.tags || [];
+  console.log(`Tagging batch: Claude returned ${tags.length} tags for ${batch.length} headlines`);
+
+  let count = 0;
+  let dbErrors = 0;
+  for (const tag of tags) {
+    try {
+      await db.prepare(
+        'UPDATE headlines SET category = ?, severity = ?, sub_category = ? WHERE id = ?'
+      ).bind(tag.category, tag.severity, tag.sub_category || null, tag.id).run();
+      count++;
+    } catch (err) {
+      dbErrors++;
+      console.error(`Tagging DB error for headline ${tag.id}:`, err.message);
     }
-    return count;
-  } catch (err) {
-    console.error('Headline tagging failed:', err.message);
-    PIPELINE_ERRORS.push(`tagging: ${err.message}`);
-    return 0;
   }
+  if (dbErrors > 0) console.warn(`Tagging batch: ${dbErrors} DB write errors`);
+  return count;
+}
+
+async function tagHeadlines(env, db) {
+  const { results: untagged } = await db.prepare(
+    'SELECT id, source, title, url FROM headlines WHERE category IS NULL OR severity IS NULL ORDER BY published_at DESC LIMIT 200'
+  ).all();
+
+  console.log(`Tagging: found ${untagged.length} untagged headlines`);
+  if (untagged.length === 0) return 0;
+
+  let totalTagged = 0;
+  // Process in batches to keep prompt + response within token limits
+  for (let i = 0; i < untagged.length; i += TAG_BATCH_SIZE) {
+    const batch = untagged.slice(i, i + TAG_BATCH_SIZE);
+    const batchNum = Math.floor(i / TAG_BATCH_SIZE) + 1;
+    const totalBatches = Math.ceil(untagged.length / TAG_BATCH_SIZE);
+    console.log(`Tagging batch ${batchNum}/${totalBatches}: ${batch.length} headlines (IDs ${batch[0].id}–${batch[batch.length - 1].id})`);
+
+    try {
+      const count = await tagHeadlineBatch(env, db, batch);
+      totalTagged += count;
+      console.log(`Tagging batch ${batchNum}/${totalBatches}: wrote ${count} tags`);
+    } catch (err) {
+      console.error(`Tagging batch ${batchNum}/${totalBatches} FAILED:`, err.message);
+      PIPELINE_ERRORS.push(`tagging batch ${batchNum}: ${err.message}`);
+    }
+  }
+
+  console.log(`Tagging complete: ${totalTagged}/${untagged.length} headlines tagged`);
+  return totalTagged;
 }
 
 // ── Task 2: CSC Activity Detection ───────────────────────────────
