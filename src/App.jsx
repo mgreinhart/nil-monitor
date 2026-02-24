@@ -1085,9 +1085,7 @@ const InfoModal = ({ onClose }) => (
       <p style={{ fontFamily: T.sans, fontSize: 15, lineHeight: 1.7, color: T.textMid, margin: "0 0 12px" }}>
         We track the regulatory, legal, and governance landscape across five domains: state and federal legislation, active litigation, NCAA governance, College Sports Commission enforcement, and the news environment that shapes institutional attention.
       </p>
-      <p style={{ fontFamily: T.sans, fontSize: 15, lineHeight: 1.7, color: T.textMid, margin: "0 0 20px" }}>
-        We are the <strong style={{ color: T.text }}>first screen</strong> — the check that determines how you spend the rest of your morning.
-      </p>
+      <div style={{ marginBottom: 8 }} />
       <h3 style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, color: T.text, margin: "0 0 8px" }}>Data Sources</h3>
       <div style={{ marginBottom: 16 }}>
         {[
