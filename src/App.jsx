@@ -546,7 +546,6 @@ const StateLegislationMap = () => {
 //  MONITOR PAGE — The Dashboard (live from D1, falls back to mock)
 // ╚═══════════════════════════════════════════════════════════════════
 const MonitorPage = ({ onRefresh, isMobile }) => {
-  const [expCases, setExpCases] = useState(new Set());
   const [showAllTimeline, setShowAllTimeline] = useState(false);
   const [courtroomOpen, setCourtroomOpen] = useState(true);
   const [headlineCatFilt, setHeadlineCatFilt] = useState("All");
@@ -874,7 +873,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
           }
         >
           {!courtroomOpen ? null : <>
-          {/* ── UNIFIED TIMELINE — Key Dates + Recent Activity merged ── */}
+          {/* ── UNIFIED TIMELINE — single flat list ── */}
           {(() => {
             const today = new Date().toISOString().split("T")[0];
             const daysUntil = (dateStr) => {
@@ -889,34 +888,34 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
               return "BRIEF";
             };
 
-            // Build unified items
+            // Build unified items — one format
             const upcomingItems = [];
             const restItems = [];
             if (keyDates) for (const d of keyDates) {
               const isUpcoming = d.date >= today;
               const item = {
-                kind: isUpcoming ? "upcoming" : "past-keydate",
+                upcoming: isUpcoming,
                 sortDate: d.date,
-                date: d.date,
                 name: d.case_name,
                 detail: d.description,
-                label: isUpcoming ? null : keyDateLabel(d.description),
+                label: isUpcoming ? countdownLabel(daysUntil(d.date)) : keyDateLabel(d.description),
                 days: isUpcoming ? daysUntil(d.date) : null,
+                dateStr: formatDate(d.date),
               };
               if (isUpcoming) upcomingItems.push(item); else restItems.push(item);
             }
             for (const c of recentActivity) {
               restItems.push({
-                kind: "filing",
+                upcoming: false,
                 sortDate: c.last_event_date || "1970-01-01",
-                date: c.last_event_date,
                 name: c.name,
                 detail: c.last_event_text,
-                caseData: c,
+                label: "FILING",
+                days: null,
+                dateStr: c.last_event_date ? formatDate(c.last_event_date) : "",
               });
             }
 
-            // Upcoming: nearest date first; rest: most recent first
             upcomingItems.sort((a, b) => a.sortDate < b.sortDate ? -1 : 1);
             restItems.sort((a, b) => a.sortDate > b.sortDate ? -1 : 1);
             const items = [...upcomingItems, ...restItems];
@@ -927,100 +926,34 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
             return items.length > 0 ? (
               <div style={{ borderBottom: `1px solid ${T.border}` }}>
                 {visible.map((item, i) => {
-                  if (item.kind === "upcoming") {
-                    return (
-                      <div key={`t${i}`} style={{
-                        display: "flex", alignItems: "center", gap: 10, padding: "10px 16px",
-                        background: `${T.accent}08`, borderBottom: `1px solid ${T.accent}20`,
-                      }}>
-                        <Mono style={{ fontSize: 15, fontWeight: 700, color: T.accent, flexShrink: 0, width: 56 }}>
-                          {formatDate(item.date)}
-                        </Mono>
-                        <strong style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 700, color: T.text, flexShrink: 0 }}>{item.name}</strong>
-                        <Mono style={{ fontSize: 13, color: T.textMid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {item.detail}</Mono>
-                        <div style={{ flex: 1 }} />
-                        <span style={{
-                          fontFamily: T.mono, fontSize: 10, fontWeight: 700, letterSpacing: "0.5px",
-                          color: item.days <= 3 ? "#fff" : T.accent,
-                          background: item.days <= 3 ? T.accent : `${T.accent}18`,
-                          padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
-                        }}>
-                          {countdownLabel(item.days)}
-                        </span>
-                      </div>
-                    );
-                  }
-                  if (item.kind === "past-keydate") {
-                    return (
-                      <div key={`t${i}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 16px", opacity: 0.5, borderBottom: `1px solid ${T.borderLight}` }}>
-                        <Mono style={{ fontSize: 13, fontWeight: 600, color: T.textDim, flexShrink: 0, width: 48 }}>
-                          {formatDate(item.date)}
-                        </Mono>
-                        <strong style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 700, color: T.textDim, flexShrink: 0 }}>{item.name}</strong>
-                        <Mono style={{ fontSize: 12.5, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {item.detail}</Mono>
-                        <div style={{ flex: 1 }} />
-                        <span style={{
-                          fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px",
-                          color: T.textDim, background: `${T.textDim}15`,
-                          padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
-                        }}>
-                          {item.label}
-                        </span>
-                      </div>
-                    );
-                  }
-                  // filing — expandable
-                  const c = item.caseData;
-                  const isOpen = expCases.has(c.id);
-                  const toggleCase = () => setExpCases(prev => {
-                    const s = new Set(prev);
-                    if (s.has(c.id)) s.delete(c.id); else s.add(c.id);
-                    return s;
-                  });
-                  const eventSnippet = c.last_event_text
-                    ? (c.last_event_text.length > 80 ? c.last_event_text.slice(0, 80) + "..." : c.last_event_text)
+                  const isUp = item.upcoming;
+                  const muted = !isUp && item.label !== "FILING";
+                  const textColor = muted ? T.textDim : T.text;
+                  const detailColor = muted ? T.textDim : T.textDim;
+                  const snippet = item.detail
+                    ? (item.detail.length > 80 ? item.detail.slice(0, 80) + "..." : item.detail)
                     : "";
-                  const descSnippet = c.description || "";
                   return (
-                    <div key={`t${i}`} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
-                      <div
-                        onClick={toggleCase}
-                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 16px", cursor: "pointer" }}
-                        onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
-                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                      >
-                        <Mono style={{ fontSize: 11, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>
-                        <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.text, flexShrink: 0 }}>{c.name}</strong>
-                        {eventSnippet && <Mono style={{ fontSize: 13, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&nbsp;· {eventSnippet}</Mono>}
-                        <div style={{ flex: 1 }} />
-                        <span style={{
-                          fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px",
-                          color: T.textDim, background: `${T.textDim}15`,
-                          padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0, marginRight: c.last_event_date ? 8 : 0,
-                        }}>
-                          FILING
-                        </span>
-                        {c.last_event_date && (
-                          <Mono style={{ fontSize: 13, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap" }}>Last: {formatDate(c.last_event_date)}</Mono>
-                        )}
-                      </div>
-                      <div style={{
-                        maxHeight: isOpen ? 1000 : 0, overflow: "hidden",
-                        transition: "max-height .2s ease, opacity .2s ease",
-                        opacity: isOpen ? 1 : 0,
+                    <div key={`t${i}`} style={{
+                      display: "flex", alignItems: "center", gap: 8, padding: "6px 16px",
+                      borderBottom: `1px solid ${T.borderLight}`,
+                      opacity: muted ? 0.55 : 1,
+                      ...(isUp ? { background: `${T.accent}08`, borderBottomColor: `${T.accent}20` } : {}),
+                    }}>
+                      <strong style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: isUp ? T.accent : textColor, flexShrink: 0 }}>{item.name}</strong>
+                      {snippet && <Mono style={{ fontSize: 13, color: detailColor, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>&middot; {snippet}</Mono>}
+                      <div style={{ flex: 1 }} />
+                      <span style={{
+                        fontFamily: T.mono, fontSize: 10, fontWeight: isUp ? 700 : 600, letterSpacing: "0.5px",
+                        color: isUp ? (item.days <= 3 ? "#fff" : T.accent) : T.textDim,
+                        background: isUp ? (item.days <= 3 ? T.accent : `${T.accent}18`) : `${T.textDim}15`,
+                        padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
                       }}>
-                        <div style={{ padding: "8px 16px 12px 24px" }}>
-                          <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 8, display: "block" }}>
-                            {[c.court, c.judge && `Judge ${c.judge}`, c.case_number, c.filed_date].filter(Boolean).join(" · ")}
-                          </Mono>
-                          {descSnippet && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textMid, lineHeight: 1.5, marginBottom: 8 }}>{descSnippet}</div>}
-                          {c.cslt_url && (
-                            <a href={c.cslt_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}>
-                              <Mono style={{ fontSize: 12, fontWeight: 600, color: T.accent }}>Full case detail →</Mono>
-                            </a>
-                          )}
-                        </div>
-                      </div>
+                        {item.label}
+                      </span>
+                      <Mono style={{ fontSize: 13, color: isUp ? T.accent : T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
+                        {item.dateStr}
+                      </Mono>
                     </div>
                   );
                 })}
