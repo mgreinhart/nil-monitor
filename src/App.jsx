@@ -1091,9 +1091,10 @@ const InfoModal = ({ onClose }) => (
       <h3 style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, color: T.text, margin: "0 0 8px" }}>Data Sources</h3>
       <div style={{ marginBottom: 16 }}>
         {[
-          ["Google News RSS", "News aggregation (19 targeted queries)", "Free"],
-          ["Bing News RSS", "News aggregation (15 targeted queries)", "Free"],
+          ["Google News RSS", "News aggregation (21 targeted queries)", "Free"],
+          ["Bing News RSS", "News aggregation (17 targeted queries)", "Free"],
           ["NewsData.io", "News aggregation (87K+ sources)", "API"],
+          ["GDELT", "Global news volume tracking (30-day trends)", "Free"],
           ["Sportico", "Sports business journalism", "RSS"],
           ["Front Office Sports", "Sports business journalism", "RSS"],
           ["Business of College Sports", "Sports business journalism", "RSS"],
@@ -1105,9 +1106,8 @@ const InfoModal = ({ onClose }) => (
           ["NYT Sports", "National sports coverage", "RSS"],
           ["NIL Revolution", "Legal analysis (Troutman Pepper)", "RSS"],
           ["NCAA.org", "Governance + rule changes", "RSS"],
-          ["CourtListener / RECAP", "Federal court filings + alerts", "API"],
-          ["LegiScan", "50-state + federal bill tracking", "API"],
-          ["X (Twitter) List", "Real-time curated feed", "Embed"],
+          ["CSLT", "College sports litigation tracker (cases + key dates)", "Scrape"],
+          ["Podcast Feeds", "5 NIL/college sports podcasts (latest episodes)", "RSS"],
         ].map(([src, what, method], i) => (
           <div key={i} style={{ display: "flex", padding: "4px 0", borderBottom: `1px solid ${T.borderLight}` }}>
             <Mono style={{ fontSize: 11, fontWeight: 600, color: T.text, flex: "0 0 180px" }}>{src}</Mono>
@@ -1118,7 +1118,7 @@ const InfoModal = ({ onClose }) => (
       </div>
       <h3 style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, color: T.text, margin: "0 0 8px" }}>Methodology</h3>
       <p style={{ fontFamily: T.sans, fontSize: 15, lineHeight: 1.7, color: T.textMid, margin: 0 }}>
-        All data is aggregated automatically from public sources. An AI processing pipeline reads, categorizes, and routes information — generating the daily briefing, extracting deadlines from filings, detecting new cases, and tagging CSC activity. No editorial judgment on inclusion. All content links to original sources. Zero manual maintenance after initial setup.
+        All data is aggregated automatically from public sources. An AI processing pipeline reads, categorizes, and routes information — generating the daily briefing, extracting deadlines from filings, detecting new cases, and tagging CSC activity. No editorial judgment on inclusion. All content links to original sources. State legislation data is updated periodically from the Troutman Pepper NIL tracker.
       </p>
     </div>
   </div>
