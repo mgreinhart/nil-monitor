@@ -647,11 +647,10 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
       // Remove: >6 months stale with no upcoming, or no date info at all
       if (!c.soonest && (!lastDate || lastDate < sixMonthsAgo)) continue;
 
-      // Tier 2: activity in last 30 days, no upcoming action
-      if (!c.soonest && lastDate && lastDate >= thirtyDaysAgo) {
+      // Include all cases with activity in last 30 days
+      if (lastDate && lastDate >= thirtyDaysAgo) {
         recent.push(c);
       }
-      // Everything else (including cases with upcoming dates) → Tier 3, not shown
     }
 
     // Sort Tier 2 by most recent activity first
