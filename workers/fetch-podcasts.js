@@ -19,7 +19,7 @@ const PODCAST_FEEDS = [
 
 function getCooldown() {
   const h = getETHour();
-  if (h >= 6 && h < 22) return 360; // 6 hours
+  if (h >= 6 && h < 22) return 120; // 2 hours — catches morning shows faster
   return null; // skip overnight
 }
 

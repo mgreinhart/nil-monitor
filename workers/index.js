@@ -31,7 +31,10 @@ export default {
     if (cron === '0 11,21 * * *') {
       // AI pipeline — 11:00 UTC (6 AM ET) / 21:00 UTC (4 PM ET)
       const isAfternoon = new Date().getUTCHours() >= 20;
-      ctx.waitUntil(runAIPipeline(env, { includeBriefing: true, isAfternoon }));
+      ctx.waitUntil(
+        runAIPipeline(env, { includeBriefing: true, isAfternoon })
+          .catch(e => console.error('ai-pipeline cron error:', e.message))
+      );
     } else {
       // */15 trigger — all fetchers run (each self-governs its cooldown)
       // Pre-load dedup cache: 1 query replaces hundreds of per-headline queries
