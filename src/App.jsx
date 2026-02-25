@@ -1334,12 +1334,12 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                       );
                     })()}
 
-                    {/* X-axis labels */}
-                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
-                      <Mono style={{ fontSize: 11, color: T.textDim }}>{fmtLabel(uniqueDays[0])}</Mono>
-                      {uniqueDays.length > 2 && <Mono style={{ fontSize: 11, color: T.textDim }}>{fmtLabel(uniqueDays[midIdx])}</Mono>}
-                      <Mono style={{ fontSize: 11, color: T.textDim }}>{fmtLabel(uniqueDays[uniqueDays.length - 1])}</Mono>
-                    </div>
+                    {/* X-axis labels — positioned to match SVG data points */}
+                    <svg viewBox={`0 0 ${W} 20`} style={{ width: "100%", height: 20, display: "block" }}>
+                      <text x={PX} y="14" textAnchor="start" style={{ fontSize: 11, fontFamily: T.mono, fill: T.textDim }}>{fmtLabel(uniqueDays[0])}</text>
+                      {uniqueDays.length > 2 && <text x={PX + midIdx * xStep} y="14" textAnchor="middle" style={{ fontSize: 11, fontFamily: T.mono, fill: T.textDim }}>{fmtLabel(uniqueDays[midIdx])}</text>}
+                      <text x={PX + (uniqueDays.length - 1) * xStep} y="14" textAnchor="end" style={{ fontSize: 11, fontFamily: T.mono, fill: T.textDim }}>{fmtLabel(uniqueDays[uniqueDays.length - 1])}</text>
+                    </svg>
                   </div>
                 )}
 
