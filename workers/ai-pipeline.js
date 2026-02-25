@@ -361,12 +361,15 @@ Return ONLY valid JSON, no other text.`;
 
   const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
+  const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const yesterdayET = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); })();
+
   let userContent;
   if (isAfternoon) {
     // Fetch this morning's briefing — carry-over is fine for impactful items
     const morningBriefing = await db.prepare(
-      "SELECT content FROM briefings WHERE date = date('now') ORDER BY id DESC LIMIT 1"
-    ).first();
+      "SELECT content FROM briefings WHERE date = ? ORDER BY id DESC LIMIT 1"
+    ).bind(todayET).first();
     const morningContent = morningBriefing?.content || '[]';
     const morningText = JSON.parse(morningContent)
       .map(s => `• ${s.headline} ${s.body}`)
@@ -399,8 +402,8 @@ Return JSON (EXACTLY 4 sections):
   } else {
     // Fetch yesterday's last briefing so the morning avoids repeating it
     const yesterdayBriefing = await db.prepare(
-      "SELECT content FROM briefings WHERE date = date('now', '-1 day') ORDER BY id DESC LIMIT 1"
-    ).first();
+      "SELECT content FROM briefings WHERE date = ? ORDER BY id DESC LIMIT 1"
+    ).bind(yesterdayET).first();
     const yesterdayContent = yesterdayBriefing?.content || '[]';
     const yesterdayText = JSON.parse(yesterdayContent)
       .map(s => `• ${s.headline}`)
@@ -507,7 +510,8 @@ async function writeBriefing(db, sections) {
     return 0;
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  // Use ET date, not UTC — avoids "Latest available" mismatch when UTC is ahead of ET
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
   // Never overwrite a good briefing with a worse one
   try {
