@@ -1191,9 +1191,9 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
 
             // Card styling
             const cardStyle = { background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius, padding: "10px 14px", minWidth: 0 };
-            const cardLabel = { fontFamily: T.mono, fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 4 };
-            const cardValue = { fontFamily: T.sans, fontSize: 17, fontWeight: 700, lineHeight: 1.3 };
-            const cardSub = { fontFamily: T.mono, fontSize: 11, color: T.textDim, marginTop: 2 };
+            const cardLabel = { fontFamily: T.mono, fontSize: 9, fontWeight: 700, letterSpacing: "1px", color: "#7c8698", textTransform: "uppercase", marginBottom: 4 };
+            const cardValue = { fontFamily: T.mono, fontSize: 14, fontWeight: 700, lineHeight: 1.3, color: T.text };
+            const cardSub = { fontFamily: T.mono, fontSize: 10, color: "#7c8698", marginTop: 2 };
 
             return (
               <div>
@@ -1203,39 +1203,39 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                     <div style={cardLabel}>Coverage Shift</div>
                     {shiftCat ? (
                       <>
-                        <div style={{ ...cardValue, color: CAT_COLORS[shiftCat] || T.text }}>
+                        <div style={cardValue}>
                           {CAT_SHORT[shiftCat]} {shiftPct >= 0 ? `↑${Math.round(shiftPct)}%` : `↓${Math.round(Math.abs(shiftPct))}%`}
                         </div>
                         <div style={cardSub}>vs. last week</div>
                       </>
-                    ) : <div style={{ ...cardValue, color: T.textDim }}>No data</div>}
+                    ) : <div style={{ ...cardValue, color: "#7c8698" }}>No data</div>}
                   </div>
                   <div style={cardStyle}>
                     <div style={cardLabel}>Dominant Topic</div>
                     {domCat ? (
                       <>
-                        <div style={{ ...cardValue, color: CAT_COLORS[domCat] || T.text }}>
+                        <div style={cardValue}>
                           {CAT_SHORT[domCat]} · {domPct}%
                         </div>
                         <div style={cardSub}>of coverage this week</div>
                       </>
-                    ) : <div style={{ ...cardValue, color: T.textDim }}>No data</div>}
+                    ) : <div style={{ ...cardValue, color: "#7c8698" }}>No data</div>}
                   </div>
                   <div style={cardStyle}>
                     <div style={cardLabel}>Source Breadth</div>
-                    <div style={{ ...cardValue, color: T.text }}>{sourceBreadth}</div>
+                    <div style={cardValue}>{sourceBreadth}</div>
                     <div style={cardSub}>publications this week</div>
                   </div>
                   <div style={cardStyle}>
                     <div style={cardLabel}>Quiet Zone</div>
                     {quietCat && quietDays > 7 ? (
                       <>
-                        <div style={{ ...cardValue, color: CAT_COLORS[quietCat] || T.textDim, fontSize: 15 }}>
+                        <div style={cardValue}>
                           {CAT_SHORT[quietCat]}
                         </div>
                         <div style={cardSub}>{quietDays >= 999 ? "No coverage recorded" : `No coverage in ${quietDays}d`}</div>
                       </>
-                    ) : <div style={{ ...cardValue, color: T.green, fontSize: 14 }}>All active this week</div>}
+                    ) : <div style={cardValue}>All active this week</div>}
                   </div>
                 </div>
 
