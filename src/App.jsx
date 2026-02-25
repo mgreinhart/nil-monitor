@@ -1397,22 +1397,46 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
             )}
           </Panel>
           <Panel title="Resources" accent={T.textDim} size="sm">
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {[
-                { label: "College Sports Litigation Tracker", href: "https://www.collegesportslitigationtracker.com" },
-                { label: "Troutman Pepper NIL Tracker", href: "https://www.troutman.com/state-and-federal-nil-legislation-tracker/" },
-                { label: "NIL Revolution Blog", href: "https://www.nilrevolution.com" },
-                { label: "On3 NIL", href: "https://www.on3.com/nil/" },
-                { label: "CourtListener", href: "https://www.courtlistener.com" },
-                { label: "NIL Monitor X List", href: X_LIST_URL },
-              ].map((r, i) => (
-                <a key={i} href={r.href} target="_blank" rel="noopener noreferrer"
-                  style={{ textDecoration: "none", fontFamily: T.mono, fontSize: 13, color: T.textDim, display: "flex", alignItems: "center", gap: 6 }}
-                  onMouseEnter={e => { e.currentTarget.style.color = T.accent; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = T.textDim; }}
-                >
-                  <span style={{ color: T.accent }}>→</span> {r.label}
-                </a>
+                { heading: "Legal & Compliance", links: [
+                  { label: "College Sports Litigation Tracker", href: "https://www.collegesportslitigationtracker.com" },
+                  { label: "Troutman Pepper NIL Tracker", href: "https://www.troutman.com/state-and-federal-nil-legislation-tracker/" },
+                  { label: "NIL Revolution Blog", href: "https://www.nilrevolution.com" },
+                ]},
+                { heading: "Data & Research", links: [
+                  { label: "Knight-Newhouse College Athletics Database", href: "https://knightnewhousedata.org" },
+                  { label: "nil-ncaa.com", href: "https://nil-ncaa.com" },
+                  { label: "On3 NIL Valuations", href: "https://www.on3.com/nil/" },
+                ]},
+                { heading: "Governance & Policy", links: [
+                  { label: "NCAA.org Governance", href: "https://www.ncaa.org/sports/2023/2/14/governance.aspx" },
+                  { label: "Congress.gov", href: "https://www.congress.gov/search?q=%7B%22source%22%3A%22legislation%22%2C%22search%22%3A%22NCAA+OR+%22college+athlete%22+OR+NIL%22%7D" },
+                ]},
+                { heading: "Industry", links: [
+                  { label: "AthleticDirectorU", href: "https://athleticdirectoru.com" },
+                  { label: "NACDA", href: "https://nacda.com" },
+                  { label: "D1.ticker", href: "https://d1ticker.com" },
+                  { label: "Front Office Sports", href: "https://frontofficesports.com" },
+                ]},
+                { heading: "Follow", links: [
+                  { label: "NIL Monitor X List", href: X_LIST_URL },
+                ]},
+              ].map((group, gi) => (
+                <div key={gi}>
+                  <div style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, letterSpacing: "1px", color: "#7c8698", textTransform: "uppercase", marginBottom: 4 }}>{group.heading}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    {group.links.map((r, i) => (
+                      <a key={i} href={r.href} target="_blank" rel="noopener noreferrer"
+                        style={{ textDecoration: "none", fontFamily: T.mono, fontSize: 12, color: T.textDim, display: "flex", alignItems: "center", gap: 6 }}
+                        onMouseEnter={e => { e.currentTarget.style.color = T.accent; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = T.textDim; }}
+                      >
+                        <span style={{ color: T.accent }}>→</span> {r.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </Panel>
