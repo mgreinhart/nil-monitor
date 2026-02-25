@@ -138,6 +138,21 @@ CREATE TABLE IF NOT EXISTS cslt_key_dates (
   fetched_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Private equity deals in college athletics
+CREATE TABLE IF NOT EXISTS pe_deals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  investor TEXT NOT NULL,
+  target TEXT NOT NULL,
+  conference TEXT,
+  amount TEXT,
+  announced_date TEXT,
+  status TEXT DEFAULT 'closed',
+  terms_summary TEXT,
+  source_url TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
 -- Fetcher self-governing cooldowns
 CREATE TABLE IF NOT EXISTS fetcher_runs (
   fetcher_name TEXT PRIMARY KEY,

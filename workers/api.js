@@ -526,6 +526,14 @@ export async function handleApi(request, env) {
       return json(results);
     }
 
+    // Private equity tracker
+    if (path === '/api/pe-tracker') {
+      const { results } = await env.DB.prepare(
+        'SELECT * FROM pe_deals ORDER BY announced_date DESC'
+      ).all();
+      return json(results);
+    }
+
     // Manual trigger for scheduled tasks (dev/admin use)
     if (path === '/api/trigger') {
       const { loadDedupCache, clearDedupCache } = await import('./fetcher-utils.js');
@@ -573,6 +581,34 @@ export async function handleApi(request, env) {
           const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
           const del = await env.DB.prepare('DELETE FROM briefings WHERE date > ?').bind(todayET).run();
           log.push(`deleted ${del.meta?.changes || 0} future-dated briefings (today ET: ${todayET})`);
+        }
+        if (phase === 'seed-pe') {
+          await env.DB.prepare(`CREATE TABLE IF NOT EXISTS pe_deals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, investor TEXT NOT NULL, target TEXT NOT NULL,
+            conference TEXT, amount TEXT, announced_date TEXT, status TEXT DEFAULT 'closed',
+            terms_summary TEXT, source_url TEXT,
+            created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
+          )`).run();
+          const deals = [
+            ['Otro Capital','University of Utah','Big 12','~$500M','2025-12','announced','Minority equity stake in new "Utah Brands & Entertainment LLC." University retains majority ownership. Exit clause after 5-7 years. First-ever PE deal with a college athletic department.','https://www.espn.com/college-sports/story/_/id/47267088/utah-private-equity-college-sports-otro-capital'],
+            ['CAS (RedBird + Weatherford)','Big 12 Conference','Big 12','Up to $500M','2025-12','pending','No equity stake sold. $25M into "Big 12 Properties" entity. Each of 16 schools gets optional ~$30M credit line. Schools retain 100% ownership.','https://www.sportico.com/business/finance/2025/big-12-cas-redbird-private-equity-deal-500-million-1234879052/'],
+            ['CVC Capital Partners','Big 12 Conference','Big 12','$800M-$1B proposed','2024-06','dead','Proposed 15-20% equity stake in the conference. Commissioner Yormark said Big 12 "not ready." Talks ended May 2025.','https://www.cbssports.com/college-football/news/big-12-considering-private-equity-investment-of-up-to-1-billion-for-as-much-as-20-of-conference/'],
+            ['UC Investments','Big Ten Conference','Big Ten','$2.4B for 10% stake','2025-10','on_hold','10% equity in new "Big Ten Enterprises" spinoff. Grant of rights extended to 2046. Paused after Michigan and USC boards opposed.','https://www.espn.com/college-sports/story/_/id/47003108/opposition-michigan-usc-pauses-24b-big-ten-deal'],
+            ['Sixth Street','Florida State','ACC','~$250M proposed','2022-01','dead','"Project Osceola" — NewCo for Seminoles commercial rights. Fell apart late 2023 due to ACC exit lawsuit and House v. NCAA uncertainty.','https://www.sportico.com/business/finance/2024/florida-state-sixth-street-private-equity-talks-over-1234819808/'],
+            ['Arctos Partners','Florida State','ACC','~$75M proposed','2022-06','dead','Reviewed term sheets during Project Osceola alongside Sixth Street. $75M initial purchase. Did not advance.','https://www.sportico.com/leagues/college-sports/2024/fsu-project-osceola-private-equity-jp-morgan-1234764861/'],
+            ['Elevate / Velocity / Texas PSF','Multiple schools','Multi','$500M fund','2025-06','announced','Private credit (not equity). No ownership stake. Schools borrow upfront, repay over time. Claims 2 undisclosed Power 4 deals closed.','https://www.cnbc.com/2025/06/09/elevate-launches-500-million-college-sports-investment.html'],
+            ['TBD (BAGS Initiative)','Boise State','Pac-12','Not disclosed','2025-06','exploring','"Bronco Athletics Growth Solutions" — exploring private credit, mixed-use development, stadium expansion. No PE firm announced.','https://frontofficesports.com/boise-state-expects-private-equity-investment-within-the-next-six-months/'],
+            ['Clearlake / Charlesbank / Fortress','Learfield (~200 schools)','Multi','$150M equity + $600M debt reduction','2023-09','closed','Became majority owners of Learfield via equity injection and debt forgiveness. Learfield manages multimedia rights for ~200 schools.','https://www.learfield.com/2023/09/learfield-announces-closing-of-recapitalization-transaction-and-equity-investment-positioning-the-company-for-continued-growth/'],
+            ['KKR','Arctos Partners (acquisition)','N/A','$1.4B + up to $550M','2026-01','announced','KKR acquiring Arctos ($15B AUM, pro sports stakes). Not in college athletics yet but Arctos reviewed FSU term sheets. Positions KKR/Arctos as potential entrant.','https://www.sportico.com/business/finance/2026/kkr-buys-arctos-price-sports-secondaries-1234883498/'],
+          ];
+          let inserted = 0;
+          for (const d of deals) {
+            try {
+              await env.DB.prepare('INSERT OR IGNORE INTO pe_deals (investor,target,conference,amount,announced_date,status,terms_summary,source_url) VALUES (?,?,?,?,?,?,?,?)').bind(...d).run();
+              inserted++;
+            } catch {}
+          }
+          log.push(`pe-deals: inserted ${inserted} deals`);
         }
         if (phase === 'retag') {
           const cleared = await env.DB.prepare('UPDATE headlines SET category = NULL, severity = NULL, sub_category = NULL').run();

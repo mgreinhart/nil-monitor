@@ -566,6 +566,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
   const [coverageIntel, setCoverageIntel] = useState(null);
   const [chartRange, setChartRange] = useState(7);
   const [hoverDay, setHoverDay] = useState(null);
+  const [peDeals, setPeDeals] = useState([]);
 
   const fetchHeadlines = () => {
     fetch("/api/headlines?limit=100").then(r => r.ok ? r.json() : null).then(d => {
@@ -593,6 +594,9 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
     }).catch(() => {});
     fetch("/api/cslt-key-dates").then(r => r.ok ? r.json() : null).then(d => {
       if (d) setKeyDates(d);
+    }).catch(() => {});
+    fetch("/api/pe-tracker").then(r => r.ok ? r.json() : []).then(d => {
+      if (d) setPeDeals(d);
     }).catch(() => {});
     fetchHeadlines();
 
@@ -1359,27 +1363,60 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
           })()}
         </Panel>
 
-        {/* ── Resources ── */}
-        <Panel title="Resources" accent={T.textDim} size="sm">
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 24px" }}>
-            {[
-              { label: "College Sports Litigation Tracker", href: "https://www.collegesportslitigationtracker.com" },
-              { label: "Troutman Pepper NIL Tracker", href: "https://www.troutman.com/state-and-federal-nil-legislation-tracker/" },
-              { label: "NIL Revolution Blog", href: "https://www.nilrevolution.com" },
-              { label: "On3 NIL", href: "https://www.on3.com/nil/" },
-              { label: "CourtListener", href: "https://www.courtlistener.com" },
-              { label: "NIL Monitor X List", href: X_LIST_URL },
-            ].map((r, i) => (
-              <a key={i} href={r.href} target="_blank" rel="noopener noreferrer"
-                style={{ textDecoration: "none", fontFamily: T.mono, fontSize: 13, color: T.textDim, display: "flex", alignItems: "center", gap: 6 }}
-                onMouseEnter={e => { e.currentTarget.style.color = T.accent; }}
-                onMouseLeave={e => { e.currentTarget.style.color = T.textDim; }}
-              >
-                <span style={{ color: T.accent }}>→</span> {r.label}
-              </a>
-            ))}
-          </div>
-        </Panel>
+        {/* ── PE Tracker + Resources (side by side) ── */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
+          <Panel title="PE Tracker" size="sm" noPad>
+            {peDeals.length === 0 ? (
+              <div style={{ padding: "12px 16px" }}>
+                <Mono style={{ fontSize: 12, color: T.textDim }}>Loading deals...</Mono>
+              </div>
+            ) : (
+              <div style={{ maxHeight: 320, overflowY: "auto" }}>
+                {peDeals.filter(d => d.status !== 'dead').map((d, i) => {
+                  const statusColors = { closed: T.textDim, announced: T.accent, pending: "#f59e0b", on_hold: "#7c8698", exploring: "#7c8698" };
+                  return (
+                    <a key={d.id || i} href={d.source_url} target="_blank" rel="noopener noreferrer"
+                      style={{
+                        display: "block", padding: "8px 14px", textDecoration: "none",
+                        borderBottom: `1px solid ${T.borderLight}`, background: "transparent",
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                        <Mono style={{ fontSize: 13, fontWeight: 700, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.investor}</Mono>
+                        <Mono style={{ fontSize: 10, fontWeight: 600, color: statusColors[d.status] || T.textDim, textTransform: "uppercase", letterSpacing: ".5px", flexShrink: 0 }}>{d.status === 'on_hold' ? 'On Hold' : d.status}</Mono>
+                      </div>
+                      <Mono style={{ fontSize: 12, color: T.textDim, marginTop: 2 }}>
+                        {d.target}{d.conference && d.conference !== 'N/A' ? ` (${d.conference})` : ''}{d.amount && d.amount !== 'Not disclosed' ? ` · ${d.amount}` : ''}
+                      </Mono>
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </Panel>
+          <Panel title="Resources" accent={T.textDim} size="sm">
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[
+                { label: "College Sports Litigation Tracker", href: "https://www.collegesportslitigationtracker.com" },
+                { label: "Troutman Pepper NIL Tracker", href: "https://www.troutman.com/state-and-federal-nil-legislation-tracker/" },
+                { label: "NIL Revolution Blog", href: "https://www.nilrevolution.com" },
+                { label: "On3 NIL", href: "https://www.on3.com/nil/" },
+                { label: "CourtListener", href: "https://www.courtlistener.com" },
+                { label: "NIL Monitor X List", href: X_LIST_URL },
+              ].map((r, i) => (
+                <a key={i} href={r.href} target="_blank" rel="noopener noreferrer"
+                  style={{ textDecoration: "none", fontFamily: T.mono, fontSize: 13, color: T.textDim, display: "flex", alignItems: "center", gap: 6 }}
+                  onMouseEnter={e => { e.currentTarget.style.color = T.accent; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = T.textDim; }}
+                >
+                  <span style={{ color: T.accent }}>→</span> {r.label}
+                </a>
+              ))}
+            </div>
+          </Panel>
+        </div>
       </div>
 
       {/* ══ SIDEBAR ══ */}
