@@ -33,15 +33,17 @@ function getCooldown() {
   return null;
 }
 
-export async function fetchPublications(env) {
-  const cooldown = getCooldown();
-  if (cooldown === null) {
-    console.log('Publications: outside active hours, skipping');
-    return;
-  }
-  if (!await shouldRun(env.DB, FETCHER, cooldown)) {
-    console.log(`Publications: cooldown (${cooldown}m) not elapsed, skipping`);
-    return;
+export async function fetchPublications(env, { force = false } = {}) {
+  if (!force) {
+    const cooldown = getCooldown();
+    if (cooldown === null) {
+      console.log('Publications: outside active hours, skipping');
+      return;
+    }
+    if (!await shouldRun(env.DB, FETCHER, cooldown)) {
+      console.log(`Publications: cooldown (${cooldown}m) not elapsed, skipping`);
+      return;
+    }
   }
 
   console.log('Fetching publication RSS feeds...');

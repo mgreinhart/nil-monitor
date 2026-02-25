@@ -556,13 +556,13 @@ export async function handleApi(request, env) {
         if (phase === 'fetch' || phase === 'all') {
           await loadDedupCache(env.DB);
           await Promise.all([
-            fetchGoogleNews(env).then(() => log.push('google-news: ok')).catch(e => log.push(`google-news: ${e.message}`)),
-            fetchBingNews(env).then(() => log.push('bing-news: ok')).catch(e => log.push(`bing-news: ${e.message}`)),
+            fetchGoogleNews(env, { force: true }).then(() => log.push('google-news: ok')).catch(e => log.push(`google-news: ${e.message}`)),
+            fetchBingNews(env, { force: true }).then(() => log.push('bing-news: ok')).catch(e => log.push(`bing-news: ${e.message}`)),
             fetchNCAANews(env).then(() => log.push('ncaa-rss: ok')).catch(e => log.push(`ncaa-rss: ${e.message}`)),
             fetchNewsData(env).then(() => log.push('newsdata: ok')).catch(e => log.push(`newsdata: ${e.message}`)),
             fetchCourtListener(env).then(() => log.push('courtlistener: ok')).catch(e => log.push(`courtlistener: ${e.message}`)),
             fetchNILRevolution(env).then(() => log.push('nil-revolution: ok')).catch(e => log.push(`nil-revolution: ${e.message}`)),
-            fetchPublications(env).then(() => log.push('publications: ok')).catch(e => log.push(`publications: ${e.message}`)),
+            fetchPublications(env, { force: true }).then(() => log.push('publications: ok')).catch(e => log.push(`publications: ${e.message}`)),
             fetchCSLT(env, { force: true }).then(() => log.push('cslt: ok')).catch(e => log.push(`cslt: ${e.message}`)),
             fetchCSLTKeyDates(env, { force: true }).then(() => log.push('cslt-keydates: ok')).catch(e => log.push(`cslt-keydates: ${e.message}`)),
             fetchPodcasts(env, { force: true }).then(() => log.push('podcasts: ok')).catch(e => log.push(`podcasts: ${e.message}`)),
@@ -609,6 +609,25 @@ export async function handleApi(request, env) {
             } catch {}
           }
           log.push(`pe-deals: inserted ${inserted} deals`);
+        }
+        if (phase === 'test-feeds') {
+          const testUrls = [
+            'https://www.nytimes.com/athletic/rss/college-football/',
+            'https://www.nytimes.com/athletic/rss/college-sports/',
+            'https://www.cbssports.com/rss/headlines/college-football/',
+            'https://www.espn.com/espn/rss/ncf/news',
+            'https://www.on3.com/feed/',
+          ];
+          for (const u of testUrls) {
+            try {
+              const r = await fetch(u, { headers: { 'User-Agent': 'NILMonitor/1.0 (RSS Reader)' } });
+              const body = await r.text();
+              const itemCount = (body.match(/<item>/g) || []).length;
+              log.push(`${new URL(u).hostname}: ${r.status} (${itemCount} items, ${body.length} bytes)`);
+            } catch (e) {
+              log.push(`${new URL(u).hostname}: ERROR ${e.message}`);
+            }
+          }
         }
         if (phase === 'retag') {
           const cleared = await env.DB.prepare('UPDATE headlines SET category = NULL, severity = NULL, sub_category = NULL').run();

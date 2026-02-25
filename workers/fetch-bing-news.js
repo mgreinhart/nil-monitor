@@ -54,15 +54,17 @@ function buildBingNewsUrl(query) {
   return `https://www.bing.com/news/search?q=${encodeURIComponent(query)}&format=rss`;
 }
 
-export async function fetchBingNews(env) {
-  const cooldown = getCooldown();
-  if (cooldown === null) {
-    console.log('Bing News: outside active hours, skipping');
-    return;
-  }
-  if (!await shouldRun(env.DB, FETCHER, cooldown)) {
-    console.log(`Bing News: cooldown (${cooldown}m) not elapsed, skipping`);
-    return;
+export async function fetchBingNews(env, { force = false } = {}) {
+  if (!force) {
+    const cooldown = getCooldown();
+    if (cooldown === null) {
+      console.log('Bing News: outside active hours, skipping');
+      return;
+    }
+    if (!await shouldRun(env.DB, FETCHER, cooldown)) {
+      console.log(`Bing News: cooldown (${cooldown}m) not elapsed, skipping`);
+      return;
+    }
   }
 
   console.log('Fetching Bing News RSS...');

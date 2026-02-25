@@ -63,15 +63,17 @@ function buildGoogleNewsUrl(query) {
   return `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
 }
 
-export async function fetchGoogleNews(env) {
-  const cooldown = getCooldown();
-  if (cooldown === null) {
-    console.log('Google News: outside active hours, skipping');
-    return;
-  }
-  if (!await shouldRun(env.DB, FETCHER, cooldown)) {
-    console.log(`Google News: cooldown (${cooldown}m) not elapsed, skipping`);
-    return;
+export async function fetchGoogleNews(env, { force = false } = {}) {
+  if (!force) {
+    const cooldown = getCooldown();
+    if (cooldown === null) {
+      console.log('Google News: outside active hours, skipping');
+      return;
+    }
+    if (!await shouldRun(env.DB, FETCHER, cooldown)) {
+      console.log(`Google News: cooldown (${cooldown}m) not elapsed, skipping`);
+      return;
+    }
   }
 
   console.log('Fetching Google News RSS...');
