@@ -568,6 +568,13 @@ export async function handleApi(request, env) {
           await runAIPipeline(env, { includeBriefing: true, isAfternoon });
           log.push('ai-pipeline: ok');
         }
+        if (phase === 'retag') {
+          const cleared = await env.DB.prepare('UPDATE headlines SET category = NULL, severity = NULL, sub_category = NULL').run();
+          log.push(`cleared tags: ${cleared.meta?.changes || '?'} rows`);
+          log.push(`anthropic-key: ${env.ANTHROPIC_KEY ? 'set' : 'missing'}`);
+          await runAIPipeline(env, { includeBriefing: false, isAfternoon: false });
+          log.push('retag-pass-1: ok (200 headlines)');
+        }
       } catch (e) {
         log.push(`error: ${e.message}`);
       }
