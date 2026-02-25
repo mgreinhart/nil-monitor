@@ -1410,7 +1410,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                   { label: "On3 NIL Valuations", href: "https://www.on3.com/nil/" },
                 ]},
                 { heading: "Governance & Policy", links: [
-                  { label: "NCAA.org Governance", href: "https://www.ncaa.org/sports/2023/2/14/governance.aspx" },
+                  { label: "NCAA.org Governance", href: "https://www.ncaa.org/sports/governance" },
                   { label: "Congress.gov", href: "https://www.congress.gov/search?q=%7B%22source%22%3A%22legislation%22%2C%22search%22%3A%22NCAA+OR+%22college+athlete%22+OR+NIL%22%7D" },
                 ]},
                 { heading: "Industry", links: [
