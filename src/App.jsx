@@ -229,8 +229,7 @@ const PodcastsSection = () => {
     const bFresh = bDate && (now - bDate) < 24 * 3600000;
     if (aFresh && !bFresh) return -1;
     if (!aFresh && bFresh) return 1;
-    if (aFresh && bFresh) return bDate - aDate;
-    return 0;
+    return bDate - aDate;
   });
   return (
     <Panel title="NIL Podcasts" accent={T.accent} size="sm" noPad>
