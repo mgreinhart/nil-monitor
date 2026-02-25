@@ -382,10 +382,10 @@ export async function handleApi(request, env) {
     if (path === '/api/headlines') {
       const cat = url.searchParams.get('cat');
       const limit = parseInt(url.searchParams.get('limit') || '50');
-      let query = 'SELECT * FROM headlines ORDER BY published_at DESC LIMIT ?';
+      let query = "SELECT * FROM headlines WHERE (category IS NULL OR category != 'Off-Topic') ORDER BY published_at DESC LIMIT ?";
       const params = [limit];
       if (cat && cat !== 'All') {
-        query = 'SELECT * FROM headlines WHERE category = ? ORDER BY published_at DESC LIMIT ?';
+        query = "SELECT * FROM headlines WHERE category = ? ORDER BY published_at DESC LIMIT ?";
         params.unshift(cat);
       }
       const { results } = await env.DB.prepare(query).bind(...params).all();
@@ -457,28 +457,28 @@ export async function handleApi(request, env) {
       const [dailyRows, thisWeekRows, lastWeekRows, breadthRow, latestRows] = await Promise.all([
         env.DB.prepare(
           `SELECT date(published_at) as day, category, COUNT(*) as count
-           FROM headlines WHERE category IS NOT NULL AND published_at >= date('now', '-14 days')
+           FROM headlines WHERE category IS NOT NULL AND category != 'Off-Topic' AND published_at >= date('now', '-14 days')
            GROUP BY day, category ORDER BY day ASC`
         ).all(),
         env.DB.prepare(
           `SELECT category, COUNT(*) as count FROM headlines
-           WHERE category IS NOT NULL AND published_at >= date('now', '-7 days')
+           WHERE category IS NOT NULL AND category != 'Off-Topic' AND published_at >= date('now', '-7 days')
            GROUP BY category`
         ).all(),
         env.DB.prepare(
           `SELECT category, COUNT(*) as count FROM headlines
-           WHERE category IS NOT NULL
+           WHERE category IS NOT NULL AND category != 'Off-Topic'
              AND published_at >= date('now', '-14 days')
              AND published_at < date('now', '-7 days')
            GROUP BY category`
         ).all(),
         env.DB.prepare(
           `SELECT COUNT(DISTINCT source) as count FROM headlines
-           WHERE published_at >= date('now', '-7 days')`
+           WHERE category != 'Off-Topic' AND published_at >= date('now', '-7 days')`
         ).first(),
         env.DB.prepare(
           `SELECT category, MAX(published_at) as latest FROM headlines
-           WHERE category IS NOT NULL GROUP BY category`
+           WHERE category IS NOT NULL AND category != 'Off-Topic' GROUP BY category`
         ).all(),
       ]);
 
