@@ -674,12 +674,30 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
   const briefingSource = briefing || MOCK.briefing.map(([headline, body]) => ({ headline, body }));
 
 
-  // Headlines: normalize for feed (include severity when AI-tagged)
-  const hlSource = headlines ? headlines.map(h => ({
-    src: h.source, title: h.title, cat: h.category, sev: h.severity,
-    subCat: h.sub_category, time: timeAgo(h.published_at), url: h.url,
-    isNew: isWithinHour(h.published_at),
-  })) : MOCK.headlines;
+  // Headlines: normalize, filter off-topic, deduplicate
+  const hlRaw = headlines ? headlines
+    .filter(h => h.category !== "Off-Topic")
+    .map(h => ({
+      src: h.source, title: h.title, cat: h.category, sev: h.severity,
+      subCat: h.sub_category, time: timeAgo(h.published_at), url: h.url,
+      isNew: isWithinHour(h.published_at),
+    })) : MOCK.headlines;
+  // Deduplicate: fuzzy title match, keep first (most recent) occurrence
+  const hlSource = (() => {
+    const kept = [];
+    const normalize = t => (t || "").toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(w => w.length > 2);
+    for (const h of hlRaw) {
+      const words = new Set(normalize(h.title));
+      const isDupe = kept.some(k => {
+        const kw = new Set(normalize(k.title));
+        if (words.size === 0 || kw.size === 0) return false;
+        const overlap = [...words].filter(w => kw.has(w)).length;
+        return overlap / Math.min(words.size, kw.size) > 0.6;
+      });
+      if (!isDupe) kept.push(h);
+    }
+    return kept;
+  })();
   const hlFiltered = hlSource.filter(h => headlineCatFilt === "All" || h.cat === headlineCatFilt);
   const HL_PER_PAGE = 8;
   const hlTotalPages = Math.max(1, Math.ceil(hlFiltered.length / HL_PER_PAGE));

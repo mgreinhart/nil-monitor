@@ -122,18 +122,21 @@ const TAG_BATCH_SIZE = 50;  // Keep batches small so response JSON fits within m
 
 const TAG_SYSTEM_PROMPT = `You are tagging headlines for a college athletics regulatory dashboard called NIL Monitor.
 
+SCOPE: This dashboard covers COLLEGE ATHLETICS ONLY. Headlines about professional sports (NFL, NBA, NHL, WNBA, MLB, MLS, etc.), non-US sports, or topics unrelated to college athletics must be marked "Off-Topic."
+
 For each headline, assign:
 
 Category (exactly one):
-- Legislation: Bills, hearings, votes, enacted laws, regulatory proposals
-- Litigation: Court filings, rulings, settlements, lawsuits, legal actions
-- NCAA Governance: Rule changes, board decisions, policy updates, NCAA organizational moves
-- CSC / Enforcement: College Sports Commission actions, investigations, guidance, enforcement
-- Revenue Sharing: Revenue-sharing deals, cap changes, distribution, NIL collective activity
-- Roster / Portal: Transfer portal activity, roster management, eligibility
-- Realignment: Conference changes, media rights, membership moves
+- Legislation: Federal or state bills, hearings, committee votes, enacted laws, and regulatory proposals specifically about college athlete compensation, NIL, or NCAA reform. Includes SCORE Act, SAFE Act, state NIL bills, Congressional hearings on college sports.
+- Litigation: Court filings, rulings, settlements, lawsuits, injunctions, and legal actions involving NCAA, conferences, or college athletes. Includes House v. NCAA, eligibility lawsuits, antitrust cases, Title IX litigation related to revenue sharing.
+- NCAA Governance: NCAA rule changes, board of directors/governors decisions, policy updates, organizational restructuring, committee actions, membership votes, manual updates. Internal NCAA decision-making.
+- CSC / Enforcement: College Sports Commission (the House settlement enforcement body) actions, investigations, guidance documents, enforcement actions, personnel, compliance directives. Specifically about the CSC entity, not general NCAA enforcement.
+- Revenue Sharing: The House v. NCAA settlement revenue-sharing mechanism — the $20.5M cap, schools paying athletes from institutional revenue, participation agreements, revenue distribution frameworks, opt-in/opt-out decisions, trust structures. NOT individual athlete NIL deals with brands or collectives.
+- Roster / Portal: Transfer portal windows, roster management rules, eligibility disputes, waiver decisions, scholarship limits, multi-time transfer rules. Player movement mechanics and NCAA eligibility rules.
+- Realignment: Conference membership changes, conference media rights deals, scheduling agreements, conference expansion/contraction, TV contract negotiations. Structural changes to the conference landscape.
+- Off-Topic: NOT about college athletics. Includes: professional sports (NFL, NBA, NHL, WNBA, MLB, etc.), non-US sports, entertainment/celebrity news, stories where "NIL" refers to something other than Name Image Likeness. Also: individual athlete NIL deal announcements (brand partnerships, collective deals, marketplace valuations) that have NO regulatory, legal, or governance angle.
 
-Severity:
+Severity (skip for Off-Topic):
 - critical: Requires immediate institutional action or attention (new enforcement, court orders, imminent deadlines)
 - important: Significant development that affects strategy (new bills, major filings, policy changes)
 - routine: Noteworthy but no immediate action needed (commentary, minor updates, general news)
@@ -145,6 +148,14 @@ Sub-category (ONLY for "CSC / Enforcement" headlines — omit for all other cate
 - Personnel: Staff hires, appointments, organizational changes
 - Rule Clarification: Interpretive guidance on existing rules, Q&A responses
 
+IMPORTANT DISTINCTIONS:
+- A story about a state passing an NIL bill → Legislation (not Revenue Sharing)
+- A story about the CSC investigating an NIL deal → CSC / Enforcement (not Revenue Sharing)
+- A story about an athlete signing a $2M NIL deal with Nike → Off-Topic (deal announcement, no regulatory angle)
+- A story about the $20.5M revenue-sharing cap → Revenue Sharing
+- A story about an NHL or WNBA player → Off-Topic
+- A story about "private equity in college sports" → Realignment or NCAA Governance depending on context
+
 Return ONLY valid JSON, no other text.`;
 
 async function tagHeadlineBatch(env, db, batch) {
@@ -152,7 +163,7 @@ async function tagHeadlineBatch(env, db, batch) {
     `ID ${h.id}: [${h.source}] ${h.title}`
   ).join('\n');
 
-  const userContent = `Tag each headline with a category and severity. For headlines categorized as "CSC / Enforcement", also include a sub_category field.
+  const userContent = `Tag each headline with a category and severity. For headlines categorized as "CSC / Enforcement", also include a sub_category field. For "Off-Topic" headlines, set severity to null.
 
 HEADLINES:
 ${headlineList}
@@ -160,7 +171,7 @@ ${headlineList}
 Return JSON:
 {
   "tags": [
-    { "id": ${batch[0].id}, "category": "Category Name", "severity": "routine|important|critical", "sub_category": "only for CSC / Enforcement, omit otherwise" }
+    { "id": ${batch[0].id}, "category": "Category Name", "severity": "routine|important|critical|null", "sub_category": "only for CSC / Enforcement, omit otherwise" }
   ]
 }`;
 
