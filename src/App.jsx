@@ -1371,7 +1371,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                 <Mono style={{ fontSize: 12, color: T.textDim }}>Loading deals...</Mono>
               </div>
             ) : (
-              <div style={{ maxHeight: 320, overflowY: "auto" }}>
+              <div>
                 {peDeals.filter(d => d.status !== 'dead').map((d, i) => {
                   const statusColors = { closed: T.textDim, announced: T.accent, pending: "#f59e0b", on_hold: "#7c8698", exploring: "#7c8698" };
                   return (
