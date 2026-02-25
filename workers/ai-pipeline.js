@@ -132,6 +132,7 @@ Category (exactly one):
 - NCAA Governance: NCAA rule changes, board of directors/governors decisions, policy updates, organizational restructuring, committee actions, membership votes, manual updates. Internal NCAA decision-making.
 - CSC / Enforcement: College Sports Commission (the House settlement enforcement body) actions, investigations, guidance documents, enforcement actions, personnel, compliance directives. Specifically about the CSC entity, not general NCAA enforcement.
 - Revenue Sharing: The House v. NCAA settlement revenue-sharing mechanism — the $20.5M cap, schools paying athletes from institutional revenue, participation agreements, revenue distribution frameworks, opt-in/opt-out decisions, trust structures. NOT individual athlete NIL deals with brands or collectives.
+- Business / Finance: Athletic department budgets, deficits, and financial reporting. Private equity investments in college athletics (Otro Capital, Elevate Sports, etc.). Conference revenue distribution and media rights economics. Facility financing, naming rights, concert revenue, alcohol sales. Donor economics, fundraising challenges, collective funding models. Revenue models and business-side operations of athletic departments. If a story is primarily about money, business strategy, or institutional finances — even if it touches governance — tag it here.
 - Roster / Portal: Transfer portal windows, roster management rules, eligibility disputes, waiver decisions, scholarship limits, multi-time transfer rules. Player movement mechanics and NCAA eligibility rules.
 - Realignment: Conference membership changes, conference media rights deals, scheduling agreements, conference expansion/contraction, TV contract negotiations. Structural changes to the conference landscape.
 - Off-Topic: NOT about college athletics. Includes: professional sports (NFL, NBA, NHL, WNBA, MLB, etc.), non-US sports, entertainment/celebrity news, stories where "NIL" refers to something other than Name Image Likeness. Also: individual athlete NIL deal announcements (brand partnerships, collective deals, marketplace valuations) that have NO regulatory, legal, or governance angle.
@@ -154,7 +155,11 @@ IMPORTANT DISTINCTIONS:
 - A story about an athlete signing a $2M NIL deal with Nike → Off-Topic (deal announcement, no regulatory angle)
 - A story about the $20.5M revenue-sharing cap → Revenue Sharing
 - A story about an NHL or WNBA player → Off-Topic
-- A story about "private equity in college sports" → Realignment or NCAA Governance depending on context
+- A story about "private equity in college sports" → Business / Finance
+- A story about an athletic department reporting a deficit → Business / Finance
+- A story about conference media rights revenue distribution → Business / Finance (unless it's about a structural conference change, then Realignment)
+- A story about NIL collective funding models or donor fatigue → Business / Finance
+- A story about facility naming rights or concert revenue → Business / Finance
 
 Return ONLY valid JSON, no other text.`;
 
@@ -311,15 +316,18 @@ async function generateBriefing(env, db, isAfternoon = false) {
     "SELECT * FROM deadlines WHERE date >= date('now') AND date <= date('now', '+14 days') ORDER BY date ASC"
   ).all();
 
-  const system = `You are a sharp deputy AD briefing your boss. Be direct — no throat-clearing, no filler.
+  const system = `You are briefing a college athletic director the way a CFO or COO would — with financial context, peer comparisons, and operational implications. Be direct, no throat-clearing, no filler.
 
-IMPORTANT: This briefing covers REGULATORY, LEGAL, and GOVERNANCE developments ONLY.
+SCOPE: This briefing covers regulatory, legal, governance, AND business/financial developments in college athletics.
 Do NOT include:
 - Individual player transfers or portal entries (unless they raise a compliance/eligibility dispute)
 - Game results, scores, or athletic performance
 - Recruiting news
 - General roster management activity
 - Coach hires/fires (unless related to compliance violations)
+
+VOICE AND FRAMING:
+When reporting financial or business stories, add peer context where possible. Instead of just "NC State reported a deficit," write "NC State reported an $18.5M deficit — third Power 4 school this month to disclose shortfalls." Connect dots between stories. If a PE deal closes and a school reported a deficit in the same cycle, note the juxtaposition. Think in terms of institutional risk, competitive positioning, and financial exposure.
 
 SOURCE PRIORITY:
 Tier 1 (always prioritize — original reporting): ESPN, USA Today, The Athletic, Sportico, Associated Press, Reuters, Sports Illustrated, CBS Sports, Front Office Sports, New York Times, Washington Post, Wall Street Journal
@@ -330,9 +338,9 @@ Tier 4 (deprioritize or skip): Aggregators, AI content farms, off-topic publicat
 Prioritize original reporting from Tier 1 and 2 sources. Do not feature stories that only appear in Tier 3-4 sources unless they contain genuinely new information not covered elsewhere. If a Tier 1 source covers a topic, use their reporting over lower-tier sources.
 
 EDITORIAL FOCUS:
-Focus on developments that have institutional implications — things an athletic director needs to act on or be aware of. Prefer stories about enforcement actions, regulatory changes, new legislation, court rulings, policy shifts, and industry structural changes. Deprioritize individual athlete deals, celebrity gossip, and republished/aggregated stories that don't add new information.
+Focus on developments that have institutional implications — things an athletic director needs to act on or be aware of. Prefer stories about enforcement actions, regulatory changes, new legislation, court rulings, policy shifts, industry structural changes, financial health signals, and business-side developments (PE deals, media rights economics, budget shortfalls, facility financing). Deprioritize individual athlete deals, celebrity gossip, and republished/aggregated stories that don't add new information.
 
-The audience is athletic directors managing institutional risk and compliance obligations.
+The audience is athletic directors managing institutional risk, compliance obligations, and financial strategy.
 Every item should answer: "Does this require action, awareness, or preparation from our institution?"
 If the answer is no, don't include it.
 

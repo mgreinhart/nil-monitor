@@ -42,6 +42,7 @@ const CAT_COLORS = {
   "NCAA Governance": "#8b5cf6",
   "CSC / Enforcement": "#ef4444",
   "Revenue Sharing": "#10b981",
+  "Business / Finance": "#f97316",
   "Roster / Portal": "#f59e0b",
   "Realignment": "#64748b",
   "Settlement Implementation": "#3b82f6",
@@ -843,7 +844,8 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
             {[
               ["All", "All"], ["Legislation", "Legislation"], ["Litigation", "Litigation"],
               ["NCAA Governance", "Governance"], ["CSC / Enforcement", "CSC"],
-              ["Revenue Sharing", "Rev. Share"], ["Roster / Portal", "Portal"], ["Realignment", "Realignment"],
+              ["Revenue Sharing", "Rev. Share"], ["Business / Finance", "Business"],
+              ["Roster / Portal", "Portal"], ["Realignment", "Realignment"],
             ].map(([val, label]) => (
               <Pill key={val} active={headlineCatFilt === val} onClick={() => { setHeadlineCatFilt(val); setHlPage(0); }}>{label}</Pill>
             ))}
@@ -1106,8 +1108,8 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
           {(() => {
             if (!coverageIntel) return <Mono style={{ fontSize: 12, color: T.textDim, padding: 12 }}>Loading coverage data...</Mono>;
             const { thisWeek, lastWeek, sourceBreadth, latestByCategory, daily } = coverageIntel;
-            const CATS = ["Legislation", "Litigation", "NCAA Governance", "CSC / Enforcement", "Revenue Sharing", "Roster / Portal", "Realignment"];
-            const CAT_SHORT = { "Legislation": "Legislation", "Litigation": "Litigation", "NCAA Governance": "Governance", "CSC / Enforcement": "CSC", "Revenue Sharing": "Rev. Sharing", "Roster / Portal": "Portal", "Realignment": "Realignment" };
+            const CATS = ["Legislation", "Litigation", "NCAA Governance", "CSC / Enforcement", "Revenue Sharing", "Business / Finance", "Roster / Portal", "Realignment"];
+            const CAT_SHORT = { "Legislation": "Legislation", "Litigation": "Litigation", "NCAA Governance": "Governance", "CSC / Enforcement": "CSC", "Revenue Sharing": "Rev. Sharing", "Business / Finance": "Business", "Roster / Portal": "Portal", "Realignment": "Realignment" };
 
             // ── Stat card computations ──
             const totalThisWeek = CATS.reduce((s, c) => s + (thisWeek[c] || 0), 0);
