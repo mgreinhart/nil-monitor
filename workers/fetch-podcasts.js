@@ -12,7 +12,7 @@ const FETCHER = 'podcasts';
 const PODCAST_FEEDS = [
   { spotifyId: '1Pju07vvKyIqEZOGDNaMMD', feed: 'https://feeds.simplecast.com/1FKRroTP' },        // Highway to NIL
   { spotifyId: '3AbKOjnxZaBLs9VVfujToU', feed: 'https://anchor.fm/s/fff660bc/podcast/rss' },      // NIL Clubhouse
-  { spotifyId: '2Wr77m5yVBgANHkDS7NxI5', feed: 'https://feeds.simplecast.com/1Gw4HZHD' },        // The Portal
+  { spotifyId: '0NOi7MnlTRMfb3Dv17DOaP', feed: 'https://feeds.simplecast.com/IDVEdQwe' },        // SBJ Morning Buzzcast
   { spotifyId: '6QmP0ZLPAiEG7iqhywSURD', feed: 'https://rss.libsyn.com/shows/74483/destinations/327372.xml' }, // One Question Leadership
   { spotifyId: '30VL73UUR59yLZfagH1Rzv', feed: 'https://rss.buzzsprout.com/2549070.rss' },        // The Standard
 ];
