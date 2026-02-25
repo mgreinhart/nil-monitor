@@ -568,6 +568,12 @@ export async function handleApi(request, env) {
           await runAIPipeline(env, { includeBriefing: true, isAfternoon });
           log.push('ai-pipeline: ok');
         }
+        if (phase === 'fix-briefing-date') {
+          // One-time: delete briefings with future dates (UTC/ET mismatch artifact)
+          const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+          const del = await env.DB.prepare('DELETE FROM briefings WHERE date > ?').bind(todayET).run();
+          log.push(`deleted ${del.meta?.changes || 0} future-dated briefings (today ET: ${todayET})`);
+        }
         if (phase === 'retag') {
           const cleared = await env.DB.prepare('UPDATE headlines SET category = NULL, severity = NULL, sub_category = NULL').run();
           log.push(`cleared tags: ${cleared.meta?.changes || '?'} rows`);
