@@ -175,7 +175,7 @@ const GAME_NOISE_RE = new RegExp([
 /**
  * Business/regulatory signals — if present, never filter the headline.
  */
-const BUSINESS_SIGNAL_RE = /\bnil\b|name.image.likeness|ncaa\s*(?:governance|rule|board|enforce|investigat|reform|restructur|commission|settlement|antitrust)|college sports commission|\bcsc\b|revenue.shar|salary.cap|legislation|congress|senate|house bill|\bbill\b.*(?:athlete|sport|college)|compliance|collective|waiver|title ix.*(?:nil|revenue|athlete)|transfer portal.*(?:rule|window|policy)|realignment|media rights|athlete.*(?:pay|compensat|employ|union|rights)|lawsuit|settlement|litigation|antitrust/i;
+const BUSINESS_SIGNAL_RE = /\bnil\b|name.image.likeness|ncaa\s*(?:governance|rule|board|enforce|investigat|reform|restructur|commission|settlement|antitrust)|college sports commission|\bcsc\b|revenue.shar|salary.cap|legislation|congress|senate|house bill|\bbill\b.*(?:athlete|sport|college)|compliance|collective|waiver|title ix.*(?:nil|revenue|athlete)|transfer portal.*(?:rule|window|policy)|realignment|media rights|athlete.*(?:pay|compensat|employ|union|rights)|lawsuit|settlement|litigation|antitrust|private equity|conference.*(?:deal|revenue|expansion)|athletic\s+(?:department|budget|deficit)|intercollegiate/i;
 
 /**
  * Returns true if the title is game/tournament noise (not business/regulatory).
@@ -218,7 +218,7 @@ export function categorizeByKeyword(title) {
  * NIL, college athletics regulation, or governance must appear.
  * Used by all headline fetchers as a universal quality gate.
  */
-const TITLE_RELEVANCE_RE = /\bnil\b|name.image.likeness|\bncaa\b|college\s+athlete|transfer\s+portal|revenue\s+shar|title\s+ix|college\s+sports?|athletic\s+directors?|\bcompliance\b|\bcollective\b|house\s+v\.?|\bcsc\b|college\s+sports?\s+commission/i;
+const TITLE_RELEVANCE_RE = /\bnil\b|name.image.likeness|\bncaa\b|college\s+athlete|student.athlete|transfer\s+portal|revenue.shar|title\s+ix|college\s+(?:sports?|athletics|football|basketball)|athletic[s]?\s+(?:directors?|departments?|budgets?|deficits?)|\bathletics\b.*(?:private|equity|revenue|invest|budget|deficit)|intercollegiate|\bcompliance\b|\bcollective\b|house\s+v\.?|\bcsc\b|college\s+sports?\s+commission|\buniversit(?:y|ies)\b.*(?:athlet|nil|revenue|private equity|invest)|\bpower\s+(?:4|5|four|five)\b|conference\s+realignment|\b(?:big\s+ten|big\s+12|big\s+east|pac.12)\b.*(?:deal|rights|equity|revenue|expansion|realign)/i;
 
 export function isTitleRelevant(title) {
   if (!title) return false;
