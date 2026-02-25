@@ -37,6 +37,10 @@ const QUERIES = [
   '"Title IX" revenue sharing',
   '"Athletes.org" college',
   '"Otro Capital" OR "Elevate Sports" college athletics',
+  'university sues athlete OR "breach of contract" college',
+  '"NIL buyout" OR "NIL exit fee" college',
+  'NCAA eligibility injunction OR "restraining order"',
+  '"college football" OR "college basketball" lawsuit OR sued',
 ];
 
 function getCooldown() {

@@ -23,7 +23,8 @@ const FEEDS = [
   { url: 'https://www.cbssports.com/rss/headlines/college-football/', source: 'CBS Sports' },
   { url: 'https://www.espn.com/espn/rss/ncf/news', source: 'ESPN' },
   { url: 'https://www.on3.com/feed/', source: 'On3' },
-  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml', source: 'NYT' },
+  { url: 'https://www.nytimes.com/athletic/rss/college-football/', source: 'The Athletic' },
+  { url: 'https://www.nytimes.com/athletic/rss/college-sports/', source: 'The Athletic' },
 ];
 
 function getCooldown() {

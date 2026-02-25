@@ -45,6 +45,11 @@ const QUERIES = [
   'Teamworks college sports',
   'Opendorse NIL',
   'Learfield college athletics',
+  'university sues athlete OR "breach of contract" college',
+  '"NIL buyout" OR "NIL exit fee" OR "NIL contract" lawsuit',
+  'NCAA eligibility injunction OR "restraining order"',
+  '"college football" OR "college basketball" lawsuit OR sued',
+  'NCAA trademark OR "March Madness" trademark',
 ];
 
 function getCooldown() {
