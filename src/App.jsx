@@ -109,7 +109,7 @@ const X_LIST_URL = "https://x.com/i/lists/2024695913898528822";
 const NIL_PODCASTS = [
   { name: "Highway to NIL", id: "1Pju07vvKyIqEZOGDNaMMD" },
   { name: "NIL Clubhouse", id: "3AbKOjnxZaBLs9VVfujToU" },
-  { name: "The Portal", id: "2Wr77m5yVBgANHkDS7NxI5" },
+  { name: "SBJ Morning Buzzcast", id: "0NOi7MnlTRMfb3Dv17DOaP" },
   { name: "One Question Leadership", id: "6QmP0ZLPAiEG7iqhywSURD" },
   { name: "The Standard", id: "30VL73UUR59yLZfagH1Rzv" },
 ];
