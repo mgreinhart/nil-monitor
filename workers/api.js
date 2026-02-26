@@ -409,11 +409,26 @@ export async function handleApi(request, env) {
       return json(obj);
     }
 
-    // Briefing (Phase 3 — empty for now)
+    // Briefing
     if (path === '/api/briefing') {
       const row = await env.DB.prepare(
         'SELECT * FROM briefings ORDER BY date DESC LIMIT 1'
       ).first();
+      // Safety net: fix missing spaces from stored briefings with stripped Unicode
+      if (row?.content) {
+        try {
+          const sections = JSON.parse(row.content).map(s => {
+            const cleaned = {};
+            for (const [k, v] of Object.entries(s)) {
+              cleaned[k] = typeof v === 'string'
+                ? v.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([.,;:])([A-Za-z])/g, '$1 $2').replace(/\s{2,}/g, ' ')
+                : v;
+            }
+            return cleaned;
+          });
+          row.content = JSON.stringify(sections);
+        } catch {}
+      }
       return json(row || { date: null, content: null });
     }
 

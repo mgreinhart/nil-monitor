@@ -302,6 +302,33 @@ If none of these are actually NEW CSC activity (not already tracked), return: {"
   }
 }
 
+// ── Briefing Text Cleanup ────────────────────────────────────────
+
+/**
+ * Convert Unicode punctuation to ASCII equivalents, strip remaining
+ * non-ASCII, then fix any words that got joined together.
+ */
+function cleanBriefingText(text) {
+  if (!text) return text;
+  return text
+    // Unicode punctuation → ASCII equivalents (BEFORE stripping)
+    .replace(/[\u2014]/g, ' -- ')           // em dash
+    .replace(/[\u2013]/g, ' - ')            // en dash
+    .replace(/[\u2018\u2019\u201A]/g, "'")  // smart single quotes
+    .replace(/[\u201C\u201D\u201E]/g, '"')  // smart double quotes
+    .replace(/[\u2026]/g, '...')            // ellipsis
+    .replace(/[\u2022\u2023\u25E6]/g, '- ') // bullets
+    .replace(/[\u00B7]/g, ' ')              // middle dot
+    // Strip any remaining non-ASCII
+    .replace(/[^\x00-\x7F]/g, '')
+    // Safety net: fix words joined by stripped characters
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/([.,;:])([A-Za-z])/g, '$1 $2')
+    // Collapse whitespace
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 // ── Task 3: Daily Briefing ───────────────────────────────────────
 async function generateBriefing(env, db, isAfternoon = false) {
   // 36-hour recency window on published_at — filters out old articles picked up late by aggregators
@@ -327,7 +354,9 @@ Do NOT include:
 - Coach hires/fires (unless related to compliance violations)
 
 VOICE AND FRAMING:
-When reporting financial or business stories, add peer context where possible. Instead of just "NC State reported a deficit," write "NC State reported an $18.5M deficit — third Power 4 school this month to disclose shortfalls." Connect dots between stories. If a PE deal closes and a school reported a deficit in the same cycle, note the juxtaposition. Think in terms of institutional risk, competitive positioning, and financial exposure.
+You are briefing an athletic director, not a compliance officer. The AD thinks in terms of budget impact ("what does this cost me?"), competitive position ("what are my peers doing?"), institutional risk ("could this blow up on my president?"), and strategic decisions ("do I need to act on this?"). Avoid compliance-speak like "review your protocols," "ensure reporting requirements," or "monitor whether similar restrictions apply." Instead use AD-speak like "this could open a new line of exposure for schools with similar restrictions," "expect peer ADs to raise this at the spring meetings," or "budget for this if your conference follows."
+
+When reporting financial or business stories, add peer context where possible. Instead of just "NC State reported a deficit," write "NC State reported an $18.5M deficit -- third Power 4 school this month to disclose shortfalls." Connect dots between stories. If a PE deal closes and a school reported a deficit in the same cycle, note the juxtaposition.
 
 SOURCE PRIORITY:
 Tier 1 (always prioritize — original reporting): ESPN, USA Today, The Athletic, Sportico, Associated Press, Reuters, Sports Illustrated, CBS Sports, Front Office Sports, New York Times, Washington Post, Wall Street Journal
@@ -338,11 +367,14 @@ Tier 4 (deprioritize or skip): Aggregators, AI content farms, off-topic publicat
 Prioritize original reporting from Tier 1 and 2 sources. Do not feature stories that only appear in Tier 3-4 sources unless they contain genuinely new information not covered elsewhere. If a Tier 1 source covers a topic, use their reporting over lower-tier sources.
 
 EDITORIAL FOCUS:
-Focus on developments that have institutional implications — things an athletic director needs to act on or be aware of. Prefer stories about enforcement actions, regulatory changes, new legislation, court rulings, policy shifts, industry structural changes, financial health signals, and business-side developments (PE deals, media rights economics, budget shortfalls, facility financing). Deprioritize individual athlete deals, celebrity gossip, and republished/aggregated stories that don't add new information.
+Focus on developments that have institutional implications -- things an athletic director needs to act on or be aware of. Prefer stories about enforcement actions, regulatory changes, new legislation, court rulings, policy shifts, industry structural changes, financial health signals, and business-side developments (PE deals, media rights economics, budget shortfalls, facility financing). Deprioritize individual athlete deals, celebrity gossip, and republished/aggregated stories that don't add new information.
 
-The audience is athletic directors managing institutional risk, compliance obligations, and financial strategy.
+The audience is athletic directors managing institutional risk, competitive positioning, and financial strategy.
 Every item should answer: "Does this require action, awareness, or preparation from our institution?"
 If the answer is no, don't include it.
+
+DEADLINE REMINDERS vs NEW DEVELOPMENTS:
+If an upcoming deadline or hearing date is already well-known and no NEW information has emerged about it, do NOT include it as a main briefing section. It belongs in the Deadlines panel, not the briefing. Only include a known deadline in the briefing if something NEW happened related to it (e.g., a motion was filed, a party made a statement, the date changed), or it is within 7 days and warrants a reminder with fresh context. The briefing should focus on WHAT HAPPENED TODAY, not what's coming up on the calendar.
 
 STRICT FORMAT RULES:
 - Always produce EXACTLY 4 sections. No more, no fewer.
@@ -451,24 +483,19 @@ Return JSON (EXACTLY 4 sections):
       const result = await callClaude(env, system, userContent);
       sections = result.sections || null;
 
-      // Strip non-ASCII characters (Chinese, Japanese, Korean, Arabic, etc.)
+      // Normalize Unicode punctuation to ASCII, then strip remaining non-ASCII
       if (sections) {
-        let hadNonAscii = false;
         sections = sections.map(s => {
           const cleaned = {};
           for (const [key, val] of Object.entries(s)) {
-            if (typeof val === 'string' && /[^\x00-\x7F]/.test(val)) {
-              hadNonAscii = true;
-              cleaned[key] = val.replace(/[^\x00-\x7F]/g, '').replace(/\s{2,}/g, ' ').trim();
+            if (typeof val === 'string') {
+              cleaned[key] = cleanBriefingText(val);
             } else {
               cleaned[key] = val;
             }
           }
           return cleaned;
         });
-        if (hadNonAscii) {
-          console.warn('Briefing: stripped non-ASCII characters from response');
-        }
       }
 
       break;
