@@ -190,7 +190,7 @@ Return JSON:
     try {
       await db.prepare(
         'UPDATE headlines SET category = ?, severity = ?, sub_category = ? WHERE id = ?'
-      ).bind(tag.category, tag.severity, tag.sub_category || null, tag.id).run();
+      ).bind(tag.category, tag.severity || 'routine', tag.sub_category || null, tag.id).run();
       count++;
     } catch (err) {
       dbErrors++;
