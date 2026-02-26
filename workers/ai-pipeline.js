@@ -201,7 +201,7 @@ Return JSON:
   return count;
 }
 
-async function tagHeadlines(env, db) {
+export async function tagHeadlines(env, db) {
   const { results: untagged } = await db.prepare(
     'SELECT id, source, title, url FROM headlines WHERE category IS NULL OR severity IS NULL ORDER BY published_at DESC LIMIT 200'
   ).all();

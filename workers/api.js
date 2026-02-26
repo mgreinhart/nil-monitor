@@ -264,6 +264,7 @@ ${latestPipeline ? `<div class="grid">
 <h2>Manual Triggers</h2>
 <div class="triggers">
   <button class="btn" onclick="trigger('fetch')">Run Fetchers</button>
+  <button class="btn" onclick="trigger('tag')">Tag Headlines</button>
   <button class="btn" onclick="trigger('ai')">Run AI Pipeline</button>
   <button class="btn" onclick="trigger('all')">Run All</button>
 </div>
@@ -569,6 +570,12 @@ export async function handleApi(request, env) {
             fetchGDELT(env, { force: true }).then(() => log.push('gdelt: ok')).catch(e => log.push(`gdelt: ${e.message}`)),
           ]);
           clearDedupCache();
+        }
+        if (phase === 'tag') {
+          const { tagHeadlines } = await import('./ai-pipeline.js');
+          log.push(`anthropic-key: ${env.ANTHROPIC_KEY ? 'set' : 'missing'}`);
+          const tagged = await tagHeadlines(env, env.DB);
+          log.push(`tagged: ${tagged} headlines`);
         }
         if (phase === 'ai' || phase === 'all') {
           log.push(`anthropic-key: ${env.ANTHROPIC_KEY ? 'set' : 'missing'}`);
