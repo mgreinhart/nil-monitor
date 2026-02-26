@@ -807,25 +807,32 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                 {/* ── Expanded: cascade reveal with full content ── */}
                 {briefingRevealed && (
                   <div style={{ animation: briefingCollapsing ? "briefingFadeOut 150ms ease-in forwards" : "none" }}>
-                    {briefingSource.map((s, i) => (
-                      <div key={i} style={{
-                        borderBottom: i < briefingSource.length - 1 ? `1px solid ${T.borderLight}` : "none",
-                        animation: briefingAnimating ? `briefingSlideIn 200ms ease-out ${i * 80}ms both` : "none",
-                        padding: i === 0 ? "0 0 10px 0" : "10px 0",
-                      }}>
-                        {s.url ? (
-                          <a href={s.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ fontFamily: T.sans, fontSize: 22, fontWeight: 600, lineHeight: 1.4, color: T.accent, textDecoration: "underline", textDecorationColor: "rgba(220,74,45,.3)", textUnderlineOffset: "3px" }}
-                            onMouseEnter={e => e.currentTarget.style.textDecorationColor = T.accent}
-                            onMouseLeave={e => e.currentTarget.style.textDecorationColor = "rgba(220,74,45,.3)"}
-                          >{s.headline} <span style={{ fontSize: 13, opacity: 0.5 }}>{"\u2197"}</span></a>
-                        ) : (
-                          <span style={{ fontFamily: T.sans, fontSize: 22, fontWeight: 600, lineHeight: 1.4, color: T.text }}>{s.headline}</span>
-                        )}
-                        <div style={{ fontFamily: T.sans, fontSize: 15, lineHeight: 1.6, color: T.textMid, padding: "6px 0 2px 0" }}>
-                          {s.body}
-                        </div>
-                      </div>
-                    ))}
+                    {briefingSource.map((s, i) => {
+                      const isLink = !!s.url;
+                      const Wrapper = isLink ? "a" : "div";
+                      const wrapperProps = isLink ? { href: s.url, target: "_blank", rel: "noopener noreferrer", onClick: (e) => e.stopPropagation() } : {};
+                      return (
+                        <Wrapper key={i} {...wrapperProps} style={{
+                          display: "block",
+                          borderBottom: i < briefingSource.length - 1 ? `1px solid ${T.borderLight}` : "none",
+                          animation: briefingAnimating ? `briefingSlideIn 200ms ease-out ${i * 80}ms both` : "none",
+                          padding: i === 0 ? "0 0 10px 0" : "10px 0",
+                          margin: "0 -12px", paddingLeft: 12, paddingRight: 12,
+                          borderRadius: 6,
+                          textDecoration: "none",
+                          cursor: isLink ? "pointer" : "default",
+                          transition: "background 150ms ease",
+                        }}
+                          onMouseEnter={e => { if (isLink) e.currentTarget.style.background = "rgba(0,0,0,0.02)"; }}
+                          onMouseLeave={e => { if (isLink) e.currentTarget.style.background = "transparent"; }}
+                        >
+                          <span style={{ fontFamily: T.sans, fontSize: 22, fontWeight: 700, lineHeight: 1.4, color: "#0f1729", display: "block" }}>{s.headline}</span>
+                          <div style={{ fontFamily: T.sans, fontSize: 15, lineHeight: 1.6, color: "#3d4a5c", padding: "6px 0 2px 0" }}>
+                            {s.body}
+                          </div>
+                        </Wrapper>
+                      );
+                    })}
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
                       <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: T.accent, flexShrink: 0 }} />
                       <Mono style={{ fontSize: 13, color: T.accent }}>
