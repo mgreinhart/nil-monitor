@@ -25,6 +25,9 @@ const FEEDS = [
   { url: 'https://www.on3.com/feed/', source: 'On3' },
   { url: 'https://www.nytimes.com/athletic/rss/college-football/', source: 'The Athletic' },
   { url: 'https://www.nytimes.com/athletic/rss/college-sports/', source: 'The Athletic' },
+  { url: 'https://www.cbssports.com/rss/headlines/college-basketball/', source: 'CBS Sports' },
+  { url: 'https://www.espn.com/espn/rss/ncb/news', source: 'ESPN' },
+  { url: 'https://sports.yahoo.com/rss/', source: 'Yahoo Sports' },
 ];
 
 function getCooldown() {

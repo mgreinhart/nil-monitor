@@ -50,6 +50,12 @@ const QUERIES = [
   'NCAA eligibility injunction OR "restraining order"',
   '"college football" OR "college basketball" lawsuit OR sued',
   'NCAA trademark OR "March Madness" trademark',
+  '"athletic department" budget OR deficit OR "operating expenses"',
+  '"jersey patch" OR "jersey sponsorship" college OR university',
+  '"above the cap" OR "above-cap" college athlete OR NCAA',
+  'Nike OR Adidas college "NIL" OR "above-cap" OR "revenue sharing"',
+  '"student athletic fee" increase OR proposed university',
+  '"state legislature" OR "state lawmaker" NIL OR "college athlete" OR "revenue sharing"',
 ];
 
 function getCooldown() {

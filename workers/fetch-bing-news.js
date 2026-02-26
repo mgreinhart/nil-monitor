@@ -41,6 +41,11 @@ const QUERIES = [
   '"NIL buyout" OR "NIL exit fee" college',
   'NCAA eligibility injunction OR "restraining order"',
   '"college football" OR "college basketball" lawsuit OR sued',
+  '"athletic department" budget OR deficit OR "operating expenses"',
+  '"jersey patch" OR "jersey sponsorship" college OR university',
+  '"above the cap" OR "above-cap" college athlete OR NCAA',
+  'Nike OR Adidas college NIL OR "above-cap"',
+  '"student athletic fee" increase OR proposed university',
 ];
 
 function getCooldown() {
