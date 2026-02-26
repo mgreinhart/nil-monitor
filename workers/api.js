@@ -575,6 +575,10 @@ export async function handleApi(request, env) {
           const { tagHeadlines } = await import('./ai-pipeline.js');
           log.push(`anthropic-key: ${env.ANTHROPIC_KEY ? 'set' : 'missing'}`);
           const tagged = await tagHeadlines(env, env.DB);
+          await env.DB.prepare(
+            `INSERT INTO pipeline_runs (items_processed, headlines_tagged, deadlines_created, csc_items_created, briefing_generated)
+             VALUES (0, ?, 0, 0, 0)`
+          ).bind(tagged).run();
           log.push(`tagged: ${tagged} headlines`);
         }
         if (phase === 'ai' || phase === 'all') {
