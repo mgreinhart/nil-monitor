@@ -212,7 +212,8 @@ const GAME_NOISE_RE = new RegExp([
   'landed a commitment', 'commits? to\\b', 'decommit',
   'players? still available',
   'official visit(?:s)?\\s+(?:tracker|plans?|set|add)',
-  'announces where.*(?:play|commit)',
+  'schedules.*official visit', 'announces where.*(?:play|commit)',
+  '^Next:\\s+\\d{4}\\s+',
   // Coaching carousel (not governance)
   'coaching (?:search|carousel|hire[ds]?|fired)',
   "couldn't pass.*(?:opportunity|chance).*(?:coach|staff)",
@@ -237,10 +238,35 @@ const GAME_NOISE_RE = new RegExp([
   'championship (?:game|schedule)', 'schedule release', 'scores? (?:from|of|recap)',
   'when does the \\d+ (?:college|ncaa)',
   'most important games.*season',
+  // Rankings / power rankings (not governance)
+  'power rankings', '\\btop 25\\b', 'college (?:baseball|basketball|softball|football).*rank',
+  // Game analysis / results phrases
+  '(?:straight|consecutive) (?:loss|win|defeat)', 'signature (?:victory|win)',
+  '(?:OT|overtime) thriller', '(?:late.season|midseason) swoon',
+  'takes? (?:blame|responsibility) for.*(?:loss|performance)',
+  'rout of\\b', 'can win it all',
+  'postseason implications', 'home (?:loss|win|defeat)',
+  '\\bwin over\\b', 'glimpse into the future',
+  // Recap / review articles
+  'week in review', 'weekly (?:recap|roundup|rundown)',
+  // Player features / nostalgia (not policy)
+  'I played with', 'changed my life', 'sports trivia',
+  // Coaching hot seat / firings (broader)
+  '\\bhot seat\\b',
+  '\\bfires?\\b.*(?:head coach|coach|coordinator)',
+  '\\boverhaul\\b.*(?:basketball|football)\\s+programs?',
+  // NBA teams (pro basketball, not college)
+  '\\b(?:nets|knicks|lakers|celtics|warriors|heat|bucks|nuggets|76ers|suns|clippers|cavaliers|hawks|raptors|grizzlies|pelicans|spurs|mavericks|rockets|timberwolves|blazers|magic|thunder|pistons|wizards|hornets|pacers)\\b.*(?:sign|trade|contract|10.day|roster)',
+  '\\b(?:10|ten).day contract\\b',
+  // Non-college sports
+  'gold medal(?!.*(?:college|ncaa|nil|university))',
+  'team usa(?!.*(?:college|ncaa|nil|university))',
   // Districts / high school
   'districts? preview', 'high school',
   // Podcast / radio show content
   '\\bshow\\b.*live from', 'live from (?:lovely|beautiful|downtown)',
+  // Odds / best bets roundups
+  'best bets.*odds', 'top games to watch.*(?:odds|bets)',
 ].join('|'), 'i');
 
 /**
