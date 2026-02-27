@@ -10,7 +10,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { parseRSS } from './rss-parser.js';
-import { getETHour, shouldRun, recordRun, insertHeadline, isTitleRelevant } from './fetcher-utils.js';
+import { getETHour, shouldRun, recordRun, insertHeadline, isGameNoise } from './fetcher-utils.js';
 
 const FETCHER = 'publications';
 
@@ -70,8 +70,10 @@ export async function fetchPublications(env, { force = false } = {}) {
       for (const item of items.slice(0, 20)) {
         if (!item.title || !item.link) continue;
 
-        // Every feed must pass the keyword relevance gate
-        if (!isTitleRelevant(item.title)) {
+        // Trusted direct feeds — skip relevance gate, rely on game noise filter + AI tagging.
+        // These feeds are college-sports-scoped by design (ESPN college football, On3, etc.)
+        // so the relevance gate was filtering out valid school-specific financial stories.
+        if (isGameNoise(item.title)) {
           totalSkipped++;
           continue;
         }
