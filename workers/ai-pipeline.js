@@ -488,7 +488,9 @@ Return JSON (EXACTLY 4 sections):
         sections = sections.map(s => {
           const cleaned = {};
           for (const [key, val] of Object.entries(s)) {
-            if (typeof val === 'string') {
+            if (key === 'url' && typeof val === 'string') {
+              cleaned[key] = val.replace(/\s/g, '');
+            } else if (typeof val === 'string') {
               cleaned[key] = cleanBriefingText(val);
             } else {
               cleaned[key] = val;
