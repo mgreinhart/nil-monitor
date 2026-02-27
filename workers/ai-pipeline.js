@@ -331,13 +331,14 @@ function cleanBriefingText(text) {
 
 // ── Task 3: Daily Briefing ───────────────────────────────────────
 async function generateBriefing(env, db, isAfternoon = false) {
-  // 36-hour recency window on published_at — filters out old articles picked up late by aggregators
+  // Afternoon: 18h window (today's stories only). Morning: 36h window (catches late pickups).
+  const recencyHours = isAfternoon ? 18 : 36;
   const { results: rawHeadlines } = await db.prepare(
-    `SELECT * FROM headlines WHERE category IS NOT NULL AND published_at >= datetime('now', '-36 hours') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 100`
+    `SELECT * FROM headlines WHERE category IS NOT NULL AND published_at >= datetime('now', '-${recencyHours} hours') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 100`
   ).all();
   // Deduplicate: group similar headlines, keep highest-tier source
   const headlines = deduplicateHeadlines(rawHeadlines);
-  console.log(`Briefing: ${rawHeadlines.length} raw headlines → ${headlines.length} after dedup (36h window)`);
+  console.log(`Briefing: ${rawHeadlines.length} raw headlines → ${headlines.length} after dedup (${recencyHours}h window)`);
 
   const { results: deadlines } = await db.prepare(
     "SELECT * FROM deadlines WHERE date >= date('now') AND date <= date('now', '+14 days') ORDER BY date ASC"
@@ -373,6 +374,9 @@ The audience is athletic directors managing institutional risk, competitive posi
 Every item should answer: "Does this require action, awareness, or preparation from our institution?"
 If the answer is no, don't include it.
 
+RECENCY:
+Each headline includes an age tag like [3h ago] or [18h ago]. Strongly prefer fresher stories. A story from 2 hours ago should generally beat a similar story from 20 hours ago unless the older story is significantly more important. For afternoon briefings especially, lead with what happened TODAY -- not yesterday's news.
+
 DEADLINE REMINDERS vs NEW DEVELOPMENTS:
 If an upcoming deadline or hearing date is already well-known and no NEW information has emerged about it, do NOT include it as a main briefing section. It belongs in the Deadlines panel, not the briefing. Only include a known deadline in the briefing if something NEW happened related to it (e.g., a motion was filed, a party made a statement, the date changed), or it is within 7 days and warrants a reminder with fresh context. The briefing should focus on WHAT HAPPENED TODAY, not what's coming up on the calendar.
 
@@ -391,9 +395,12 @@ STRICT FORMAT RULES:
 
 Return ONLY valid JSON, no other text.`;
 
-  const headlineList = headlines.map((h, i) =>
-    `[#${i}] [${h.severity?.toUpperCase()}] [${h.category}] [Tier ${h._tier || getSourceTier(h.source)}] ${h.source}: ${h.title}`
-  ).join('\n');
+  const now = Date.now();
+  const headlineList = headlines.map((h, i) => {
+    const age = h.published_at ? Math.round((now - new Date(h.published_at.includes('T') ? h.published_at : h.published_at + 'Z').getTime()) / 3600000) : null;
+    const ageTag = age !== null ? (age < 1 ? '<1h ago' : `${age}h ago`) : '';
+    return `[#${i}] [${ageTag}] [${h.severity?.toUpperCase()}] [${h.category}] [Tier ${h._tier || getSourceTier(h.source)}] ${h.source}: ${h.title}`;
+  }).join('\n');
 
   const deadlineList = deadlines.map(d =>
     `${d.date}: ${d.text} [${d.severity}]`
