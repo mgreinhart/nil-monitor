@@ -420,9 +420,13 @@ export async function handleApi(request, env) {
           const sections = JSON.parse(row.content).map(s => {
             const cleaned = {};
             for (const [k, v] of Object.entries(s)) {
-              cleaned[k] = typeof v === 'string'
-                ? v.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([.,;:])([A-Za-z])/g, '$1 $2').replace(/\s{2,}/g, ' ')
-                : v;
+              if (k === 'url') {
+                cleaned[k] = typeof v === 'string' ? v.replace(/\s/g, '') : v;
+              } else {
+                cleaned[k] = typeof v === 'string'
+                  ? v.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\s{2,}/g, ' ')
+                  : v;
+              }
             }
             return cleaned;
           });
