@@ -28,6 +28,10 @@ const FEEDS = [
   { url: 'https://www.cbssports.com/rss/headlines/college-basketball/', source: 'CBS Sports' },
   { url: 'https://www.espn.com/espn/rss/ncb/news', source: 'ESPN' },
   { url: 'https://sports.yahoo.com/rss/', source: 'Yahoo Sports' },
+  // Conference feeds (SIDEARM Sports CMS — media deals, announcements)
+  { url: 'https://horizonleague.org/rss.aspx', source: 'Horizon League' },
+  { url: 'https://theacc.com/rss.aspx', source: 'ACC' },
+  { url: 'https://big12sports.com/rss.aspx', source: 'Big 12' },
 ];
 
 function getCooldown() {

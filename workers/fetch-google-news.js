@@ -60,6 +60,9 @@ const QUERIES = [
   '"Warner Bros Discovery" sports',
   '"Paramount" sports broadcast',
   '"ESPN" media deal OR rights deal',
+  '"naming rights" college OR university',
+  '"partnership" college athletics OR "athletic department"',
+  '"facility" college athletics OR "stadium construction"',
 ];
 
 function getCooldown() {
