@@ -304,7 +304,7 @@ const STATE_LABELS = {
   "Illinois": [-89.2, 40.0, "IL"], "Indiana": [-86.2, 39.8, "IN"], "Iowa": [-93.5, 42.0, "IA"],
   "Kansas": [-98.3, 38.5, "KS"], "Kentucky": [-85.3, 37.8, "KY"], "Louisiana": [-92.5, 31.2, "LA"],
   "Maine": [-69.2, 45.4, "ME"],
-  "Maryland": [-76.7, 39.0, "MD", "middle", 0, 9],
+  "Maryland": [-76.7, 38.3, "MD", "middle", 0, 9],
   "Massachusetts": [-70.5, 42.3, "MA", "start", 0.3],
   "Michigan": [-84.6, 43.3, "MI"], "Minnesota": [-94.3, 46.3, "MN"], "Mississippi": [-89.7, 32.7, "MS"],
   "Missouri": [-92.5, 38.4, "MO"], "Montana": [-109.6, 47.0, "MT"], "Nebraska": [-99.8, 41.5, "NE"],
@@ -425,7 +425,7 @@ const StateLegislationMap = () => {
             const isEnacted = stateData?.status === "enacted";
             const textAnchor = anchor || "middle";
             // Outside-placed labels (anchor="start") use dark color always for visibility
-            const fill = (anchor && anchor !== "middle") || customSize ? "#3d4a5c" : (isEnacted ? "#fff" : "#3d4a5c");
+            const fill = (anchor && anchor !== "middle") ? "#3d4a5c" : (isEnacted ? "#fff" : "#3d4a5c");
             return (
               <Marker key={abbr} coordinates={[lon, lat]}>
                 <text
