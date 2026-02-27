@@ -495,9 +495,28 @@ Return JSON (EXACTLY 4 sections):
               cleaned[key] = val;
             }
           }
-          // Resolve source_index to actual headline URL
+          // Resolve source_index to actual headline URL, with fuzzy fallback
           const idx = s.source_index;
-          cleaned.url = (typeof idx === 'number' && headlines[idx]?.url) ? headlines[idx].url : null;
+          const sectionText = `${s.short_title || ''} ${s.headline || ''}`.toLowerCase();
+          let resolved = null;
+          if (typeof idx === 'number' && headlines[idx]?.url) {
+            // Validate: indexed headline should share keywords with section
+            const hWords = headlines[idx].title.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+            const overlap = hWords.filter(w => sectionText.includes(w)).length;
+            if (overlap >= 2) resolved = headlines[idx].url;
+          }
+          if (!resolved) {
+            // Fuzzy match: find headline with most keyword overlap
+            let best = null, bestScore = 0;
+            for (const h of headlines) {
+              if (!h.url) continue;
+              const words = h.title.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+              const score = words.filter(w => sectionText.includes(w)).length;
+              if (score > bestScore) { bestScore = score; best = h; }
+            }
+            if (best && bestScore >= 3) resolved = best.url;
+          }
+          cleaned.url = resolved;
           return cleaned;
         });
       }
