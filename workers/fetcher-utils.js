@@ -4,6 +4,46 @@
 //  entity decoding, URL normalization, noise filtering.
 // ═══════════════════════════════════════════════════════════════════
 
+// ── Dedup Helpers ─────────────────────────────────────────────────────
+
+/**
+ * Strip trailing source suffix that aggregators append to titles.
+ * "NCAA eyes penalties for transfer violations - ESPN" → "NCAA eyes penalties for transfer violations"
+ * Only strips if the remaining title is still substantial (>20 chars).
+ */
+function stripSourceSuffix(title) {
+  const m = title.match(/^(.{20,})\s+[-–—]\s+\S.{1,50}$/);
+  if (m) return m[1];
+  const p = title.match(/^(.{20,})\s+\|\s+\S.{1,50}$/);
+  if (p) return p[1];
+  return title;
+}
+
+/**
+ * Normalize a title for dedup comparison: strip source suffix,
+ * lowercase, remove non-alphanumeric, compress whitespace.
+ */
+function normalizeForDedup(title) {
+  return stripSourceSuffix(title).toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Extract significant words (>3 chars) for Jaccard similarity.
+ */
+function getSignificantWords(normalizedTitle) {
+  return new Set(normalizedTitle.split(' ').filter(w => w.length > 3));
+}
+
+/**
+ * Jaccard similarity between two word sets: |A∩B| / |A∪B|.
+ */
+function jaccardSimilarity(setA, setB) {
+  if (setA.size === 0 || setB.size === 0) return 0;
+  let intersection = 0;
+  for (const w of setA) if (setB.has(w)) intersection++;
+  return intersection / (setA.size + setB.size - intersection);
+}
+
 // ── Dedup Cache ─────────────────────────────────────────────────────
 // Pre-loaded once per cron invocation to avoid per-headline DB queries.
 // Without this, every insertHeadline() call does a full 7-day table scan,
@@ -16,15 +56,17 @@ export async function loadDedupCache(db) {
   ).all();
 
   const exactTitles = new Set();
-  const normalizedTitles = [];
+  const entries = [];
 
   for (const r of results) {
     exactTitles.add(r.title);
-    const norm = r.title.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-    if (norm.length >= 20) normalizedTitles.push(norm);
+    const norm = normalizeForDedup(r.title);
+    if (norm.length >= 20) {
+      entries.push({ norm, words: getSignificantWords(norm) });
+    }
   }
 
-  _dedupCache = { exactTitles, normalizedTitles };
+  _dedupCache = { exactTitles, entries };
   console.log(`Dedup cache loaded: ${results.length} titles`);
 }
 
@@ -287,32 +329,41 @@ export async function insertHeadline(db, { source, title, url, category, publish
   const cat = category || categorizeByKeyword(cleanTitle);
 
   // Title dedup — use pre-loaded cache if available, otherwise query DB
-  let exactTitles, normalizedTitles;
+  let exactTitles, entries;
   if (_dedupCache) {
     exactTitles = _dedupCache.exactTitles;
-    normalizedTitles = _dedupCache.normalizedTitles;
+    entries = _dedupCache.entries;
   } else {
     const { results: recent } = await db.prepare(
       `SELECT title FROM headlines WHERE published_at >= date('now', '-7 days')`
     ).all();
     exactTitles = new Set(recent.map(r => r.title));
-    normalizedTitles = [];
+    entries = [];
     for (const r of recent) {
-      const rn = r.title.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-      if (rn.length >= 20) normalizedTitles.push(rn);
+      const rn = normalizeForDedup(r.title);
+      if (rn.length >= 20) entries.push({ norm: rn, words: getSignificantWords(rn) });
     }
   }
 
   // Exact title match
   if (exactTitles.has(cleanTitle)) return false;
 
-  // Fuzzy dedup: normalized match + substring containment across all sources
-  const norm = cleanTitle.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+  // Fuzzy dedup: suffix-stripped normalization + substring + Jaccard similarity
+  const norm = normalizeForDedup(cleanTitle);
   if (norm.length >= 20) {
-    for (const rn of normalizedTitles) {
-      if (rn === norm) return false;
-      if (rn.length >= 30 && norm.length >= 30 &&
-          (rn.includes(norm) || norm.includes(rn))) return false;
+    const incomingWords = getSignificantWords(norm);
+
+    for (const entry of entries) {
+      // Normalized exact match (now with source suffixes stripped)
+      if (entry.norm === norm) return false;
+
+      // Substring containment
+      if (entry.norm.length >= 30 && norm.length >= 30 &&
+          (entry.norm.includes(norm) || norm.includes(entry.norm))) return false;
+
+      // Jaccard word similarity — catches moderate rewordings of the same headline
+      if (incomingWords.size >= 3 && entry.words.size >= 3 &&
+          jaccardSimilarity(incomingWords, entry.words) >= 0.65) return false;
     }
   }
 
@@ -325,7 +376,9 @@ export async function insertHeadline(db, { source, title, url, category, publish
     // Update cache so parallel fetchers see this insert
     if (_dedupCache) {
       _dedupCache.exactTitles.add(cleanTitle);
-      if (norm.length >= 20) _dedupCache.normalizedTitles.push(norm);
+      if (norm.length >= 20) {
+        _dedupCache.entries.push({ norm, words: getSignificantWords(norm) });
+      }
     }
     return true;
   } catch {
