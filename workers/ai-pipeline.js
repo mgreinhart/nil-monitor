@@ -382,7 +382,7 @@ STRICT FORMAT RULES:
   - "short_title": A punchy 6-10 word title that captures the core development. Written like a news ticker or push notification. No periods. Examples: "Nevada judge strikes NCAA eligibility rules", "'Street agents' draw multi-conference alarm", "Power 4 participation deadline holds at March 1"
   - "headline": ONE bold opening sentence stating what happened.
   - "body": ONE to TWO sentences max of detail/context/action items.
-  - "url": The URL of the most relevant source article for this section (copy exactly from the headline list). If the section is about a deadline or forward-looking item with no specific article, use null.
+  - "source_index": The [#N] index number of the most relevant source headline for this section. Use the number only (e.g., 3), or null if the section is about a deadline or forward-looking item with no specific article.
 - Lead with the most important item. Group related developments.
 - Cite sources parenthetically (e.g., "per ESPN" or "(CourtListener)").
 - If something requires institutional action, say so explicitly.
@@ -391,8 +391,8 @@ STRICT FORMAT RULES:
 
 Return ONLY valid JSON, no other text.`;
 
-  const headlineList = headlines.map(h =>
-    `[${h.severity?.toUpperCase()}] [${h.category}] [Tier ${h._tier || getSourceTier(h.source)}] ${h.source}: ${h.title}${h.url ? ` <${h.url}>` : ''}`
+  const headlineList = headlines.map((h, i) =>
+    `[#${i}] [${h.severity?.toUpperCase()}] [${h.category}] [Tier ${h._tier || getSourceTier(h.source)}] ${h.source}: ${h.title}`
   ).join('\n');
 
   const deadlineList = deadlines.map(d =>
@@ -435,7 +435,7 @@ Return JSON (EXACTLY 4 sections):
       "short_title": "Punchy 6-10 word title for this item",
       "headline": "Bold opening sentence stating what happened.",
       "body": "One to two sentences of context or action items. No more.",
-      "url": "https://example.com/article-url-from-headline-list or null"
+      "source_index": 0
     }
   ]
 }`;
@@ -470,7 +470,7 @@ Return JSON (EXACTLY 4 sections):
       "short_title": "Punchy 6-10 word title for this item",
       "headline": "Bold opening sentence stating what happened.",
       "body": "One to two sentences of context or action items. No more.",
-      "url": "https://example.com/article-url-from-headline-list or null"
+      "source_index": 0
     }
   ]
 }`;
@@ -483,19 +483,21 @@ Return JSON (EXACTLY 4 sections):
       const result = await callClaude(env, system, userContent);
       sections = result.sections || null;
 
-      // Normalize Unicode punctuation to ASCII, then strip remaining non-ASCII
+      // Resolve source_index → url, clean text fields
       if (sections) {
         sections = sections.map(s => {
           const cleaned = {};
           for (const [key, val] of Object.entries(s)) {
-            if (key === 'url' && typeof val === 'string') {
-              cleaned[key] = val.replace(/\s/g, '');
-            } else if (typeof val === 'string') {
+            if (key === 'source_index') continue; // resolved below
+            if (typeof val === 'string') {
               cleaned[key] = cleanBriefingText(val);
             } else {
               cleaned[key] = val;
             }
           }
+          // Resolve source_index to actual headline URL
+          const idx = s.source_index;
+          cleaned.url = (typeof idx === 'number' && headlines[idx]?.url) ? headlines[idx].url : null;
           return cleaned;
         });
       }
