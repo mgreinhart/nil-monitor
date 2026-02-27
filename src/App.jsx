@@ -302,7 +302,7 @@ const STATE_LABELS = {
   "Florida": [-81.7, 28.7, "FL"],
   "Georgia": [-83.4, 32.7, "GA"], "Hawaii": [-155.5, 21.5, "HI"], "Idaho": [-114.5, 43.3, "ID"],
   "Illinois": [-89.2, 40.0, "IL"], "Indiana": [-86.2, 39.8, "IN"], "Iowa": [-93.5, 42.0, "IA"],
-  "Kansas": [-98.3, 38.5, "KS"], "Kentucky": [-83.8, 37.8, "KY"], "Louisiana": [-92.5, 31.2, "LA"],
+  "Kansas": [-98.3, 38.5, "KS"], "Kentucky": [-84.3, 37.8, "KY"], "Louisiana": [-92.5, 31.2, "LA"],
   "Maine": [-69.2, 45.4, "ME"],
   "Maryland": [-74.9, 37.8, "MD", "start", 0.5],
   "Massachusetts": [-70.5, 42.3, "MA", "start", 0.3],
@@ -318,7 +318,7 @@ const STATE_LABELS = {
   "South Carolina": [-80.9, 34.0, "SC"], "South Dakota": [-100.2, 44.4, "SD"], "Tennessee": [-86.3, 35.8, "TN"],
   "Texas": [-99.0, 31.5, "TX"], "Utah": [-111.7, 39.3, "UT"],
   "Vermont": [-72.6, 44.2, "VT"],
-  "Virginia": [-77.3, 37.5, "VA"], "Washington": [-120.5, 47.4, "WA"], "West Virginia": [-80.6, 38.6, "WV"],
+  "Virginia": [-78.1, 37.5, "VA"], "Washington": [-120.5, 47.4, "WA"], "West Virginia": [-80.6, 38.6, "WV"],
   "Wisconsin": [-89.8, 44.6, "WI"], "Wyoming": [-107.5, 43.0, "WY"],
 };
 
