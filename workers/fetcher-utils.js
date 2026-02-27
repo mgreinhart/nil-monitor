@@ -218,7 +218,48 @@ export function categorizeByKeyword(title) {
  * NIL, college athletics regulation, or governance must appear.
  * Used by all headline fetchers as a universal quality gate.
  */
-const TITLE_RELEVANCE_RE = /\bnil\b|name.image.likeness|\bncaa\b|college\s+athlete|student.athlete|transfer\s+portal|revenue.shar|title\s+ix|college\s+(?:sports?|athletics|football|basketball)|athletic[s]?\s+(?:directors?|departments?|budgets?|deficits?|fees?)|\bathletics\b.*(?:private|equity|revenue|invest|budget|deficit)|intercollegiate|\bcompliance\b|\bcollective\b|house\s+v\.?|\bcsc\b|college\s+sports?\s+commission|\buniversit(?:y|ies)\b.*(?:athlet|nil|revenue|private equity|invest|su(?:es?|ed|ing))|\bpower\s+(?:4|5|four|five)\b|conference\s+realignment|\b(?:big\s+ten|big\s+12|big\s+east|pac.12)\b.*(?:deal|rights|equity|revenue|expansion|realign)|\beligibility\b|\bbuyout\b.*(?:college|athlete|transfer|nil|ncaa)|\b(?:lawsuit|injunction|restraining.order)\b.*(?:college|ncaa|athlete|transfer|eligib|athletic)|(?:college|ncaa|athlete|transfer|eligib|athletic).*\b(?:lawsuit|injunction|restraining.order)\b|\bsu(?:es?|ed|ing)\b.*(?:\bncaa\b|college|athlete|quarterback|transfer|eligib)|(?:\bncaa\b|university|college).*\bsu(?:es?|ed|ing)\b|jersey\s+patch.*(?:college|university|athletic|ncaa|nil|revenue)|(?:college|university|athletic|ncaa).*jersey\s+patch|above.the.cap.*(?:college|ncaa|nil|athlete)|(?:college|ncaa|nil|athlete).*above.the.cap|above.cap.*(?:college|ncaa|nil|athlete)|(?:college|ncaa|nil|athlete).*above.cap|athletic\s+fee.*(?:college|university|increase)|(?:college|university).*athletic\s+fee|apparel\s+(?:deal|contract).*(?:college|ncaa|nil)|operating\s+(?:expenses?|revenue|budget).*(?:college|university|athletic)|(?:college|university|athletic).*operating\s+(?:expenses?|revenue|budget)|private\s+equity.*(?:college|university|athletic)/i;
+const TITLE_RELEVANCE_RE = new RegExp([
+  // Core NIL / governance
+  '\\bnil\\b', 'name.image.likeness', '\\bncaa\\b',
+  'college\\s+athlete', 'student.athlete', 'transfer\\s+portal',
+  'revenue.shar', 'title\\s+ix',
+  'college\\s+(?:sports?|athletics|football|basketball)',
+  'athletic[s]?\\s+(?:directors?|departments?|budgets?|deficits?|fees?|salary|salaries)',
+  '\\bathletics\\b.*(?:private|equity|revenue|invest|budget|deficit)',
+  'intercollegiate', '\\bcompliance\\b', '\\bcollective\\b',
+  'house\\s+v\\.?', '\\bcsc\\b', 'college\\s+sports?\\s+commission',
+  // University + business context
+  '\\buniversit(?:y|ies)\\b.*(?:athlet|nil|revenue|private equity|invest|su(?:es?|ed|ing))',
+  // Conferences — Power + Group of 5
+  '\\bpower\\s+(?:4|5|four|five)\\b', 'conference\\s+realignment',
+  '\\b(?:big\\s+ten|big\\s+12|big\\s+east|pac.12|mountain\\s+west|sun\\s+belt|mac\\b|\\baac\\b|conference\\s+usa)\\b.*(?:deal|rights|equity|revenue|expansion|realign|transition|media)',
+  '\\b(?:big\\s+ten|big\\s+12|big\\s+east|pac.12|sec)\\b.*(?:deal|rights|equity|revenue|expansion|realign)',
+  // Eligibility / legal
+  '\\beligibility\\b',
+  '\\bbuyout\\b.*(?:college|athlete|transfer|nil|ncaa)',
+  '\\b(?:lawsuit|injunction|restraining.order)\\b.*(?:college|ncaa|athlete|transfer|eligib|athletic)',
+  '(?:college|ncaa|athlete|transfer|eligib|athletic).*\\b(?:lawsuit|injunction|restraining.order)\\b',
+  '\\bsu(?:es?|ed|ing)\\b.*(?:\\bncaa\\b|college|athlete|quarterback|transfer|eligib)',
+  '(?:\\bncaa\\b|university|college).*\\bsu(?:es?|ed|ing)\\b',
+  // Business / finance (require college context)
+  'jersey\\s+patch.*(?:college|university|athletic|ncaa|nil|revenue)',
+  '(?:college|university|athletic|ncaa).*jersey\\s+patch',
+  'above.the.cap.*(?:college|ncaa|nil|athlete)',
+  '(?:college|ncaa|nil|athlete).*above.the.cap',
+  'above.cap.*(?:college|ncaa|nil|athlete)',
+  '(?:college|ncaa|nil|athlete).*above.cap',
+  'athletic\\s+fee.*(?:college|university|increase)',
+  '(?:college|university).*athletic\\s+fee',
+  'apparel\\s+(?:deal|contract).*(?:college|ncaa|nil)',
+  'operating\\s+(?:expenses?|revenue|budget).*(?:college|university|athletic)',
+  '(?:college|university|athletic).*operating\\s+(?:expenses?|revenue|budget)',
+  'private\\s+equity.*(?:college|university|athletic)',
+  // Sports media / broadcast — require college/conference context
+  '(?:tnt\\s+sports|cbs\\s+sports|espn|fox\\s+sports).*(?:media\\s+rights|rights\\s+deal|rights\\s+fee)',
+  '(?:tnt\\s+sports|cbs\\s+sports).*(?:college|conference|merger|portfolio|ncaa)',
+  '(?:media\\s+rights|broadcast\\s+rights|tv\\s+deal).*(?:college|conference|ncaa|\\bsec\\b|big\\s+ten)',
+  '(?:college|conference|ncaa).*(?:media\\s+rights|broadcast\\s+rights|tv\\s+deal)',
+].join('|'), 'i');
 
 export function isTitleRelevant(title) {
   if (!title) return false;
