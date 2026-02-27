@@ -171,6 +171,7 @@ const GAME_NOISE_RE = new RegExp([
   'bracket', 'march madness', 'final four', 'elite eight', 'sweet sixteen',
   'round of \\d+', 'first round', 'second round',
   'ncaa tournament(?!.*(?:revenue|nil|lawsuit|settlement|reform))',
+  'ncaa championships?(?!.*(?:revenue|nil|lawsuit|settlement|reform))',
   'tournament (?:seed|bubble|bid|hopes|action|update)',
   'top.(?:16|4|8)\\s+seed', '\\d-seed\\b', 'seed line',
   'selection committee(?!.*(?:reform|governance|restructur))',
@@ -178,27 +179,50 @@ const GAME_NOISE_RE = new RegExp([
   'game recap', 'game preview', 'game day', 'gameday', 'tipoff', 'tip-off',
   'kickoff', 'kick-off', 'halftime', 'overtime', 'final score',
   'box score', 'highlights', 'full replay', 'live updates?:? track',
-  'buzzer.beater',
+  'buzzer.beater', 'miraculous (?:turnaround|comeback|win)',
   // Scores / results
-  '\\d{1,3}-\\d{1,3}\\s+(?:win|loss|victory|defeat)',
-  // Predictions / betting
+  '\\d{1,3}-\\d{1,3}\\s+(?:win|loss|victory|defeat|record)',
+  '\\d+-\\d+\\s+(?:team|hoops|basketball|football)',
+  // Predictions / betting / odds
   'picks? (?:and|&) predictions?', 'betting odds', 'point spread',
   'over.under', 'moneyline', 'parlay', 'prop bet',
   'fantasy (?:football|basketball)',
-  // Draft
+  'odds.*prediction', 'from (?:proven|computer|best) model',
+  // Draft / NFL Combine
   'mock draft', 'nfl draft', 'nba draft', 'draft pick',
+  'draft (?:riser|faller|sleeper|stock|prospect|grade|choice)',
+  'nfl combine', '\\bat the combine\\b', 'combine (?:results?|workouts?|grades?|measurements?|testing|day|week)',
+  '(?:risers?|speedsters?|prospects?).*\\bcombine\\b',
+  '\\b(?:40.yard|bench press|vertical jump|broad jump|shuttle|cone drill)\\b',
+  // NFL / pro team content
+  'franchise tag', '\\bnflpa\\b',
+  '\\bnfl\\b.*(?:free agenc|contract|trade|roster|staff)',
+  '\\b(?:cowboys?|eagles?|chiefs?|packers?|bears?|49ers|broncos?|patriots?|steelers?|ravens?|dolphins?|jets?|commanders?|saints|texans|falcons|bengals|chargers|colts|jaguars|titans|browns|giants|seahawks|rams|lions|panthers|buccaneers|cardinals|vikings|bills)\\b.*(?:sign|trade|hire|staff|contract|roster|tag|release)',
+  // Non-college pro sports (no college context)
+  '\\bwnba\\b(?!.*(?:college|ncaa|nil|university|parallel))',
+  '\\b(?:mlb|nhl|mls|nascar|ufc)\\b(?!.*(?:college|ncaa|nil|university))',
+  '\\bpremier league\\b', '\\bla liga\\b', '\\bbundesliga\\b', '\\bserie a\\b',
+  '\\bformula.(?:1|one)\\b', '\\bf1\\b.*(?:race|grand prix|stream|bet)',
+  // Sportsbook / gambling companies
+  '\\b(?:fanduel|draftkings|betmgm|bet365|caesars sportsbook)\\b(?!.*(?:college|ncaa|nil|university|athlete))',
   // Recruiting / commitments (game context, not policy)
-  '(?:4|5)-star (?:recruit|prospect)', 'national signing day',
+  '(?:4|5)-star (?:recruit|prospect|edge|quarterback|receiver|lineman)',
+  '\\d-star (?:recruit|prospect)', 'national signing day',
   'recruiting (?:class|rank)', 'commitment tracker',
   'landed a commitment', 'commits? to\\b', 'decommit',
   'players? still available',
+  'official visit(?:s)?\\s+(?:tracker|plans?|set|add)',
+  'announces where.*(?:play|commit)',
   // Coaching carousel (not governance)
   'coaching (?:search|carousel|hire[ds]?|fired)',
+  "couldn't pass.*(?:opportunity|chance).*(?:coach|staff)",
   // Player / game specifics
   'injury (?:report|update)', 'depth chart',
   'projected (?:starter|lineup)', 'stat line',
   'all-american team', 'player of the (?:year|week)',
   'heisman (?:watch|odds|winner|race|trophy|contender)',
+  'out of (?:boot|brace|cast|drills?)',
+  'putting up (?:big|huge|impressive) numbers',
   // How-to-watch
   'how to watch', 'where to watch', 'what channel', 'live stream',
   'watch (?:list|party)',
@@ -212,12 +236,17 @@ const GAME_NOISE_RE = new RegExp([
   // Schedule / scores roundups
   'championship (?:game|schedule)', 'schedule release', 'scores? (?:from|of|recap)',
   'when does the \\d+ (?:college|ncaa)',
+  'most important games.*season',
+  // Districts / high school
+  'districts? preview', 'high school',
+  // Podcast / radio show content
+  '\\bshow\\b.*live from', 'live from (?:lovely|beautiful|downtown)',
 ].join('|'), 'i');
 
 /**
  * Business/regulatory signals — if present, never filter the headline.
  */
-const BUSINESS_SIGNAL_RE = /\bnil\b|name.image.likeness|ncaa\s*(?:governance|rule|board|enforce|investigat|reform|restructur|commission|settlement|antitrust)|college sports commission|\bcsc\b|revenue.shar|salary.cap|legislation|congress|senate|house bill|\bbill\b.*(?:athlete|sport|college)|compliance|collective|waiver|title ix.*(?:nil|revenue|athlete)|transfer portal.*(?:rule|window|policy)|realignment|media rights|athlete.*(?:pay|compensat|employ|union|rights)|lawsuit|settlement|litigation|antitrust|private equity|conference.*(?:deal|revenue|expansion)|athletic\s+(?:department|budget|deficit)|intercollegiate|\bsu(?:es?|ed|ing)\b|\btrademark\b|\beligibility\b|\bbuyout\b|\binjunction\b|\brestraining.order\b|jersey\s+patch|above.cap|athletic\s+fee|apparel|operating\s+(?:expense|revenue|budget)/i;
+const BUSINESS_SIGNAL_RE = /\bnil\b|name.image.likeness|ncaa\s*(?:governance|rule|board|enforce|investigat|reform|restructur|commission|settlement|antitrust)|college sports commission|\bcsc\b|revenue.shar|salary.cap|legislation|congress|senate|house bill|\bbill\b.*(?:athlete|sport|college)|compliance|collective|waiver|title ix.*(?:nil|revenue|athlete)|transfer portal.*(?:rule|window|policy)|realignment|media rights|athlete.*(?:pay|compensat|employ|union|rights)|lawsuit|settlement|litigation|antitrust|private equity|conference.*(?:deal|revenue|expansion)|athletic\s+(?:department|budget|deficit)|intercollegiate|\bsu(?:es?|ed|ing)\b|\btrademark\b|\beligibility\b|\bbuyout\b|\binjunction\b|\brestraining.order\b|jersey\s+patch|above.cap|athletic\s+fee|apparel|operating\s+(?:expense|revenue|budget)|\$\d+[mb].*(?:arena|stadium|facility|venue)|(?:arena|stadium|facility)\s+(?:vote|bond|fund|approv|construct|renovati)/i;
 
 /**
  * Returns true if the title is game/tournament noise (not business/regulatory).
