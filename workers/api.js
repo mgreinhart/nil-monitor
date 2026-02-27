@@ -51,6 +51,28 @@ function getETHour() {
   return parseInt(new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' }));
 }
 
+/**
+ * Get ET date strings for SQL queries. D1/SQLite has no timezone support,
+ * so we compute ET dates in JS and pass them as bind parameters.
+ * Uses America/New_York (auto-adjusts for EST/EDT).
+ */
+function getETDates() {
+  const now = new Date();
+  const todayET = now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const daysAgo = (n) => {
+    const d = new Date(now.getTime() - n * 86400000);
+    return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  };
+  // ET offset in hours (negative for behind UTC): e.g. -5 for EST, -4 for EDT
+  const etOffsetHours = (() => {
+    const utcStr = now.toLocaleString('en-US', { timeZone: 'UTC', hour12: false });
+    const etStr = now.toLocaleString('en-US', { timeZone: 'America/New_York', hour12: false });
+    return (new Date(etStr).getTime() - new Date(utcStr).getTime()) / 3600000;
+  })();
+  const offsetSql = `${etOffsetHours} hours`; // e.g. "-5 hours"
+  return { todayET, daysAgo, offsetSql };
+}
+
 function getFetcherStatus(lastRunStr, cooldown, etHour) {
   if (!lastRunStr) return { status: 'red', label: 'Never' };
   const d = new Date(lastRunStr.includes('T') ? lastRunStr : lastRunStr.replace(' ', 'T') + 'Z');
@@ -67,6 +89,9 @@ function getFetcherStatus(lastRunStr, cooldown, etHour) {
 }
 
 async function buildAdminDashboard(env) {
+  // ── ET date calculations for queries ──
+  const { todayET, daysAgo, offsetSql } = getETDates();
+
   // ── Parallel D1 queries ──
   const [
     fetcherRows, headlineTotal, headlinesToday, headlinesWeek, headlines24h,
@@ -75,8 +100,8 @@ async function buildAdminDashboard(env) {
   ] = await Promise.all([
     env.DB.prepare('SELECT fetcher_name, last_run FROM fetcher_runs').all(),
     env.DB.prepare('SELECT COUNT(*) as cnt FROM headlines').first(),
-    env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE date(published_at) = date('now')").first(),
-    env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE published_at >= date('now', '-7 days')").first(),
+    env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE date(published_at, ?) = ?").bind(offsetSql, todayET).first(),
+    env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE published_at >= ?").bind(daysAgo(7)).first(),
     env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE fetched_at >= datetime('now', '-24 hours')").first(),
     env.DB.prepare('SELECT COUNT(*) as cnt FROM cases WHERE is_active = 1').first(),
     env.DB.prepare("SELECT COUNT(*) as cnt FROM cases WHERE is_active = 1 AND upcoming_dates IS NOT NULL AND upcoming_dates != '[]'").first(),
@@ -395,9 +420,10 @@ export async function handleApi(request, env) {
 
     // Deadlines
     if (path === '/api/deadlines') {
+      const { todayET } = getETDates();
       const { results } = await env.DB.prepare(
-        "SELECT * FROM deadlines WHERE date >= date('now') ORDER BY date ASC"
-      ).all();
+        "SELECT * FROM deadlines WHERE date >= ? ORDER BY date ASC"
+      ).bind(todayET).all();
       return json(results);
     }
 
@@ -438,13 +464,14 @@ export async function handleApi(request, env) {
 
     // Headline counts per day (for news volume chart)
     if (path === '/api/headline-counts') {
+      const { daysAgo, offsetSql } = getETDates();
       const { results } = await env.DB.prepare(
-        `SELECT date(published_at) as day, COUNT(*) as count
+        `SELECT date(published_at, ?) as day, COUNT(*) as count
          FROM headlines
-         WHERE published_at >= date('now', '-30 days')
-         GROUP BY date(published_at)
+         WHERE published_at >= ?
+         GROUP BY date(published_at, ?)
          ORDER BY day ASC`
-      ).all();
+      ).bind(offsetSql, daysAgo(30), offsetSql).all();
       return json(results);
     }
 
@@ -474,28 +501,29 @@ export async function handleApi(request, env) {
 
     // Coverage Intelligence (stat cards + stacked area chart)
     if (path === '/api/coverage-intel') {
+      const { daysAgo, offsetSql } = getETDates();
       const [dailyRows, thisWeekRows, lastWeekRows, breadthRow, latestRows] = await Promise.all([
         env.DB.prepare(
-          `SELECT date(published_at) as day, category, COUNT(*) as count
-           FROM headlines WHERE category IS NOT NULL AND category != 'Off-Topic' AND published_at >= date('now', '-14 days')
+          `SELECT date(published_at, ?) as day, category, COUNT(*) as count
+           FROM headlines WHERE category IS NOT NULL AND category != 'Off-Topic' AND published_at >= ?
            GROUP BY day, category ORDER BY day ASC`
-        ).all(),
+        ).bind(offsetSql, daysAgo(14)).all(),
         env.DB.prepare(
           `SELECT category, COUNT(*) as count FROM headlines
-           WHERE category IS NOT NULL AND category != 'Off-Topic' AND published_at >= date('now', '-7 days')
+           WHERE category IS NOT NULL AND category != 'Off-Topic' AND published_at >= ?
            GROUP BY category`
-        ).all(),
+        ).bind(daysAgo(7)).all(),
         env.DB.prepare(
           `SELECT category, COUNT(*) as count FROM headlines
            WHERE category IS NOT NULL AND category != 'Off-Topic'
-             AND published_at >= date('now', '-14 days')
-             AND published_at < date('now', '-7 days')
+             AND published_at >= ?
+             AND published_at < ?
            GROUP BY category`
-        ).all(),
+        ).bind(daysAgo(14), daysAgo(7)).all(),
         env.DB.prepare(
           `SELECT COUNT(DISTINCT source) as count FROM headlines
-           WHERE category != 'Off-Topic' AND published_at >= date('now', '-7 days')`
-        ).first(),
+           WHERE category != 'Off-Topic' AND published_at >= ?`
+        ).bind(daysAgo(7)).first(),
         env.DB.prepare(
           `SELECT category, MAX(published_at) as latest FROM headlines
            WHERE category IS NOT NULL AND category != 'Off-Topic' GROUP BY category`
@@ -520,11 +548,12 @@ export async function handleApi(request, env) {
 
     // GDELT news volume (30-day chart)
     if (path === '/api/gdelt-volume') {
+      const { daysAgo } = getETDates();
       const { results } = await env.DB.prepare(
         `SELECT date, article_count as count FROM gdelt_volume
-         WHERE date >= date('now', '-30 days')
+         WHERE date >= ?
          ORDER BY date ASC`
-      ).all();
+      ).bind(daysAgo(30)).all();
       const total = results.reduce((s, r) => s + r.count, 0);
       const avg = results.length > 0 ? Math.round(total / results.length) : 0;
       const lastRow = await env.DB.prepare(

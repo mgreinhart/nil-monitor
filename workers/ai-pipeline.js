@@ -340,9 +340,11 @@ async function generateBriefing(env, db, isAfternoon = false) {
   const headlines = deduplicateHeadlines(rawHeadlines);
   console.log(`Briefing: ${rawHeadlines.length} raw headlines → ${headlines.length} after dedup (${recencyHours}h window)`);
 
+  const todayETForDeadlines = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const in14Days = (() => { const d = new Date(Date.now() + 14 * 86400000); return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); })();
   const { results: deadlines } = await db.prepare(
-    "SELECT * FROM deadlines WHERE date >= date('now') AND date <= date('now', '+14 days') ORDER BY date ASC"
-  ).all();
+    "SELECT * FROM deadlines WHERE date >= ? AND date <= ? ORDER BY date ASC"
+  ).bind(todayETForDeadlines, in14Days).all();
 
   const system = `You are briefing a college athletic director the way a CFO or COO would — with financial context, peer comparisons, and operational implications. Be direct, no throat-clearing, no filler.
 
