@@ -21,10 +21,6 @@ const TIER1_FEEDS = [
   { url: 'https://www.sportico.com/feed/', source: 'Sportico' },
   { url: 'https://frontofficesports.com/feed/', source: 'Front Office Sports' },
   { url: 'https://sportslitigationalert.com/feed/', source: 'Sports Litigation Alert' },
-  // Conference feeds (SIDEARM Sports CMS — media deals, announcements)
-  { url: 'https://horizonleague.org/rss.aspx', source: 'Horizon League' },
-  { url: 'https://theacc.com/rss.aspx', source: 'ACC' },
-  { url: 'https://big12sports.com/rss.aspx', source: 'Big 12' },
 ];
 
 // Tier 2 — Broad college sports feeds. Relevance gate required.
@@ -38,6 +34,10 @@ const TIER2_FEEDS = [
   { url: 'https://sports.yahoo.com/rss/', source: 'Yahoo Sports' },
   { url: 'https://www.nytimes.com/athletic/rss/college-football/', source: 'The Athletic' },
   { url: 'https://www.nytimes.com/athletic/rss/college-sports/', source: 'The Athletic' },
+  // Conference feeds — mostly sports results, relevance gate catches the rare business story
+  { url: 'https://horizonleague.org/rss.aspx', source: 'Horizon League' },
+  { url: 'https://theacc.com/rss.aspx', source: 'ACC' },
+  { url: 'https://big12sports.com/rss.aspx', source: 'Big 12' },
 ];
 
 function getCooldown() {
