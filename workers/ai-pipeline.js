@@ -506,7 +506,7 @@ Return JSON (EXACTLY 4 sections):
           }
           // Resolve source_index to actual headline URL, with fuzzy fallback
           const idx = s.source_index;
-          const sectionText = `${s.short_title || ''} ${s.headline || ''}`.toLowerCase();
+          const sectionText = `${s.short_title || ''} ${s.headline || ''} ${s.body || ''}`.toLowerCase();
           let resolved = null;
           if (typeof idx === 'number' && headlines[idx]?.url) {
             // Validate: indexed headline should share keywords with section
@@ -515,15 +515,21 @@ Return JSON (EXACTLY 4 sections):
             if (overlap >= 2) resolved = headlines[idx].url;
           }
           if (!resolved) {
-            // Fuzzy match: find headline with most keyword overlap
+            // Fuzzy match: score by distinctive word overlap, tiebreak by source tier
             let best = null, bestScore = 0;
             for (const h of headlines) {
               if (!h.url) continue;
-              const words = h.title.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-              const score = words.filter(w => sectionText.includes(w)).length;
-              if (score > bestScore) { bestScore = score; best = h; }
+              const words = h.title.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+              const overlap = words.filter(w => sectionText.includes(w)).length;
+              // Normalize by headline length to avoid long titles always winning
+              const score = words.length > 0 ? overlap / words.length : 0;
+              // Tier bonus: prefer Tier 1-2 sources on close scores
+              const tier = h._tier || getSourceTier(h.source);
+              const tierBonus = tier <= 2 ? 0.05 : 0;
+              const finalScore = score + tierBonus;
+              if (finalScore > bestScore) { bestScore = finalScore; best = h; }
             }
-            if (best && bestScore >= 3) resolved = best.url;
+            if (best && bestScore >= 0.3) resolved = best.url;
           }
           cleaned.url = resolved;
           return cleaned;
