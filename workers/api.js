@@ -15,6 +15,57 @@ function json(data, status = 200) {
   });
 }
 
+/**
+ * Check admin authentication via cookie or query param.
+ * Returns true if authed, 'set-cookie' if key param matched (need to set cookie),
+ * or false if not authed. If ADMIN_KEY is not set, always returns true (dev mode).
+ */
+function checkAdminAuth(request, env) {
+  if (!env.ADMIN_KEY) return true;
+  const url = new URL(request.url);
+  if (url.searchParams.get('key') === env.ADMIN_KEY) return 'set-cookie';
+  const cookies = request.headers.get('Cookie') || '';
+  const match = cookies.match(/admin_token=([^;]+)/);
+  if (match && match[1] === env.ADMIN_KEY) return true;
+  return false;
+}
+
+function adminLoginPage() {
+  return new Response(`<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NIL Monitor Admin</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #0f1729; color: #e2e8f0;
+    display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+  .box { background: #1a2237; border-radius: 12px; padding: 40px; max-width: 360px; width: 100%; }
+  h1 { font-size: 20px; margin: 0 0 24px; }
+  input { width: 100%; padding: 10px 12px; border: 1px solid #334155; border-radius: 6px;
+    background: #0f1729; color: #e2e8f0; font-size: 15px; box-sizing: border-box; }
+  button { width: 100%; padding: 10px; border: none; border-radius: 6px; background: #c4402a;
+    color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+  button:hover { background: #a33623; }
+  .err { color: #f87171; font-size: 13px; margin-top: 8px; display: none; }
+</style>
+</head><body>
+<div class="box">
+  <h1>NIL Monitor Admin</h1>
+  <form method="POST" action="/api/admin-login">
+    <input type="password" name="password" placeholder="Admin password" autofocus required>
+    <button type="submit">Sign in</button>
+  </form>
+  <div class="err" id="err"></div>
+</div>
+<script>
+  if (location.search.includes('error=1'))
+    document.getElementById('err').style.display = 'block',
+    document.getElementById('err').textContent = 'Incorrect password';
+</script>
+</body></html>`, {
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+  });
+}
+
 // ── Admin Dashboard Helpers ───────────────────────────────────────
 
 // Fetcher config: cooldown function returns current cooldown in minutes
@@ -583,8 +634,29 @@ export async function handleApi(request, env) {
       return json(results);
     }
 
+    // Admin login handler
+    if (path === '/api/admin-login' && request.method === 'POST') {
+      const form = await request.formData();
+      const password = form.get('password');
+      if (env.ADMIN_KEY && password === env.ADMIN_KEY) {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            'Location': '/api/admin',
+            'Set-Cookie': `admin_token=${env.ADMIN_KEY}; Path=/api; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`,
+          },
+        });
+      }
+      return new Response(null, {
+        status: 302,
+        headers: { 'Location': '/api/admin?error=1' },
+      });
+    }
+
     // Manual trigger for scheduled tasks (dev/admin use)
     if (path === '/api/trigger') {
+      const triggerAuth = checkAdminAuth(request, env);
+      if (!triggerAuth) return json({ error: 'Unauthorized' }, 401);
       const { loadDedupCache, clearDedupCache } = await import('./fetcher-utils.js');
       const { fetchGoogleNews } = await import('./fetch-google-news.js');
       const { fetchBingNews } = await import('./fetch-bing-news.js');
@@ -704,10 +776,15 @@ export async function handleApi(request, env) {
 
     // Admin status dashboard (HTML)
     if (path === '/api/admin') {
+      const auth = checkAdminAuth(request, env);
+      if (!auth) return adminLoginPage();
       const html = await buildAdminDashboard(env);
-      return new Response(html, {
-        headers: { 'Content-Type': 'text/html; charset=utf-8', ...CORS },
-      });
+      const headers = { 'Content-Type': 'text/html; charset=utf-8', ...CORS };
+      // Set cookie if authed via ?key= param
+      if (auth === 'set-cookie') {
+        headers['Set-Cookie'] = `admin_token=${env.ADMIN_KEY}; Path=/api; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`;
+      }
+      return new Response(html, { headers });
     }
 
     return json({ error: 'Not found' }, 404);
