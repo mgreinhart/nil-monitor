@@ -56,6 +56,10 @@ const QUERIES = [
   'Nike OR Adidas college "NIL" OR "above-cap" OR "revenue sharing"',
   '"student athletic fee" increase OR proposed university',
   '"state legislature" OR "state lawmaker" NIL OR "college athlete" OR "revenue sharing"',
+  '"TNT Sports" OR "CBS Sports" media rights',
+  '"Warner Bros Discovery" sports',
+  '"Paramount" sports broadcast',
+  '"ESPN" media deal OR rights deal',
 ];
 
 function getCooldown() {

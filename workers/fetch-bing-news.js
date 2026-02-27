@@ -46,6 +46,8 @@ const QUERIES = [
   '"above the cap" OR "above-cap" college athlete OR NCAA',
   'Nike OR Adidas college NIL OR "above-cap"',
   '"student athletic fee" increase OR proposed university',
+  '"sports media rights" deal OR merger OR acquisition',
+  '"broadcast rights" college OR conference',
 ];
 
 function getCooldown() {

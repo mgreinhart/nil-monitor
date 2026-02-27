@@ -379,8 +379,23 @@ If the answer is no, don't include it.
 RECENCY:
 Each headline includes an age tag like [3h ago] or [18h ago]. Strongly prefer fresher stories. A story from 2 hours ago should generally beat a similar story from 20 hours ago unless the older story is significantly more important. For afternoon briefings especially, lead with what happened TODAY -- not yesterday's news.
 
-DEADLINE REMINDERS vs NEW DEVELOPMENTS:
-If an upcoming deadline or hearing date is already well-known and no NEW information has emerged about it, do NOT include it as a main briefing section. It belongs in the Deadlines panel, not the briefing. Only include a known deadline in the briefing if something NEW happened related to it (e.g., a motion was filed, a party made a statement, the date changed), or it is within 7 days and warrants a reminder with fresh context. The briefing should focus on WHAT HAPPENED TODAY, not what's coming up on the calendar.
+STRICT RULE -- CALENDAR DATES ARE NOT NEWS:
+Do NOT include known upcoming deadlines as briefing items unless something NEW happened related to them (date changed, motion filed, new party made a statement, new context emerged).
+
+These are NOT briefing items:
+- "March 1 participation deadline approaching" (known for months)
+- "House v. NCAA hearing scheduled for March 12" (known for weeks)
+- "Spring transfer portal window opens March 15" (published annually)
+
+These ARE briefing items:
+- "Three more schools signed participation agreements today ahead of March 1 deadline" (new development)
+- "Plaintiff filed motion to delay March 12 House hearing" (new event)
+- "Idaho Legislature passed joint memorial urging Congress to act before March 1 deadline" (new event referencing the deadline)
+
+The Deadlines panel handles countdowns. The briefing handles NEWS. If you cannot fill 4 sections with actual news, use the remaining section(s) for forward-looking analysis or an emerging trend -- NOT a calendar reminder.
+
+ADJACENT INDUSTRY STORIES:
+When headlines about sports media mergers, broadcast deals, or entertainment M&A appear in the feed, assess whether they have downstream implications for college athletics conference revenue, media rights, or broadcast partnerships. If they do, include them in the briefing with the college-sports implication stated explicitly. Example: "Paramount's $111B bid for WBD clears path after Netflix withdrawal -- if approved, TNT Sports merges into CBS Sports portfolio, potentially reshaping conference media rights negotiations."
 
 STRICT FORMAT RULES:
 - Always produce EXACTLY 4 sections. No more, no fewer.
