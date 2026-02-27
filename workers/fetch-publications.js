@@ -1,37 +1,43 @@
 // ═══════════════════════════════════════════════════════════════════
-//  Publication RSS Fetcher — Direct feeds from sports outlets
-//  Bypasses Google/Bing indexing delays, catches articles faster.
+//  Publication RSS Fetcher — Three-tier filtering model
 //  Self-governing cooldown:
 //    6 AM–10 PM ET: every 30 min
 //    10 PM–6 AM ET: skip
 //
-//  ALL feeds are keyword-filtered — title must contain at least one
-//  NIL/college-athletics keyword to be inserted.
+//  Tier 1 (niche business/regulatory feeds): noise filter only
+//  Tier 2 (broad college sports feeds):      relevance gate + noise filter
 // ═══════════════════════════════════════════════════════════════════
 
 import { parseRSS } from './rss-parser.js';
-import { getETHour, shouldRun, recordRun, insertHeadline, isGameNoise } from './fetcher-utils.js';
+import { getETHour, shouldRun, recordRun, insertHeadline, isGameNoise, isTitleRelevant } from './fetcher-utils.js';
 
 const FETCHER = 'publications';
 
-const FEEDS = [
+// Tier 1 — Business/regulatory scoped. No relevance gate needed.
+// These outlets focus on college sports business, law, or governance by design.
+const TIER1_FEEDS = [
   { url: 'https://businessofcollegesports.com/feed/', source: 'Business of College Sports' },
   { url: 'https://athleticdirectoru.com/feed/', source: 'AthleticDirectorU' },
   { url: 'https://www.sportico.com/feed/', source: 'Sportico' },
   { url: 'https://frontofficesports.com/feed/', source: 'Front Office Sports' },
   { url: 'https://sportslitigationalert.com/feed/', source: 'Sports Litigation Alert' },
-  { url: 'https://www.cbssports.com/rss/headlines/college-football/', source: 'CBS Sports' },
-  { url: 'https://www.espn.com/espn/rss/ncf/news', source: 'ESPN' },
-  { url: 'https://www.on3.com/feed/', source: 'On3' },
-  { url: 'https://www.nytimes.com/athletic/rss/college-football/', source: 'The Athletic' },
-  { url: 'https://www.nytimes.com/athletic/rss/college-sports/', source: 'The Athletic' },
-  { url: 'https://www.cbssports.com/rss/headlines/college-basketball/', source: 'CBS Sports' },
-  { url: 'https://www.espn.com/espn/rss/ncb/news', source: 'ESPN' },
-  { url: 'https://sports.yahoo.com/rss/', source: 'Yahoo Sports' },
   // Conference feeds (SIDEARM Sports CMS — media deals, announcements)
   { url: 'https://horizonleague.org/rss.aspx', source: 'Horizon League' },
   { url: 'https://theacc.com/rss.aspx', source: 'ACC' },
   { url: 'https://big12sports.com/rss.aspx', source: 'Big 12' },
+];
+
+// Tier 2 — Broad college sports feeds. Relevance gate required.
+// These produce mostly game/recruiting content alongside business stories.
+const TIER2_FEEDS = [
+  { url: 'https://www.on3.com/feed/', source: 'On3' },
+  { url: 'https://www.cbssports.com/rss/headlines/college-football/', source: 'CBS Sports' },
+  { url: 'https://www.cbssports.com/rss/headlines/college-basketball/', source: 'CBS Sports' },
+  { url: 'https://www.espn.com/espn/rss/ncf/news', source: 'ESPN' },
+  { url: 'https://www.espn.com/espn/rss/ncb/news', source: 'ESPN' },
+  { url: 'https://sports.yahoo.com/rss/', source: 'Yahoo Sports' },
+  { url: 'https://www.nytimes.com/athletic/rss/college-football/', source: 'The Athletic' },
+  { url: 'https://www.nytimes.com/athletic/rss/college-sports/', source: 'The Athletic' },
 ];
 
 function getCooldown() {
@@ -57,7 +63,12 @@ export async function fetchPublications(env, { force = false } = {}) {
   let totalInserted = 0;
   let totalSkipped = 0;
 
-  for (const feed of FEEDS) {
+  const allFeeds = [
+    ...TIER1_FEEDS.map(f => ({ ...f, tier: 1 })),
+    ...TIER2_FEEDS.map(f => ({ ...f, tier: 2 })),
+  ];
+
+  for (const feed of allFeeds) {
     try {
       const resp = await fetch(feed.url, {
         headers: { 'User-Agent': 'NILMonitor/1.0 (RSS Reader)' },
@@ -74,9 +85,12 @@ export async function fetchPublications(env, { force = false } = {}) {
       for (const item of items.slice(0, 20)) {
         if (!item.title || !item.link) continue;
 
-        // Trusted direct feeds — skip relevance gate, rely on game noise filter + AI tagging.
-        // These feeds are college-sports-scoped by design (ESPN college football, On3, etc.)
-        // so the relevance gate was filtering out valid school-specific financial stories.
+        // Tier 1 (niche business feeds): game noise filter only
+        // Tier 2 (broad sports feeds): relevance gate + game noise filter
+        if (feed.tier === 2 && !isTitleRelevant(item.title)) {
+          totalSkipped++;
+          continue;
+        }
         if (isGameNoise(item.title)) {
           totalSkipped++;
           continue;
