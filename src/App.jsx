@@ -304,7 +304,7 @@ const STATE_LABELS = {
   "Illinois": [-89.2, 40.0, "IL"], "Indiana": [-86.2, 39.8, "IN"], "Iowa": [-93.5, 42.0, "IA"],
   "Kansas": [-98.3, 38.5, "KS"], "Kentucky": [-85.3, 37.8, "KY"], "Louisiana": [-92.5, 31.2, "LA"],
   "Maine": [-69.2, 45.4, "ME"],
-  "Maryland": [-76.7, 38.3, "MD", "middle", 0, 9],
+  "Maryland": [-74.9, 37.8, "MD", "start", 0.5],
   "Massachusetts": [-70.5, 42.3, "MA", "start", 0.3],
   "Michigan": [-84.6, 43.3, "MI"], "Minnesota": [-94.3, 46.3, "MN"], "Mississippi": [-89.7, 32.7, "MS"],
   "Missouri": [-92.5, 38.4, "MO"], "Montana": [-109.6, 47.0, "MT"], "Nebraska": [-99.8, 41.5, "NE"],
@@ -441,6 +441,14 @@ const StateLegislationMap = () => {
               </Marker>
             );
           })}
+          {/* MD callout — line from state center to offset label */}
+          <Line
+            from={[-76.6, 39.0]}
+            to={[-75.1, 37.9]}
+            stroke="#94a3b8"
+            strokeWidth={0.5}
+            strokeDasharray="2,2"
+          />
           {/* DC callout — line from actual location to offset label */}
           <Line
             from={[-77.04, 38.91]}
