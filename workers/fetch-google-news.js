@@ -12,7 +12,7 @@ import { getETHour, shouldRun, recordRun, insertHeadline, isTitleRelevant } from
 
 const FETCHER = 'google-news';
 
-// 29 diverse queries — each targets a distinct topic to minimize overlap.
+// Diverse queries — each targets a distinct topic to minimize overlap.
 // Bing News covers the same space with its own index, so no need to
 // duplicate every permutation here.
 const QUERIES = [
@@ -63,6 +63,16 @@ const QUERIES = [
   '"naming rights" college OR university',
   '"partnership" college athletics OR "athletic department"',
   '"facility" college athletics OR "stadium construction"',
+  // College sports business & personnel
+  '"athletic director" hired OR named OR fired OR resigned',
+  '"conference commissioner" college OR NCAA',
+  '"deputy athletic director" OR "senior associate AD" OR "associate athletic director"',
+  '"general manager" college athletics OR "collegiate GM"',
+  '"college athletics" fundraising OR "fundraising campaign"',
+  '"arena" OR "stadium" college OR university vote OR bond OR approved OR construction',
+  '"college sports" business OR industry',
+  '"athletic department" layoffs OR restructuring OR "budget cuts"',
+  'NACDA OR "National Association of Collegiate Directors of Athletics"',
 ];
 
 function getCooldown() {

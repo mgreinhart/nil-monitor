@@ -48,6 +48,13 @@ const QUERIES = [
   '"student athletic fee" increase OR proposed university',
   '"sports media rights" deal OR merger OR acquisition',
   '"broadcast rights" college OR conference',
+  // College sports business & personnel
+  '"athletic director" hired OR named OR contract OR resigned',
+  '"conference commissioner" resigned OR hired OR fired',
+  '"college athletics" fundraising OR campaign',
+  '"arena" OR "stadium" college OR university construction OR renovation',
+  '"college sports" business OR industry',
+  'NFLPA OR "NFL Players Association" college sports',
 ];
 
 function getCooldown() {

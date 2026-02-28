@@ -29,6 +29,9 @@ const QUERIES = [
   'revenue sharing NCAA',
   'House v NCAA settlement',
   'private equity college sports',
+  // College sports business & personnel
+  'athletic director hired OR fired college',
+  'college athletics fundraising OR stadium',
 ];
 
 function getCooldown() {

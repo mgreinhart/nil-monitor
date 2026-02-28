@@ -195,7 +195,7 @@ const GAME_NOISE_RE = new RegExp([
   '(?:risers?|speedsters?|prospects?).*\\bcombine\\b',
   '\\b(?:40.yard|bench press|vertical jump|broad jump|shuttle|cone drill)\\b',
   // NFL / pro team content
-  'franchise tag', '\\bnflpa\\b',
+  'franchise tag',
   '\\bnfl\\b.*(?:free agenc|contract|trade|roster|staff)',
   '\\b(?:cowboys?|eagles?|chiefs?|packers?|bears?|49ers|broncos?|patriots?|steelers?|ravens?|dolphins?|jets?|commanders?|saints|texans|falcons|bengals|chargers|colts|jaguars|titans|browns|giants|seahawks|rams|lions|panthers|buccaneers|cardinals|vikings|bills)\\b.*(?:sign|trade|hire|staff|contract|roster|tag|release)',
   // Non-college pro sports (no college context)
@@ -267,12 +267,30 @@ const GAME_NOISE_RE = new RegExp([
   '\\bshow\\b.*live from', 'live from (?:lovely|beautiful|downtown)',
   // Odds / best bets roundups
   'best bets.*odds', 'top games to watch.*(?:odds|bets)',
+  // Game predictions/picks/odds (tighter patterns)
+  'prediction.*picks?.*odds', 'picks?.*odds.*today',
+  'predictions?.*today.s.*game',
+  // Individual player transfer portal scouting (not portal policy)
+  'transfer portal scouting report', 'portal (?:target|commitment|tracker|rankings?)',
+  'best fits? for (?:transfer portal|portal)',
+  '\\btransfer portal\\b.*(?:scouting|ranking|top\\s+\\d|best\\s+fits?|targets?)',
+  // Individual player eligibility cases (not policy)
+  'granted extra (?:year|season|eligibility)',
+  'pursuing eligibility case',
+  'granted.*(?:year|season).*eligibility',
+  'done pursuing.*eligibility',
+  // Individual NIL deal announcements (single athlete, no policy angle)
+  'signs? (?:nil|NIL) deal with',
+  'lands? (?:nil|NIL) deal',
+  '(?:olympian|quarterback|guard|forward|receiver|lineman).*signs?.*(?:nil|NIL).*deal',
+  // NFLPA / pro league union stories (unless college context present)
+  '\\bnflpa\\b(?!.*(?:college|ncaa|nil|university|conference commissioner|athletic director))',
 ].join('|'), 'i');
 
 /**
  * Business/regulatory signals — if present, never filter the headline.
  */
-const BUSINESS_SIGNAL_RE = /\bnil\b|name.image.likeness|ncaa\s*(?:governance|rule|board|enforce|investigat|reform|restructur|commission|settlement|antitrust)|college sports commission|\bcsc\b|revenue.shar|salary.cap|legislation|congress|senate|house bill|\bbill\b.*(?:athlete|sport|college)|compliance|collective|waiver|title ix.*(?:nil|revenue|athlete)|transfer portal.*(?:rule|window|policy)|realignment|media rights|athlete.*(?:pay|compensat|employ|union|rights)|lawsuit|settlement|litigation|antitrust|private equity|conference.*(?:deal|revenue|expansion)|athletic\s+(?:department|budget|deficit)|intercollegiate|\bsu(?:es?|ed|ing)\b|\btrademark\b|\beligibility\b|\bbuyout\b|\binjunction\b|\brestraining.order\b|jersey\s+patch|above.cap|athletic\s+fee|apparel|operating\s+(?:expense|revenue|budget)|\$\d+[mb].*(?:arena|stadium|facility|venue)|(?:arena|stadium|facility)\s+(?:vote|bond|fund|approv|construct|renovati)/i;
+const BUSINESS_SIGNAL_RE = /\bnil\b|name.image.likeness|ncaa\s*(?:governance|rule|board|enforce|investigat|reform|restructur|commission|settlement|antitrust)|college sports commission|\bcsc\b|revenue.shar|salary.cap|legislation|congress|senate|house bill|\bbill\b.*(?:athlete|sport|college)|compliance|collective|waiver|title ix.*(?:nil|revenue|athlete)|transfer portal.*(?:rule|window|policy)|realignment|media rights|athlete.*(?:pay|compensat|employ|union|rights)|lawsuit|settlement|litigation|antitrust|private equity|conference.*(?:deal|revenue|expansion)|athletic\s+(?:department|budget|deficit)|intercollegiate|\bsu(?:es?|ed|ing)\b|\btrademark\b|\beligibility\b|\bbuyout\b|\binjunction\b|\brestraining.order\b|jersey\s+patch|above.cap|athletic\s+fee|apparel|operating\s+(?:expense|revenue|budget)|\$\d+[mb].*(?:arena|stadium|facility|venue)|(?:arena|stadium|facility)\s+(?:vote|bond|fund|approv|construct|renovati)|athletic\s+director|conference\s+commissioner|\bfundraising\b|\bcampaign\b.*(?:college|university|athletic)|\b(?:arena|stadium)\b.*(?:vote|bond|approv|construct|renovat|fund)/i;
 
 /**
  * Returns true if the title is game/tournament noise (not business/regulatory).
@@ -304,6 +322,9 @@ export function categorizeByKeyword(title) {
 
   // Broader enforcement/investigation patterns (after CSC check)
   if (/\benforcement\b|\binvestigation\b|\bcompliance\b/.test(t)) return 'CSC / Enforcement';
+
+  // Business / Finance — personnel, fundraising, facilities, PE, ownership
+  if (/\bathletic director\b|\bconference commissioner\b|\bfundraising\b|\bcampaign\b.*(?:athlet|universit)|\barena\b.*(?:\$|million|bond|vote)|\bstadium\b.*(?:\$|million|bond|vote)|private equity|\bownership\b.*(?:college|university|athlet)/.test(t)) return 'Business / Finance';
 
   return null;
 }
@@ -356,6 +377,17 @@ const TITLE_RELEVANCE_RE = new RegExp([
   '(?:tnt\\s+sports|cbs\\s+sports).*(?:college|conference|merger|portfolio|ncaa)',
   '(?:media\\s+rights|broadcast\\s+rights|tv\\s+deal).*(?:college|conference|ncaa|\\bsec\\b|big\\s+ten)',
   '(?:college|conference|ncaa).*(?:media\\s+rights|broadcast\\s+rights|tv\\s+deal)',
+  // Personnel — AD hires/fires, conference commissioners, senior staff
+  'athletic\\s+director.*(?:hired|named|fired|resigned|contract|new|search)',
+  '(?:hired|named|fired|resigned).*athletic\\s+director',
+  'conference\\s+commissioner',
+  '\\bsenior\\s+associate\\s+ad\\b|\\bdeputy\\s+(?:ad|athletic\\s+director)\\b',
+  '\\bgeneral\\s+manager\\b.*(?:college|university|athletic)',
+  // Facilities — require college context + financial signal
+  '(?:college|university).*(?:arena|stadium).*(?:\\$\\d|million|bond|vote|approv|construction|renovation)',
+  '(?:arena|stadium).*(?:college|university).*(?:\\$\\d|million|bond|vote|approv|construction|renovation)',
+  // Industry association
+  '\\bnacda\\b',
 ].join('|'), 'i');
 
 export function isTitleRelevant(title) {
