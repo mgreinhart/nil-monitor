@@ -643,47 +643,61 @@ export async function runAIPipeline(env, options = {}) {
   console.log('AI Pipeline: starting...');
   const db = env.DB;
 
-  // 1. Get last run time
-  const lastRun = await getLastRunTime(db);
-  console.log(`AI Pipeline: processing data since ${lastRun}`);
-
-  // 2. Tag untagged headlines — always runs regardless of new data
-  const headlinesTagged = await tagHeadlines(env, db);
-  console.log(`AI Pipeline: tagged ${headlinesTagged} headlines`);
-
-  // 3. Fetch new data since last run (for CSC detection + briefing)
-  const headlines = await getNewHeadlines(db, lastRun);
-  const caseUpdates = await getNewCaseUpdates(db, lastRun);
-  const totalNew = headlines.length + caseUpdates.length;
-  console.log(`AI Pipeline: ${headlines.length} new headlines, ${caseUpdates.length} case updates`);
-
-  // 4. Detect CSC activity (only if new headlines)
+  let headlinesTagged = 0;
+  let totalNew = 0;
   let cscWritten = 0;
-  if (headlines.length > 0) {
-    const cscItems = await detectCSCActivity(env, headlines, db);
-    cscWritten = await writeCSCActivity(db, cscItems);
-    console.log(`AI Pipeline: detected ${cscItems.length} CSC items, wrote ${cscWritten}`);
-  }
-
-  // 5. Generate briefing (only on briefing-eligible runs)
   let briefingWritten = 0;
-  if (includeBriefing) {
-    const briefingSections = await generateBriefing(env, db, isAfternoon);
-    if (briefingSections && briefingSections.length > 0) {
-      briefingWritten = await writeBriefing(db, briefingSections);
-      console.log(`AI Pipeline: briefing generated (${briefingSections.length} sections)`);
-    } else {
-      console.log('AI Pipeline: briefing generation returned no sections');
+  let fatalError = null;
+
+  try {
+    // 1. Get last run time
+    const lastRun = await getLastRunTime(db);
+    console.log(`AI Pipeline: processing data since ${lastRun}`);
+
+    // 2. Tag untagged headlines — always runs regardless of new data
+    headlinesTagged = await tagHeadlines(env, db);
+    console.log(`AI Pipeline: tagged ${headlinesTagged} headlines`);
+
+    // 3. Fetch new data since last run (for CSC detection + briefing)
+    const headlines = await getNewHeadlines(db, lastRun);
+    const caseUpdates = await getNewCaseUpdates(db, lastRun);
+    totalNew = headlines.length + caseUpdates.length;
+    console.log(`AI Pipeline: ${headlines.length} new headlines, ${caseUpdates.length} case updates`);
+
+    // 4. Detect CSC activity (only if new headlines)
+    if (headlines.length > 0) {
+      const cscItems = await detectCSCActivity(env, headlines, db);
+      cscWritten = await writeCSCActivity(db, cscItems);
+      console.log(`AI Pipeline: detected ${cscItems.length} CSC items, wrote ${cscWritten}`);
     }
-  } else {
-    console.log('AI Pipeline: briefing skipped (non-briefing run)');
+
+    // 5. Generate briefing (only on briefing-eligible runs)
+    if (includeBriefing) {
+      const briefingSections = await generateBriefing(env, db, isAfternoon);
+      if (briefingSections && briefingSections.length > 0) {
+        briefingWritten = await writeBriefing(db, briefingSections);
+        console.log(`AI Pipeline: briefing generated (${briefingSections.length} sections)`);
+      } else {
+        console.log('AI Pipeline: briefing generation returned no sections');
+      }
+    } else {
+      console.log('AI Pipeline: briefing skipped (non-briefing run)');
+    }
+  } catch (err) {
+    fatalError = err;
+    console.error('AI Pipeline: fatal error:', err.message);
+    PIPELINE_ERRORS.push(`fatal: ${err.message}`);
   }
 
-  // 6. Record pipeline run
-  await db.prepare(
-    `INSERT INTO pipeline_runs (items_processed, headlines_tagged, deadlines_created, csc_items_created, briefing_generated)
-     VALUES (?, ?, ?, ?, ?)`
-  ).bind(totalNew, headlinesTagged, 0, cscWritten, briefingWritten).run();
+  // 6. Record pipeline run — ALWAYS write, even on failure (so missing runs are visible)
+  try {
+    await db.prepare(
+      `INSERT INTO pipeline_runs (items_processed, headlines_tagged, deadlines_created, csc_items_created, briefing_generated)
+       VALUES (?, ?, ?, ?, ?)`
+    ).bind(totalNew, headlinesTagged, 0, cscWritten, briefingWritten).run();
+  } catch (recordErr) {
+    console.error('AI Pipeline: failed to record run:', recordErr.message);
+  }
 
   console.log('AI Pipeline: complete');
   if (PIPELINE_ERRORS.length > 0) {
