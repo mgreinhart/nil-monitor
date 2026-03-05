@@ -113,6 +113,7 @@ const NIL_PODCASTS = [
   { name: "SBJ Morning Buzzcast", id: "0NOi7MnlTRMfb3Dv17DOaP" },
   { name: "One Question Leadership", id: "6QmP0ZLPAiEG7iqhywSURD" },
   { name: "The Standard", id: "30VL73UUR59yLZfagH1Rzv" },
+  { name: "Next Play by Playfly Sports", id: "3fFqOS7yBgT7n0CcnHVMXk" },
 ];
 // ── Shared Components ──────────────────────────────────────────────
 const Mono = ({ children, style }) => <span style={{ fontFamily: T.mono, ...style }}>{children}</span>;

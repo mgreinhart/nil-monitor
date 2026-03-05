@@ -15,6 +15,7 @@ const PODCAST_FEEDS = [
   { spotifyId: '0NOi7MnlTRMfb3Dv17DOaP', feed: 'https://feeds.simplecast.com/IDVEdQwe' },        // SBJ Morning Buzzcast
   { spotifyId: '6QmP0ZLPAiEG7iqhywSURD', feed: 'https://rss.libsyn.com/shows/74483/destinations/327372.xml' }, // One Question Leadership
   { spotifyId: '30VL73UUR59yLZfagH1Rzv', feed: 'https://rss.buzzsprout.com/2549070.rss' },        // The Standard
+  { spotifyId: '3fFqOS7yBgT7n0CcnHVMXk', feed: 'https://feeds.libsyn.com/517733/rss' },         // Next Play by Playfly Sports
 ];
 
 function getCooldown() {
