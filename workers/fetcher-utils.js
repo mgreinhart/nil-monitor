@@ -285,6 +285,16 @@ const GAME_NOISE_RE = new RegExp([
   '(?:olympian|quarterback|guard|forward|receiver|lineman).*signs?.*(?:nil|NIL).*deal',
   // NFLPA / pro league union stories (unless college context present)
   '\\bnflpa\\b(?!.*(?:college|ncaa|nil|university|conference commissioner|athletic director))',
+  // Team-specific portal grading/haul reviews (not broad overviews)
+  'grading the.*transfer portal (?:haul|class|additions)',
+  'transfer portal (?:haul|class).*(?:grade|review|breakdown)',
+  // Pre-spring/spring roster content (not policy)
+  'pre.spring (?:ball|practice|depth|roster)',
+  'eligibility chart',
+  // Non-college pro sports leagues that slip through Tier 1 feeds
+  '\\bnwsl\\b(?!.*(?:college|ncaa|nil|university))',
+  '\\bwnba\\b(?!.*(?:college|ncaa|nil|university))',
+  '\\bmls\\b(?!.*(?:college|ncaa|nil|university))',
 ].join('|'), 'i');
 
 /**
