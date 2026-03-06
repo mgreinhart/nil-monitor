@@ -218,7 +218,7 @@ const PodcastsSection = () => {
     return bDate - aDate;
   });
   return (
-    <Panel title="NIL Podcasts" accent={T.accent} size="sm" noPad>
+    <Panel title="NIL Podcasts" accent={T.accent} noPad>
       <div style={{ display: "flex", flexDirection: "column", gap: 0, padding: 4 }}>
         {sorted.map((p, i) => {
           const isFresh = podcastDates[p.id] && (now - podcastDates[p.id]) < 24 * 3600000;
@@ -1096,7 +1096,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
 
         {/* ── PE Tracker + Resources (side by side) ── */}
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
-          <Panel title="PE Tracker" size="sm" noPad>
+          <Panel title="PE Tracker" noPad>
             {peDeals.length === 0 ? (
               <div style={{ padding: "12px 16px" }}>
                 <Mono style={{ fontSize: 12, color: T.textDim }}>Loading deals...</Mono>
@@ -1127,7 +1127,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
               </div>
             )}
           </Panel>
-          <Panel title="Resources" accent={T.textDim} size="sm">
+          <Panel title="Resources">
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {[
                 { heading: "Legal & Compliance", links: [
