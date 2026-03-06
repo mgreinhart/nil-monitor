@@ -551,52 +551,6 @@ export async function handleApi(request, env) {
     }
 
     // Coverage Intelligence (stat cards + stacked area chart)
-    if (path === '/api/coverage-intel') {
-      const { daysAgo, offsetSql } = getETDates();
-      const [dailyRows, thisWeekRows, lastWeekRows, breadthRow, latestRows] = await Promise.all([
-        env.DB.prepare(
-          `SELECT date(published_at, ?) as day, category, COUNT(*) as count
-           FROM headlines WHERE category IS NOT NULL AND category != 'Off-Topic' AND published_at >= ?
-           GROUP BY day, category ORDER BY day ASC`
-        ).bind(offsetSql, daysAgo(14)).all(),
-        env.DB.prepare(
-          `SELECT category, COUNT(*) as count FROM headlines
-           WHERE category IS NOT NULL AND category != 'Off-Topic' AND published_at >= ?
-           GROUP BY category`
-        ).bind(daysAgo(7)).all(),
-        env.DB.prepare(
-          `SELECT category, COUNT(*) as count FROM headlines
-           WHERE category IS NOT NULL AND category != 'Off-Topic'
-             AND published_at >= ?
-             AND published_at < ?
-           GROUP BY category`
-        ).bind(daysAgo(14), daysAgo(7)).all(),
-        env.DB.prepare(
-          `SELECT COUNT(DISTINCT source) as count FROM headlines
-           WHERE category != 'Off-Topic' AND published_at >= ?`
-        ).bind(daysAgo(7)).first(),
-        env.DB.prepare(
-          `SELECT category, MAX(published_at) as latest FROM headlines
-           WHERE category IS NOT NULL AND category != 'Off-Topic' GROUP BY category`
-        ).all(),
-      ]);
-
-      const thisWeek = {};
-      for (const r of (thisWeekRows?.results || [])) thisWeek[r.category] = r.count;
-      const lastWeek = {};
-      for (const r of (lastWeekRows?.results || [])) lastWeek[r.category] = r.count;
-      const latestByCategory = {};
-      for (const r of (latestRows?.results || [])) latestByCategory[r.category] = r.latest;
-
-      return json({
-        daily: dailyRows?.results || [],
-        thisWeek,
-        lastWeek,
-        sourceBreadth: breadthRow?.count || 0,
-        latestByCategory,
-      });
-    }
-
     // GDELT news volume (30-day chart)
     if (path === '/api/gdelt-volume') {
       const { daysAgo } = getETDates();
