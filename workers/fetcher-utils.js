@@ -35,6 +35,43 @@ function getSignificantWords(normalizedTitle) {
 }
 
 /**
+ * Extract distinctive proper nouns from a title — capitalized words
+ * that aren't common/stop words or known entity names.
+ */
+const COMMON_WORDS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+  'of', 'with', 'by', 'from', 'is', 'are', 'was', 'were', 'has', 'have',
+  'had', 'be', 'been', 'being', 'will', 'would', 'could', 'should', 'may',
+  'might', 'new', 'says', 'said', 'after', 'over', 'into', 'about', 'its',
+  'not', 'all', 'can', 'more', 'this', 'that', 'than', 'how', 'why', 'what',
+  // Domain entities too common to be distinctive
+  'NCAA', 'College', 'Sports', 'NIL', 'Football', 'Basketball', 'Athletic',
+  'University', 'Conference', 'Report', 'News', 'Update', 'Power', 'State',
+  'National', 'Commission', 'Court', 'Federal', 'House', 'Senate', 'Big',
+  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+]);
+
+function extractProperNouns(title) {
+  // Match capitalized words (2+ chars) that aren't at sentence start after ": " or "— "
+  const words = title.match(/\b[A-Z][a-zA-Z]{1,}\b/g) || [];
+  return words.filter(w => !COMMON_WORDS.has(w));
+}
+
+const ACTION_CONTEXT_RE = /appeal|ruling|injunction|eligib|sued|su(?:es?|ing)|settlement|lawsuit|investigation|enforce|compliance|inquiry|sanction|penalt|decision|challenge|block|overturn|dismiss|denied|grant|filed|motion|cleared/i;
+
+/**
+ * Returns true if two titles share a distinctive proper noun AND
+ * both contain an action-context word — strong signal of same story.
+ */
+function sharesEntityAndAction(titleA, titleB) {
+  const nounsA = extractProperNouns(titleA);
+  const nounsB = new Set(extractProperNouns(titleB));
+  const sharedNouns = nounsA.filter(n => nounsB.has(n));
+  if (sharedNouns.length === 0) return false;
+  return ACTION_CONTEXT_RE.test(titleA) && ACTION_CONTEXT_RE.test(titleB);
+}
+
+/**
  * Jaccard similarity between two word sets: |A∩B| / |A∪B|.
  */
 function jaccardSimilarity(setA, setB) {
@@ -62,7 +99,7 @@ export async function loadDedupCache(db) {
     exactTitles.add(r.title);
     const norm = normalizeForDedup(r.title);
     if (norm.length >= 20) {
-      entries.push({ norm, words: getSignificantWords(norm) });
+      entries.push({ norm, words: getSignificantWords(norm), origTitle: r.title });
     }
   }
 
@@ -162,6 +199,79 @@ export function normalizeUrl(rawUrl) {
   } catch {
     return rawUrl;
   }
+}
+
+// ── Pro Sports Noise Filter ──────────────────────────────────────
+
+const COLLEGE_CONTEXT_RE = /college|ncaa|nil\b|university|athletic director|conference commissioner|college sports|student.athlete|transfer portal|revenue.shar|eligibility|\bcsc\b|college football|college basketball/i;
+
+const PRO_SPORTS_NOISE_RE = new RegExp([
+  // NFL teams and NFL-specific business
+  '\\b(?:cowboys?|eagles?|chiefs?|packers?|bears?|49ers|broncos?|patriots?|steelers?|ravens?|dolphins?|jets?|commanders?|saints|texans|falcons|bengals|chargers|colts|jaguars|titans|browns|giants|seahawks|rams|lions|panthers|buccaneers|cardinals|vikings|bills)\\b',
+  '\\bnfl\\b.*(?:free agen|tv|disabilit|contract|trade|roster|staff|franchise tag|combine|draft)',
+  '\\bnfl free agent\\b', '\\bfranchise tag\\b.*(?:nfl|\\b(?:cowboys?|eagles?|chiefs?|packers?)\\b)',
+  '\\bnflpa\\b',
+  // NBA teams and NBA-specific
+  '\\b(?:nets|knicks|lakers|celtics|warriors|heat|bucks|nuggets|76ers|suns|clippers|cavaliers|hawks|raptors|grizzlies|pelicans|spurs|mavericks|rockets|timberwolves|blazers|magic|thunder|pistons|wizards|hornets|pacers)\\b',
+  '\\bnba\\b.*(?:trade|contract|free agen|roster|draft|playoff|all.star)',
+  // NHL teams and NHL-specific
+  '\\b(?:bruins|blackhawks|maple leafs|canadiens|penguins|red wings|flyers|oilers|avalanche|lightning|hurricanes|islanders|blue jackets|predators|kraken|wild|flames|canucks|ducks|coyotes|sharks|blues|capitals|devils|sabres)\\b',
+  '\\bnhl\\b(?!.*(?:college|ncaa|nil|university))',
+  // MLB teams and MLB-specific
+  '\\b(?:yankees|red sox|dodgers|astros|braves|phillies|cubs|mets|cardinals|padres|mariners|orioles|twins|guardians|royals|rays|rangers|marlins|brewers|diamondbacks|reds|rockies|pirates|white sox|athletics|blue jays|nationals|tigers|angels)\\b',
+  '\\bmlb\\b(?!.*(?:college|ncaa|nil|university))',
+  // NWSL, WNBA, MLS without college context
+  '\\bnwsl\\b.*(?:franchise|valuation|sale|expansion|draft|trade|roster)',
+  '\\bwnba\\b(?!.*(?:college|ncaa|nil|university|parallel))',
+  '\\bwnbpa\\b',
+  '\\bmls\\b(?!.*(?:college|ncaa|nil|university))',
+  // International / other pro sports
+  '\\bpremier league\\b', '\\bla liga\\b', '\\bbundesliga\\b', '\\bserie a\\b',
+  '\\bfa cup\\b', '\\bchampions league\\b',
+  '\\bformula.(?:1|one)\\b', '\\bf1\\b.*(?:race|grand prix|qualifying|driver)',
+  '\\bufc\\b(?!.*(?:college|ncaa|nil|university))',
+  '\\bwrexham\\b',
+  // Figure skating, Olympics without college context
+  '\\bfigure skating\\b', '\\bolympics?\\b(?!.*(?:college|ncaa|nil|university))',
+  // General sports psychology / body language without college context
+  '\\b(?:sports? psychology|body language)\\b(?!.*(?:college|ncaa|nil|university|athlete))',
+].join('|'), 'i');
+
+/**
+ * Returns true (reject) if the headline is clearly about professional sports
+ * with NO college athletics context.
+ */
+export function isProSportsNoise(title) {
+  if (!title) return false;
+  if (COLLEGE_CONTEXT_RE.test(title)) return false;
+  if (BUSINESS_SIGNAL_RE.test(title)) return false;
+  return PRO_SPORTS_NOISE_RE.test(title);
+}
+
+// ── Spam Title Filter ───────────────────────────────────────────
+
+const BLOCKED_DOMAINS = ['padelspain', 'clearancefind', 'dealsfind'];
+
+const SPAM_TITLE_RE = new RegExp([
+  'clearance.*(?:sale|best|deal|shop)',
+  '(?:best sale|hot deal|limited offer).*(?:football|basketball|sports)',
+].join('|'), 'i');
+
+/**
+ * Returns true if the title looks like spam/shopping content.
+ */
+export function isSpamTitle(title) {
+  if (!title) return false;
+  return SPAM_TITLE_RE.test(title);
+}
+
+/**
+ * Returns true if the URL is from a known spam domain.
+ */
+export function isBlockedDomain(url) {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  return BLOCKED_DOMAINS.some(d => lower.includes(d));
 }
 
 // ── Game Noise Filter ───────────────────────────────────────────────
@@ -416,8 +526,11 @@ export async function insertHeadline(db, { source, title, url, category, publish
   const cleanTitle = decodeEntities(title);
   if (!cleanTitle || !url) return false;
 
-  // Filter game/tournament noise
+  // Filter chain: game noise → pro sports noise → spam → blocked domains
   if (isGameNoise(cleanTitle)) return false;
+  if (isProSportsNoise(cleanTitle)) return false;
+  if (isSpamTitle(cleanTitle)) return false;
+  if (isBlockedDomain(url)) return false;
 
   // Normalize URL for better dedup
   const cleanUrl = normalizeUrl(url);
@@ -438,7 +551,7 @@ export async function insertHeadline(db, { source, title, url, category, publish
     entries = [];
     for (const r of recent) {
       const rn = normalizeForDedup(r.title);
-      if (rn.length >= 20) entries.push({ norm: rn, words: getSignificantWords(rn) });
+      if (rn.length >= 20) entries.push({ norm: rn, words: getSignificantWords(rn), origTitle: r.title });
     }
   }
 
@@ -461,6 +574,12 @@ export async function insertHeadline(db, { source, title, url, category, publish
       // Jaccard word similarity — catches moderate rewordings of the same headline
       if (incomingWords.size >= 3 && entry.words.size >= 3 &&
           jaccardSimilarity(incomingWords, entry.words) >= 0.65) return false;
+
+      // Entity-based dedup: shared proper noun + action context → lower threshold
+      if (incomingWords.size >= 3 && entry.words.size >= 3 &&
+          jaccardSimilarity(incomingWords, entry.words) >= 0.45) {
+        if (sharesEntityAndAction(cleanTitle, entry.origTitle || '')) return false;
+      }
     }
   }
 
@@ -474,7 +593,7 @@ export async function insertHeadline(db, { source, title, url, category, publish
     if (_dedupCache) {
       _dedupCache.exactTitles.add(cleanTitle);
       if (norm.length >= 20) {
-        _dedupCache.entries.push({ norm, words: getSignificantWords(norm) });
+        _dedupCache.entries.push({ norm, words: getSignificantWords(norm), origTitle: cleanTitle });
       }
     }
     return true;

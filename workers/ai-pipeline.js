@@ -372,6 +372,9 @@ Prioritize original reporting from Tier 1 and 2 sources. Do not feature stories 
 EDITORIAL FOCUS:
 Focus on developments that have institutional implications -- things an athletic director needs to act on or be aware of. Prefer stories about enforcement actions, regulatory changes, new legislation, court rulings, policy shifts, industry structural changes, financial health signals, and business-side developments (PE deals, media rights economics, budget shortfalls, facility financing). Deprioritize individual athlete deals, celebrity gossip, and republished/aggregated stories that don't add new information.
 
+CSC / ENFORCEMENT PRIORITY:
+Stories about CSC enforcement actions, NIL clearinghouse delays or rejections, schools receiving letters of inquiry, compliance process breakdowns, or statements from ADs about enforcement fairness are ALWAYS high-priority items. These are the most operationally actionable stories for the AD audience -- they directly affect institutional compliance obligations and risk. If a CSC/enforcement story appears in the headlines, it should nearly always make the briefing.
+
 The audience is athletic directors managing institutional risk, competitive positioning, and financial strategy.
 Every item should answer: "Does this require action, awareness, or preparation from our institution?"
 If the answer is no, don't include it.

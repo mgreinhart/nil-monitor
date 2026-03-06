@@ -9,7 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { parseRSS } from './rss-parser.js';
-import { getETHour, shouldRun, recordRun, insertHeadline, isGameNoise, isTitleRelevant } from './fetcher-utils.js';
+import { getETHour, shouldRun, recordRun, insertHeadline, isGameNoise, isProSportsNoise, isTitleRelevant } from './fetcher-utils.js';
 
 const FETCHER = 'publications';
 
@@ -20,13 +20,13 @@ const TIER1_FEEDS = [
   { url: 'https://athleticdirectoru.com/feed/', source: 'AthleticDirectorU' },
   { url: 'https://www.sportico.com/feed/', source: 'Sportico' },
   { url: 'https://frontofficesports.com/feed/', source: 'Front Office Sports' },
-  { url: 'https://sportslitigationalert.com/feed/', source: 'Sports Litigation Alert' },
   { url: 'https://www.nytimes.com/athletic/rss/college-sports/', source: 'The Athletic' },
 ];
 
 // Tier 2 — Broad college sports feeds. Relevance gate required.
 // These produce mostly game/recruiting content alongside business stories.
 const TIER2_FEEDS = [
+  { url: 'https://sportslitigationalert.com/feed/', source: 'Sports Litigation Alert' },
   { url: 'https://www.on3.com/feed/', source: 'On3' },
   { url: 'https://www.cbssports.com/rss/headlines/college-football/', source: 'CBS Sports' },
   { url: 'https://www.cbssports.com/rss/headlines/college-basketball/', source: 'CBS Sports' },
@@ -85,13 +85,17 @@ export async function fetchPublications(env, { force = false } = {}) {
       for (const item of items.slice(0, 20)) {
         if (!item.title || !item.link) continue;
 
-        // Tier 1 (niche business feeds): game noise filter only
-        // Tier 2 (broad sports feeds): relevance gate + game noise filter
+        // Tier 1 (niche business feeds): game noise + pro sports noise filter
+        // Tier 2 (broad sports feeds): relevance gate + game noise + pro sports noise filter
         if (feed.tier === 2 && !isTitleRelevant(item.title)) {
           totalSkipped++;
           continue;
         }
         if (isGameNoise(item.title)) {
+          totalSkipped++;
+          continue;
+        }
+        if (isProSportsNoise(item.title)) {
           totalSkipped++;
           continue;
         }
