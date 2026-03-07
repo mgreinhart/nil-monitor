@@ -1,6 +1,6 @@
 # NIL Monitor — Project Status
 
-> Last audited: 2026-02-28 from source files, deployed endpoints, and conversation history.
+> Last audited: 2026-03-07 from source files, deployed endpoints, and conversation history.
 
 ## Architecture
 
@@ -13,7 +13,7 @@ Browser → nilmonitor.com (Cloudflare Pages)
                                                   └── D1: nil-monitor-db
 ```
 
-- **Frontend:** Single-file React app (`src/App.jsx`, ~1600 lines), Vite build, Cloudflare Pages
+- **Frontend:** Single-file React app (`src/App.jsx`, ~1340 lines), Vite build, Cloudflare Pages
 - **Backend:** Cloudflare Worker (`workers/index.js` entry), D1 SQLite database
 - **AI Pipeline:** `workers/ai-pipeline.js`, Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`) via Anthropic API
 - **Proxy:** `functions/api/[[path]].js` — Pages Function forwards `/api/*` to Worker
@@ -80,12 +80,12 @@ Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use sha
 | `fetch-publications.js` | 16 publication/conference RSS feeds | 5 Tier 1 + 11 Tier 2 | headlines | 30 min | None |
 | `fetch-cslt.js` (cases) | College Sports Litigation Tracker (scrape) | 1 page | cases, case_updates | 360 min | None |
 | `fetch-cslt.js` (key dates) | CSLT homepage | 1 page | cslt_key_dates | 360 min | None |
-| `fetch-podcasts.js` | 5 podcast RSS feeds | 5 feeds | podcast_episodes | 120 min | None |
+| `fetch-podcasts.js` | 6 podcast RSS feeds | 6 feeds | podcast_episodes | 120 min | None |
 | `fetch-gdelt.js` | GDELT DOC 2.0 API | 1 query | gdelt_volume | 360 min | None |
 
 All fetchers active 6 AM–10 PM ET, skip overnight. In-memory dedup cache pre-loaded before fetchers run, cleared after.
 
-**Note:** `fetch-congress.js` is NOT imported in `index.js` — Congress fetcher is not active. The `CONGRESS_KEY` secret is set but unused.
+**Note:** `fetch-congress.js` does not exist (never built). The `CONGRESS_KEY` secret is set but unused.
 
 #### Publication Feeds — Three-Tier Filtering Model
 
@@ -200,7 +200,6 @@ These sections fetch real data from the API:
 - **Briefing panel** — `/api/briefing`, branded "NIL MONITOR NEWS BRIEF" with collapsible sections, falls back to `MOCK.briefing`
 - **Headlines feed** — `/api/headlines?limit=100`, category filter pills, 8 per page, Off-Topic excluded, fuzzy dedup (word overlap >0.6)
 - **The Courtroom** — `/api/cases` + `/api/cslt-key-dates`, Key Dates with countdown, Recent Activity (expandable), link to full CSLT tracker
-- **Coverage Intelligence** — `/api/coverage-intel`, 4 stat cards (Coverage Shift, Dominant Topic, Source Breadth, Quiet Zone) + stacked area chart with 8 categories
 - **PE Tracker** — `/api/pe-tracker`, compact deal list (dead deals filtered), status badges
 - **Podcasts sidebar** — `/api/podcasts` for freshness sorting, Spotify iframe embeds, 24h highlight
 
@@ -211,7 +210,7 @@ These sections fetch real data from the API:
 
 ### Sidebar Content
 
-**Podcasts (5, sorted by most recent episode):**
+**Podcasts (6, sorted by most recent episode):**
 
 | Name | Spotify ID |
 |------|-----------|
@@ -220,6 +219,7 @@ These sections fetch real data from the API:
 | SBJ Morning Buzzcast | `0NOi7MnlTRMfb3Dv17DOaP` |
 | One Question Leadership | `6QmP0ZLPAiEG7iqhywSURD` |
 | The Standard | `30VL73UUR59yLZfagH1Rzv` |
+| Next Play by Playfly Sports | `3fFqOS7yBgT7n0CcnHVMXk` |
 
 **X List Preview Card:**
 - 7 key accounts shown: @PeteThamel (ESPN), @RossDellenger (Yahoo), @NicoleAuerbach (Athletic), @D1ticker, @DarrenHeitner (NIL Legal), @achristovichh (FOS), @Sportico
@@ -270,6 +270,7 @@ Dead deals are filtered from display. 7 visible on the frontend.
 
 ### Panels not rendered (API exists, frontend doesn't call it)
 
+- **Coverage Intelligence** — `/api/coverage-intel` endpoint exists but panel was removed from frontend
 - **Deadlines panel** — `/api/deadlines` works, seed data loaded, no panel on Monitor page
 - **House Settlement panel** — `/api/house` works, seed data loaded, no panel on Monitor page
 - **CSC Command Center** — `/api/csc` works, items in DB, no dedicated panel on Monitor page
@@ -277,7 +278,7 @@ Dead deals are filtered from display. 7 visible on the frontend.
 
 ### Data gaps
 
-- **Congress fetcher** — `fetch-congress.js` is NOT imported in `index.js`. Not running. `CONGRESS_KEY` is set but unused.
+- **Congress fetcher** — `fetch-congress.js` does not exist (never built). `CONGRESS_KEY` is set but unused.
 - **LegiScan fetcher** — not built; `LEGISCAN_KEY` pending approval. The `bills` table has 0 state bill rows.
 - **CourtListener** — effectively dormant. CSLT is now the primary case source. CL fetcher runs but skips all cases because CSLT `case_number` format doesn't match CL's numeric docket IDs. No mapping table exists. To re-enable: build CSLT-to-CL docket ID mapping.
 - **Deadline extraction** — Referenced in `pipeline_runs` schema but no `createDeadlines()` function exists in `ai-pipeline.js`. Only pre-loaded seed deadlines exist.
@@ -301,7 +302,7 @@ Dead deals are filtered from display. 7 visible on the frontend.
 
 ---
 
-## Changes This Session (2026-02-28)
+## Changes Since Last Audit (2026-02-28 → 2026-03-07)
 
 ### Headline Dedup Improvements (fetcher-utils.js)
 
@@ -457,7 +458,7 @@ workers/
   fetch-nil-revolution.js — Troutman Pepper blog RSS
   fetch-publications.js — 16 RSS feeds (5 Tier 1 + 11 Tier 2, three-tier filtering)
   fetch-cslt.js        — College Sports Litigation Tracker scraper (cases + key dates)
-  fetch-podcasts.js    — 5 podcast RSS feeds (freshness check)
+  fetch-podcasts.js    — 6 podcast RSS feeds (freshness check)
   fetch-gdelt.js       — GDELT news volume API
 functions/
   api/[[path]].js      — Pages Function proxy (/api/* → Worker)
@@ -480,7 +481,7 @@ Priority order based on impact and readiness:
 
 1. **Wire up existing API endpoints to Monitor page** — Deadlines, House Settlement, and CSC panels all have working APIs with data. Pure frontend work.
 2. **Deadline extraction AI task** — Referenced in schema but not implemented. Would auto-extract deadlines from headlines and case data.
-3. **Re-enable Congress fetcher** — Import `fetch-congress.js` in `index.js` (if the file exists) or build it. `CONGRESS_KEY` is set and ready.
+3. **Build Congress fetcher** — `fetch-congress.js` doesn't exist yet; needs to be built. `CONGRESS_KEY` is set and ready.
 4. **Peer Intelligence** — AD compensation, budget comparisons, conference revenue data. Requires research + new data source.
 5. **LegiScan fetcher** — Blocked on API key. Would populate the `bills` table and bring the state legislation map to life with real-time data.
 6. **CourtListener re-integration** — Build CSLT-to-CL docket ID mapping so filing-level data supplements CSLT case summaries.
