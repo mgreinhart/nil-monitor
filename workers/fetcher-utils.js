@@ -152,6 +152,18 @@ export async function recordRun(db, fetcherName) {
   ).bind(fetcherName).run();
 }
 
+/**
+ * Record that a fetcher errored.
+ */
+export async function recordError(db, fetcherName, error) {
+  const msg = error?.message || String(error);
+  await db.prepare(
+    `INSERT INTO fetcher_runs (fetcher_name, last_error, last_error_at)
+     VALUES (?, ?, datetime('now'))
+     ON CONFLICT(fetcher_name) DO UPDATE SET last_error = ?, last_error_at = datetime('now')`
+  ).bind(fetcherName, msg, msg).run();
+}
+
 // ── HTML Entity Decoding ────────────────────────────────────────────
 
 const NAMED_ENTITIES = {

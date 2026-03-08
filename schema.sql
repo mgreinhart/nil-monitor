@@ -153,8 +153,10 @@ CREATE TABLE IF NOT EXISTS pe_deals (
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
--- Fetcher self-governing cooldowns
+-- Fetcher self-governing cooldowns + error tracking
 CREATE TABLE IF NOT EXISTS fetcher_runs (
   fetcher_name TEXT PRIMARY KEY,
-  last_run TEXT
+  last_run TEXT,
+  last_error TEXT,
+  last_error_at TEXT
 );

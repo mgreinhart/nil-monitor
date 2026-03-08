@@ -149,7 +149,7 @@ async function buildAdminDashboard(env) {
     activeCases, casesWithDates, latestBriefing, gdeltStats, csltStats, latestPipeline,
     untaggedHeadlines,
   ] = await Promise.all([
-    env.DB.prepare('SELECT fetcher_name, last_run FROM fetcher_runs').all(),
+    env.DB.prepare('SELECT fetcher_name, last_run, last_error, last_error_at FROM fetcher_runs').all(),
     env.DB.prepare('SELECT COUNT(*) as cnt FROM headlines').first(),
     env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE date(published_at, ?) = ?").bind(offsetSql, todayET).first(),
     env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE published_at >= ?").bind(daysAgo(7)).first(),
@@ -165,15 +165,22 @@ async function buildAdminDashboard(env) {
 
   // ── Fetcher status ──
   const fetcherMap = {};
-  for (const row of (fetcherRows?.results || [])) fetcherMap[row.fetcher_name] = row.last_run;
+  for (const row of (fetcherRows?.results || [])) {
+    fetcherMap[row.fetcher_name] = {
+      last_run: row.last_run,
+      last_error: row.last_error,
+      last_error_at: row.last_error_at,
+    };
+  }
 
   const etHour = getETHour();
   const fetchers = Object.entries(FETCHER_CONFIG).map(([name, cfg]) => {
-    const lastRun = fetcherMap[name] || null;
+    const info = fetcherMap[name] || {};
+    const lastRun = info.last_run || null;
     const cooldown = cfg.getCooldown(etHour);
     const { status, label } = getFetcherStatus(lastRun, cooldown, etHour);
     const inSkip = cooldown === null;
-    return { name, cooldown, lastRun, status, label, inSkip };
+    return { name, cooldown, lastRun, status, label, inSkip, lastError: info.last_error, lastErrorAt: info.last_error_at };
   });
 
   // ── Issue detection ──
@@ -236,7 +243,10 @@ async function buildAdminDashboard(env) {
 
   const fetcherRowsHtml = fetchers.map(f => {
     const freq = f.inSkip ? '<span style="color:#475569">sleeping</span>' : adminCooldown(f.cooldown);
-    return `<tr><td>${statusDot(f.status)}</td><td>${f.name}</td><td>${f.label}</td><td>${freq}</td></tr>`;
+    const errHtml = f.lastError
+      ? `<br><span style="color:#ef4444;font-size:11px" title="${f.lastError}">err ${adminTimestamp(f.lastErrorAt)}: ${f.lastError.slice(0, 60)}</span>`
+      : '';
+    return `<tr><td>${statusDot(f.status)}</td><td>${f.name}${errHtml}</td><td>${f.label}</td><td>${freq}</td></tr>`;
   }).join('');
 
   return `<!DOCTYPE html>

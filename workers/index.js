@@ -1,12 +1,16 @@
 // ═══════════════════════════════════════════════════════════════════
 //  NIL MONITOR — Worker Entry Point
-//  Two cron patterns:
-//    */15 * * * *   — fetchers (self-governing cooldowns)
+//  Three cron patterns:
+//    0,30 * * * *   — Group A fetchers (high-volume news)
+//    7,37 * * * *   — Group B fetchers (lighter/supplemental)
 //    0 11,21 * * *  — AI pipeline (6 AM / 4 PM ET)
+//
+//  Splitting fetchers across two cron ticks halves the CPU budget
+//  per invocation, preventing Cloudflare from killing the Worker.
 // ═══════════════════════════════════════════════════════════════════
 
 import { handleApi } from './api.js';
-import { loadDedupCache, clearDedupCache } from './fetcher-utils.js';
+import { loadDedupCache, clearDedupCache, recordError } from './fetcher-utils.js';
 import { fetchCourtListener } from './fetch-courtlistener.js';
 import { fetchGoogleNews } from './fetch-google-news.js';
 import { fetchNCAANews } from './fetch-ncaa-rss.js';
@@ -18,6 +22,33 @@ import { fetchCSLT, fetchCSLTKeyDates } from './fetch-cslt.js';
 import { fetchPodcasts } from './fetch-podcasts.js';
 import { fetchGDELT } from './fetch-gdelt.js';
 import { runAIPipeline } from './ai-pipeline.js';
+
+// Wrap a fetcher so errors are logged to D1, not just console
+function safeFetch(name, fn, env) {
+  return fn(env).catch(async (e) => {
+    console.error(`${name}:`, e.message);
+    try { await recordError(env.DB, name, e); } catch (_) { /* best effort */ }
+  });
+}
+
+// Group A: high-volume news aggregators (heaviest CPU/network)
+const GROUP_A = [
+  ['google-news', fetchGoogleNews],
+  ['bing-news', fetchBingNews],
+  ['newsdata', fetchNewsData],
+  ['publications', fetchPublications],
+  ['ncaa-rss', fetchNCAANews],
+];
+
+// Group B: lighter / supplemental sources
+const GROUP_B = [
+  ['courtlistener', fetchCourtListener],
+  ['nil-revolution', fetchNILRevolution],
+  ['cslt', fetchCSLT],
+  ['cslt-keydates', fetchCSLTKeyDates],
+  ['podcasts', fetchPodcasts],
+  ['gdelt', fetchGDELT],
+];
 
 export default {
   async fetch(request, env) {
@@ -36,24 +67,23 @@ export default {
           .catch(e => console.error('ai-pipeline cron error:', e.message))
       );
     } else {
-      // */15 trigger — all fetchers run (each self-governs its cooldown)
-      // Pre-load dedup cache: 1 query replaces hundreds of per-headline queries
-      await loadDedupCache(env.DB);
-      ctx.waitUntil(
-        Promise.all([
-          fetchGoogleNews(env).catch(e => console.error('google-news:', e.message)),
-          fetchNCAANews(env).catch(e => console.error('ncaa-rss:', e.message)),
-          fetchNewsData(env).catch(e => console.error('newsdata:', e.message)),
-          fetchCourtListener(env).catch(e => console.error('courtlistener:', e.message)),
-          fetchNILRevolution(env).catch(e => console.error('nil-revolution:', e.message)),
-          fetchBingNews(env).catch(e => console.error('bing-news:', e.message)),
-          fetchPublications(env).catch(e => console.error('publications:', e.message)),
-          fetchCSLT(env).catch(e => console.error('cslt:', e.message)),
-          fetchCSLTKeyDates(env).catch(e => console.error('cslt-keydates:', e.message)),
-          fetchPodcasts(env).catch(e => console.error('podcasts:', e.message)),
-          fetchGDELT(env).catch(e => console.error('gdelt:', e.message)),
-        ]).finally(clearDedupCache)
-      );
+      // Determine which group to run based on cron pattern
+      const isGroupA = cron === '0,30 * * * *';
+      const fetchers = isGroupA ? GROUP_A : GROUP_B;
+      const label = isGroupA ? 'A' : 'B';
+
+      console.log(`Running fetcher group ${label} (${fetchers.length} fetchers)`);
+
+      ctx.waitUntil((async () => {
+        try {
+          await loadDedupCache(env.DB);
+          await Promise.all(fetchers.map(([name, fn]) => safeFetch(name, fn, env)));
+        } catch (e) {
+          console.error(`Group ${label} top-level error:`, e.message);
+        } finally {
+          clearDedupCache();
+        }
+      })());
     }
   },
 };
