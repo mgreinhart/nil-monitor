@@ -149,7 +149,8 @@ async function buildAdminDashboard(env) {
     activeCases, casesWithDates, latestBriefing, gdeltStats, csltStats, latestPipeline,
     untaggedHeadlines,
   ] = await Promise.all([
-    env.DB.prepare('SELECT fetcher_name, last_run, last_error, last_error_at FROM fetcher_runs').all(),
+    env.DB.prepare('SELECT fetcher_name, last_run, last_error, last_error_at FROM fetcher_runs').all()
+      .catch(() => env.DB.prepare('SELECT fetcher_name, last_run FROM fetcher_runs').all()),
     env.DB.prepare('SELECT COUNT(*) as cnt FROM headlines').first(),
     env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE date(published_at, ?) = ?").bind(offsetSql, todayET).first(),
     env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE published_at >= ?").bind(daysAgo(7)).first(),
