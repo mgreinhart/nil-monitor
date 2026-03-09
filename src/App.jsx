@@ -712,7 +712,7 @@ const PortalPulse = ({ isMobile }) => {
 
   // ── SUMMARY MODE ──
   return (
-    <Panel title="Portal Pulse \u00b7 January Portal Summary" accent={T.accent} noPad>
+    <Panel title="Portal Pulse · January Portal Summary" accent={T.accent} noPad>
       <VolumeStrip labels={["total moved", "committed", "still available", "most active"]} />
       <SchoolColumns />
       <PositionLine />
