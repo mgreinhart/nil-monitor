@@ -621,7 +621,11 @@ export async function handleApi(request, env) {
       const parsed = { ...snapshot };
       try { parsed.top_gainers = JSON.parse(snapshot.top_gainers || '[]'); } catch { parsed.top_gainers = []; }
       try { parsed.top_losers = JSON.parse(snapshot.top_losers || '[]'); } catch { parsed.top_losers = []; }
-      try { parsed.coaching_fallout = JSON.parse(snapshot.coaching_fallout || '[]'); } catch { parsed.coaching_fallout = []; }
+      try { parsed.most_active = JSON.parse(snapshot.most_active || '[]'); } catch { parsed.most_active = []; }
+      try { parsed.position_availability = JSON.parse(snapshot.position_availability || '[]'); } catch { parsed.position_availability = []; }
+      // Legacy fields — no longer written, return null
+      parsed.coaching_fallout = null;
+      parsed.prior_year_total = null;
 
       // Mode determination
       // Football portal window: Jan 2–16 main + Jan 20–24 CFP grace period

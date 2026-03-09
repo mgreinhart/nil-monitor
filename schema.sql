@@ -164,8 +164,11 @@ CREATE TABLE IF NOT EXISTS portal_snapshot (
   entries_7d INTEGER,                    -- entries in last 7 days
   top_gainers TEXT,                       -- JSON: [{school, in, out, net}]
   top_losers TEXT,                        -- JSON: [{school, in, out, net}]
-  coaching_fallout TEXT,                  -- JSON: [{school, coach, departure_date, portal_entries_30d}]
-  prior_year_total INTEGER,              -- same-date total from prior year (for YoY)
+  most_active TEXT,                       -- JSON: [{school, arrivals, departures, total_moves}]
+  position_availability TEXT,            -- JSON: [{position, count}]
+  avg_star_rating REAL,                  -- mean star rating of available players
+  coaching_fallout TEXT,                  -- legacy, no longer written
+  prior_year_total INTEGER,              -- legacy, no longer written
   created_at TEXT DEFAULT (datetime('now'))
 );
 

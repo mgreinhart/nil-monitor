@@ -15,6 +15,27 @@ const FETCHER = 'cfbd';
 const BASE = 'https://api.collegefootballdata.com';
 const CURRENT_YEAR = 2026;
 
+// Position normalization map — CFBD uses detailed positions,
+// we group into standard football position groups
+const POS_GROUP = {
+  QB: 'QB', PRO: 'QB',
+  RB: 'RB', FB: 'RB', HB: 'RB',
+  WR: 'WR', FL: 'WR', SE: 'WR',
+  TE: 'TE',
+  OL: 'OL', OT: 'OL', OG: 'OL', C: 'OL', G: 'OL', T: 'OL',
+  DL: 'DL', DT: 'DL', DE: 'DL', NT: 'DL', NG: 'DL',
+  LB: 'LB', ILB: 'LB', OLB: 'LB', MLB: 'LB', WLB: 'LB', SLB: 'LB',
+  DB: 'DB', CB: 'DB', S: 'DB', FS: 'DB', SS: 'DB', NB: 'DB', SAF: 'DB',
+  EDGE: 'EDGE', RUSH: 'EDGE',
+  K: 'Other', P: 'Other', LS: 'Other', PK: 'Other', ATH: 'Other', APB: 'Other',
+};
+
+function normalizePosition(pos) {
+  if (!pos) return 'Other';
+  const upper = pos.toUpperCase().trim();
+  return POS_GROUP[upper] || 'Other';
+}
+
 /**
  * Get current ET month/day for period detection.
  */
@@ -85,7 +106,8 @@ async function runPortalSnapshot(env) {
 
   // 2. Count totals
   const totalEntries = entries.length;
-  const totalAvailable = entries.filter(e => !e.destination).length;
+  const available = entries.filter(e => !e.destination);
+  const totalAvailable = available.length;
   const totalCommitted = entries.filter(e => e.destination).length;
 
   // 3. Count entries in last 7 days
@@ -119,116 +141,48 @@ async function runPortalSnapshot(env) {
   const topGainers = [...schoolStats].sort((a, b) => b.net - a.net).slice(0, 5);
   const topLosers = [...schoolStats].sort((a, b) => a.net - b.net).slice(0, 5);
 
-  // 6. Coaching fallout — fetch coaching changes
-  let coachingFallout = [];
-  try {
-    const coaches = await cfbdFetch(env, `/coaches?year=${CURRENT_YEAR}&minYear=${CURRENT_YEAR}&maxYear=${CURRENT_YEAR}`);
-    if (Array.isArray(coaches)) {
-      const sixtyDaysAgo = new Date(today.getTime() - 60 * 86400000);
+  // 6. Most active — total movement (arrivals + departures) per school
+  const mostActive = [...schoolStats]
+    .map(s => ({ school: s.school, arrivals: s.in, departures: s.out, total_moves: s.in + s.out }))
+    .sort((a, b) => b.total_moves - a.total_moves)
+    .slice(0, 5);
 
-      // Find coaches who departed recently (seasons array shows their tenure)
-      const recentDepartures = [];
-      for (const coach of coaches) {
-        if (!coach.seasons || !Array.isArray(coach.seasons)) continue;
-        for (const season of coach.seasons) {
-          if (!season.school) continue;
-          // A coach with an end year matching current year or prior year indicates departure
-          if (season.endYear && season.endYear >= CURRENT_YEAR - 1) {
-            // Use the end of the season as approximate departure date
-            const depDate = new Date(`${season.endYear}-12-01`);
-            if (depDate >= sixtyDaysAgo) {
-              recentDepartures.push({
-                school: season.school,
-                coach: `${coach.firstName || ''} ${coach.lastName || ''}`.trim(),
-                departureDate: depDate,
-              });
-            }
-          }
-        }
-      }
-
-      // For each departure, count portal entries from that school within 30 days
-      for (const dep of recentDepartures) {
-        const thirtyDaysAfter = new Date(dep.departureDate.getTime() + 30 * 86400000);
-        const portalCount = entries.filter(e =>
-          e.origin === dep.school &&
-          e.transferDate &&
-          new Date(e.transferDate) >= dep.departureDate &&
-          new Date(e.transferDate) <= thirtyDaysAfter
-        ).length;
-
-        if (portalCount > 3) {
-          coachingFallout.push({
-            school: dep.school,
-            coach: dep.coach,
-            departure_date: dep.departureDate.toISOString().split('T')[0],
-            portal_entries_30d: portalCount,
-          });
-        }
-      }
-
-      // Sort by most recent, limit to 3
-      coachingFallout.sort((a, b) => b.portal_entries_30d - a.portal_entries_30d);
-      coachingFallout = coachingFallout.slice(0, 3);
-    }
-  } catch (e) {
-    console.error('CFBD coaching fetch error:', e.message);
-    // Non-fatal — continue without coaching data
+  // 7. Position availability — group available players by position
+  const posCounts = {};
+  for (const e of available) {
+    const group = normalizePosition(e.position);
+    posCounts[group] = (posCounts[group] || 0) + 1;
   }
+  // Sort by standard position order
+  const POS_ORDER = ['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'DB', 'EDGE', 'Other'];
+  const positionAvailability = POS_ORDER
+    .filter(p => posCounts[p])
+    .map(p => ({ position: p, count: posCounts[p] }));
 
-  // 7. Prior year total for YoY comparison
-  let priorYearTotal = null;
-  try {
-    const priorEntries = await cfbdFetch(env, `/player/portal?year=${CURRENT_YEAR - 1}`);
-    if (Array.isArray(priorEntries)) {
-      // Filter to same calendar date range as current year
-      const { month, day } = getETDate();
-      const cutoffDate = `${CURRENT_YEAR - 1}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      priorYearTotal = priorEntries.filter(e => {
-        if (!e.transferDate) return true; // Include entries without dates
-        return e.transferDate <= cutoffDate;
-      }).length;
-    }
-  } catch (e) {
-    console.error('CFBD prior year fetch error:', e.message);
-    // Non-fatal
-  }
+  // 8. Average star rating of available players
+  const starRatings = available
+    .map(e => e.stars)
+    .filter(s => s != null && s > 0);
+  const avgStarRating = starRatings.length > 0
+    ? Math.round((starRatings.reduce((sum, s) => sum + s, 0) / starRatings.length) * 10) / 10
+    : null;
 
-  // 8. Upsert snapshot row
+  // 9. Upsert snapshot row
   try {
-    await db.prepare(
-      `INSERT INTO portal_snapshot (snapshot_date, year, total_entries, total_available, total_committed, entries_7d, top_gainers, top_losers, coaching_fallout, prior_year_total)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(snapshot_date) DO UPDATE SET
-         year = excluded.year,
-         total_entries = excluded.total_entries,
-         total_available = excluded.total_available,
-         total_committed = excluded.total_committed,
-         entries_7d = excluded.entries_7d,
-         top_gainers = excluded.top_gainers,
-         top_losers = excluded.top_losers,
-         coaching_fallout = excluded.coaching_fallout,
-         prior_year_total = excluded.prior_year_total,
-         created_at = datetime('now')`
-    ).bind(
-      dateStr, CURRENT_YEAR, totalEntries, totalAvailable, totalCommitted,
-      entries7d, JSON.stringify(topGainers), JSON.stringify(topLosers),
-      JSON.stringify(coachingFallout), priorYearTotal
-    ).run();
-  } catch (e) {
-    // snapshot_date doesn't have a UNIQUE constraint yet — use DELETE + INSERT
     await db.prepare('DELETE FROM portal_snapshot WHERE snapshot_date = ?').bind(dateStr).run();
     await db.prepare(
-      `INSERT INTO portal_snapshot (snapshot_date, year, total_entries, total_available, total_committed, entries_7d, top_gainers, top_losers, coaching_fallout, prior_year_total)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO portal_snapshot (snapshot_date, year, total_entries, total_available, total_committed, entries_7d, top_gainers, top_losers, most_active, position_availability, avg_star_rating)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       dateStr, CURRENT_YEAR, totalEntries, totalAvailable, totalCommitted,
       entries7d, JSON.stringify(topGainers), JSON.stringify(topLosers),
-      JSON.stringify(coachingFallout), priorYearTotal
+      JSON.stringify(mostActive), JSON.stringify(positionAvailability), avgStarRating
     ).run();
+  } catch (e) {
+    console.error('CFBD snapshot insert error:', e.message);
   }
 
-  console.log(`CFBD portal snapshot: ${totalEntries} entries (${totalAvailable} avail, ${totalCommitted} committed, ${entries7d} this week)`);
+  console.log(`CFBD portal snapshot: ${totalEntries} entries (${totalAvailable} avail, ${totalCommitted} committed, ${entries7d} this week, avg ${avgStarRating}★)`);
 }
 
 /**
