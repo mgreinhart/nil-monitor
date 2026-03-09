@@ -86,7 +86,7 @@ const FETCHER_CONFIG = {
     const now = new Date();
     const m = parseInt(now.toLocaleString('en-US', { timeZone: 'America/New_York', month: 'numeric' }));
     const d = parseInt(now.toLocaleString('en-US', { timeZone: 'America/New_York', day: 'numeric' }));
-    if (m === 12 || (m === 1 && d <= 15) || m === 4) return 360;
+    if (m === 1 && d >= 2 && d <= 24) return 360; // football portal window
     return 1440;
   }},
 };
@@ -599,6 +599,7 @@ export async function handleApi(request, env) {
     }
 
     // Portal Pulse (CFBD transfer portal aggregate)
+    // NOTE: CFBD is football-only. Basketball portal data would require a different source.
     if (path === '/api/portal-pulse') {
       const now = new Date();
       const month = parseInt(now.toLocaleString('en-US', { timeZone: 'America/New_York', month: 'numeric' }));
@@ -623,10 +624,11 @@ export async function handleApi(request, env) {
       try { parsed.coaching_fallout = JSON.parse(snapshot.coaching_fallout || '[]'); } catch { parsed.coaching_fallout = []; }
 
       // Mode determination
-      const isPortalWindow = (month === 12 || (month === 1 && day <= 15) || month === 4);
+      // Football portal window: Jan 2–16 main + Jan 20–24 CFP grace period
+      const isPortalWindow = (month === 1 && day >= 2 && day <= 24);
       const mode = (isPortalWindow || (parsed.entries_7d || 0) > 20)
         ? 'live'
-        : (month >= 8 && month <= 12 && preseasonRow)
+        : (month >= 8 && (month <= 11 || (month === 12 && day <= 7)) && preseasonRow)
           ? 'preseason'
           : 'summary';
 

@@ -2,7 +2,11 @@
 //  CFBD Transfer Portal Fetcher
 //  Fetches aggregate portal data from CollegeFootballData.com API.
 //  Two tasks: Portal Snapshot (year-round) + Preseason Intel (Aug–Nov).
-//  Self-governing cooldown: 6h during portal windows, 24h otherwise.
+//  Self-governing cooldown: 6h during portal window, 24h otherwise.
+//
+//  NOTE: CFBD is football-only. The football transfer window is
+//  Jan 2–16 with a Jan 20–24 grace period for CFP championship teams.
+//  Basketball portal data would require a different source.
 // ═══════════════════════════════════════════════════════════════════
 
 import { shouldRun, recordRun } from './fetcher-utils.js';
@@ -23,15 +27,14 @@ function getETDate() {
 
 /**
  * Determine cooldown based on current date period.
- * Winter window (Dec 1 – Jan 15): 6 hours
- * Spring window (Apr 1 – Apr 30): 6 hours
+ * Football portal window (Jan 2–24): 6 hours
+ *   - Jan 2–16: main window, Jan 20–24: CFP championship grace period
  * All other times: 24 hours
  */
 function getCooldown() {
   const { month, day } = getETDate();
-  if (month === 12 || (month === 1 && day <= 15)) return 360;   // 6h — winter window
-  if (month === 4) return 360;                                    // 6h — spring window
-  return 1440;                                                    // 24h — off-season
+  if (month === 1 && day >= 2 && day <= 24) return 360;  // 6h — football portal window
+  return 1440;                                             // 24h — off-season / preseason
 }
 
 /**

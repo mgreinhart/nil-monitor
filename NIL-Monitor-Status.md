@@ -89,9 +89,8 @@ Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use sha
 
 All fetchers active 6 AM–10 PM ET, skip overnight. In-memory dedup cache pre-loaded before fetchers run, cleared after.
 
-**CFBD fetcher cooldown rules:**
-- Winter window (Dec 1 – Jan 15): 6h — portal snapshot only
-- Spring window (Apr 1 – Apr 30): 6h — portal snapshot only
+**CFBD fetcher cooldown rules (football-only, no basketball):**
+- Football portal window (Jan 2–24): 6h — portal snapshot only
 - Preseason (Aug 1 – Nov 30): 24h — portal snapshot + preseason intel
 - All other times: 24h — portal snapshot only
 

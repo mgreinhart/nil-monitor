@@ -554,21 +554,23 @@ const PortalPulse = ({ isMobile }) => {
   const fmt = (n) => n != null ? n.toLocaleString() : "—";
 
   // Window name for titles
+  // CFBD is football-only — single transfer window Jan 2–24
   const windowName = (() => {
     const now = new Date();
     const m = now.getMonth() + 1;
     const y = now.getFullYear();
-    if (m === 12 || m === 1) return `Winter ${m === 12 ? y + 1 : y}`;
-    if (m >= 2 && m <= 5) return `Spring ${y}`;
-    return `${y}`;
+    if (m === 1) return `Winter ${y}`;
+    return `Winter ${y + (m >= 2 ? 1 : 0)}`;
   })();
 
-  // Next window date
+  // Next football portal window: always January 2
   const nextWindow = (() => {
-    const m = new Date().getMonth() + 1;
-    if (m >= 2 && m <= 3) return "April 1";
-    if (m >= 5 && m <= 11) return "December 1";
-    return "April 1";
+    const now = new Date();
+    const m = now.getMonth() + 1;
+    const d = now.getDate();
+    // If we're past Jan 24, next window is next year's Jan 2
+    if (m > 1 || d > 24) return `January 2, ${now.getFullYear() + (m > 1 ? 1 : 0)}`;
+    return `January 2, ${now.getFullYear()}`;
   })();
 
   // Volume stat block
