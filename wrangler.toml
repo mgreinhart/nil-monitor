@@ -10,5 +10,5 @@ database_id = "c205339b-2bde-4f06-ab64-bedef8db1f53"
 [triggers]
 # Group A (minute :00, :30) — high-volume news fetchers
 # Group B (minute :07, :37) — lighter/supplemental fetchers
-# AI pipeline at 11:00 and 21:00 UTC
-crons = ["0,30 * * * *", "7,37 * * * *", "0 11,21 * * *"]
+# AI pipeline at 10:00 and 20:00 UTC (6 AM / 4 PM ET during EDT)
+crons = ["0,30 * * * *", "7,37 * * * *", "0 10,20 * * *"]
