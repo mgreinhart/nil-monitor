@@ -153,6 +153,31 @@ CREATE TABLE IF NOT EXISTS pe_deals (
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
+-- Portal snapshot (CFBD transfer portal aggregate data, one row per day)
+CREATE TABLE IF NOT EXISTS portal_snapshot (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  snapshot_date TEXT,                    -- YYYY-MM-DD
+  year INTEGER,                         -- portal cycle year (2026)
+  total_entries INTEGER,                 -- total players in portal
+  total_available INTEGER,               -- uncommitted
+  total_committed INTEGER,               -- committed to new school
+  entries_7d INTEGER,                    -- entries in last 7 days
+  top_gainers TEXT,                       -- JSON: [{school, in, out, net}]
+  top_losers TEXT,                        -- JSON: [{school, in, out, net}]
+  coaching_fallout TEXT,                  -- JSON: [{school, coach, departure_date, portal_entries_30d}]
+  prior_year_total INTEGER,              -- same-date total from prior year (for YoY)
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Preseason intel (CFBD returning production + recruiting, one row per year)
+CREATE TABLE IF NOT EXISTS preseason_intel (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  year INTEGER,
+  returning_production TEXT,              -- JSON: [{school, conference, ppa_returning_pct}]
+  recruiting_rankings TEXT,              -- JSON: [{school, rank, points}]
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
 -- Fetcher self-governing cooldowns + error tracking
 CREATE TABLE IF NOT EXISTS fetcher_runs (
   fetcher_name TEXT PRIMARY KEY,

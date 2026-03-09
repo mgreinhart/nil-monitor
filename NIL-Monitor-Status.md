@@ -48,6 +48,8 @@ ID: `c205339b-2bde-4f06-ab64-bedef8db1f53`, name: `nil-monitor-db`
 | `cslt_key_dates` | Curated monthly dates from CSLT homepage |
 | `pe_deals` | Private equity deals in college athletics (10 rows) |
 | `pipeline_runs` | AI pipeline execution log |
+| `portal_snapshot` | CFBD transfer portal aggregate data (one row per day) |
+| `preseason_intel` | CFBD returning production + recruiting rankings (one row per year) |
 | `fetcher_runs` | Self-governing cooldown state for fetchers |
 
 ### Secrets (Wrangler)
@@ -59,13 +61,14 @@ ID: `c205339b-2bde-4f06-ab64-bedef8db1f53`, name: `nil-monitor-db`
 | `CONGRESS_KEY` | Set | Congress.gov fetcher (not currently imported) |
 | `COURTLISTENER_TOKEN` | Set | CourtListener (optional, works without) |
 | `ADMIN_KEY` | Set | Admin dashboard + trigger auth (required) |
+| `CFBD_KEY` | **Not set** | CFBD portal fetcher (required for Portal Pulse) |
 | `LEGISCAN_KEY` | **Not set** | Pending API key approval |
 
 ---
 
 ## What's Working
 
-### Data Fetchers (11 functions from 10 files, cron `*/15 * * * *`)
+### Data Fetchers (12 functions from 11 files, cron `*/15 * * * *`)
 
 Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use shared utilities from `fetcher-utils.js` (ET timezone, cooldowns, entity decoding, URL normalization, game-noise filtering, keyword categorization, relevance gating, Jaccard-based headline dedup cache).
 
@@ -82,8 +85,15 @@ Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use sha
 | `fetch-cslt.js` (key dates) | CSLT homepage | 1 page | cslt_key_dates | 360 min | None |
 | `fetch-podcasts.js` | 6 podcast RSS feeds | 6 feeds | podcast_episodes | 120 min | None |
 | `fetch-gdelt.js` | GDELT DOC 2.0 API | 1 query | gdelt_volume | 360 min | None |
+| `fetch-cfbd.js` | CollegeFootballData.com API | portal + coaches + recruiting | portal_snapshot, preseason_intel | 360–1440 min | `CFBD_KEY` |
 
 All fetchers active 6 AM–10 PM ET, skip overnight. In-memory dedup cache pre-loaded before fetchers run, cleared after.
+
+**CFBD fetcher cooldown rules:**
+- Winter window (Dec 1 – Jan 15): 6h — portal snapshot only
+- Spring window (Apr 1 – Apr 30): 6h — portal snapshot only
+- Preseason (Aug 1 – Nov 30): 24h — portal snapshot + preseason intel
+- All other times: 24h — portal snapshot only
 
 **Note:** `fetch-congress.js` does not exist (never built). The `CONGRESS_KEY` secret is set but unused.
 
@@ -169,6 +179,8 @@ Uses `claude-sonnet-4-5-20250929`, 4096 max tokens per response. Three active ta
 | `/api/coverage-intel` | 14-day category breakdown, source breadth | Excludes Off-Topic |
 | `/api/gdelt-volume` | 30-day article counts + total + avg | |
 | `/api/podcasts` | Podcast freshness dates | spotify_id + latest_date |
+| `/api/portal-pulse` | Latest portal snapshot + mode (live/summary/preseason) | CFBD data |
+| `/api/preseason-intel` | Returning production + recruiting rankings | Direct access |
 | `/api/pe-tracker` | Private equity deals | Sorted by announced_date DESC |
 | `/api/cslt-key-dates` | CSLT curated monthly dates | |
 | `/api/admin` | HTML admin dashboard | Password protected |
@@ -200,6 +212,7 @@ These sections fetch real data from the API:
 - **Briefing panel** — `/api/briefing`, branded "NIL MONITOR NEWS BRIEF" with collapsible sections, falls back to `MOCK.briefing`
 - **Headlines feed** — `/api/headlines?limit=100`, category filter pills, 8 per page, Off-Topic excluded, fuzzy dedup (word overlap >0.6)
 - **The Courtroom** — `/api/cases` + `/api/cslt-key-dates`, Key Dates with countdown, Recent Activity (expandable), link to full CSLT tracker
+- **Portal Pulse** — `/api/portal-pulse`, three-mode panel (live/summary/preseason) below The Courtroom. Shows portal volume, gainers/losers, coaching fallout, or preseason intel depending on season.
 - **PE Tracker** — `/api/pe-tracker`, compact deal list (dead deals filtered), status badges
 - **Podcasts sidebar** — `/api/podcasts` for freshness sorting, Spotify iframe embeds, 24h highlight
 
@@ -409,6 +422,7 @@ Dead deals are filtered from display. 7 visible on the frontend.
 | GDELT | Free, no auth | $0 |
 | Google News RSS | Free | $0 |
 | Bing News RSS | Free | $0 |
+| CFBD API | Free (1,000 calls/month) | $0 |
 | Domain (nilmonitor.com) | Cloudflare Registrar | ~$10/year |
 
 ---
@@ -460,9 +474,10 @@ workers/
   fetch-cslt.js        — College Sports Litigation Tracker scraper (cases + key dates)
   fetch-podcasts.js    — 6 podcast RSS feeds (freshness check)
   fetch-gdelt.js       — GDELT news volume API
+  fetch-cfbd.js        — CFBD transfer portal + preseason intel
 functions/
   api/[[path]].js      — Pages Function proxy (/api/* → Worker)
-schema.sql             — D1 schema (14 tables)
+schema.sql             — D1 schema (16 tables)
 seed.sql               — House Settlement metrics + deadlines + PE deals
 NIL-Monitor-Status.md  — This file
 CLAUDE.md              — Claude Code project instructions

@@ -82,6 +82,13 @@ const FETCHER_CONFIG = {
   'cslt-keydates':  { getCooldown: h => h >= 6 && h < 22 ? 360 : null },
   'gdelt':          { getCooldown: h => h >= 6 && h < 22 ? 360 : null },
   'podcasts':       { getCooldown: h => h >= 6 && h < 22 ? 360 : null },
+  'cfbd':           { getCooldown: () => {
+    const now = new Date();
+    const m = parseInt(now.toLocaleString('en-US', { timeZone: 'America/New_York', month: 'numeric' }));
+    const d = parseInt(now.toLocaleString('en-US', { timeZone: 'America/New_York', day: 'numeric' }));
+    if (m === 12 || (m === 1 && d <= 15) || m === 4) return 360;
+    return 1440;
+  }},
 };
 
 function adminTimestamp(ts) {
@@ -591,6 +598,60 @@ export async function handleApi(request, env) {
       return json(results);
     }
 
+    // Portal Pulse (CFBD transfer portal aggregate)
+    if (path === '/api/portal-pulse') {
+      const now = new Date();
+      const month = parseInt(now.toLocaleString('en-US', { timeZone: 'America/New_York', month: 'numeric' }));
+      const day = parseInt(now.toLocaleString('en-US', { timeZone: 'America/New_York', day: 'numeric' }));
+
+      const snapshot = await env.DB.prepare(
+        'SELECT * FROM portal_snapshot ORDER BY snapshot_date DESC LIMIT 1'
+      ).first();
+
+      const preseasonRow = await env.DB.prepare(
+        `SELECT * FROM preseason_intel WHERE year = ? ORDER BY updated_at DESC LIMIT 1`
+      ).bind(now.getFullYear()).first();
+
+      if (!snapshot) {
+        return json({ mode: 'summary', snapshot: null, preseason: null });
+      }
+
+      // Parse JSON fields
+      const parsed = { ...snapshot };
+      try { parsed.top_gainers = JSON.parse(snapshot.top_gainers || '[]'); } catch { parsed.top_gainers = []; }
+      try { parsed.top_losers = JSON.parse(snapshot.top_losers || '[]'); } catch { parsed.top_losers = []; }
+      try { parsed.coaching_fallout = JSON.parse(snapshot.coaching_fallout || '[]'); } catch { parsed.coaching_fallout = []; }
+
+      // Mode determination
+      const isPortalWindow = (month === 12 || (month === 1 && day <= 15) || month === 4);
+      const mode = (isPortalWindow || (parsed.entries_7d || 0) > 20)
+        ? 'live'
+        : (month >= 8 && month <= 12 && preseasonRow)
+          ? 'preseason'
+          : 'summary';
+
+      let preseason = null;
+      if (mode === 'preseason' && preseasonRow) {
+        preseason = { year: preseasonRow.year };
+        try { preseason.returning_production = JSON.parse(preseasonRow.returning_production || '{}'); } catch { preseason.returning_production = {}; }
+        try { preseason.recruiting_rankings = JSON.parse(preseasonRow.recruiting_rankings || '[]'); } catch { preseason.recruiting_rankings = []; }
+      }
+
+      return json({ mode, snapshot: parsed, preseason });
+    }
+
+    // Preseason Intel (direct access)
+    if (path === '/api/preseason-intel') {
+      const row = await env.DB.prepare(
+        'SELECT * FROM preseason_intel ORDER BY updated_at DESC LIMIT 1'
+      ).first();
+      if (!row) return json(null);
+      const result = { year: row.year };
+      try { result.returning_production = JSON.parse(row.returning_production || '{}'); } catch { result.returning_production = {}; }
+      try { result.recruiting_rankings = JSON.parse(row.recruiting_rankings || '[]'); } catch { result.recruiting_rankings = []; }
+      return json(result);
+    }
+
     // Private equity tracker
     if (path === '/api/pe-tracker') {
       const { results } = await env.DB.prepare(
@@ -633,6 +694,7 @@ export async function handleApi(request, env) {
       const { fetchCSLT, fetchCSLTKeyDates } = await import('./fetch-cslt.js');
       const { fetchPodcasts } = await import('./fetch-podcasts.js');
       const { fetchGDELT } = await import('./fetch-gdelt.js');
+      const { fetchCFBD } = await import('./fetch-cfbd.js');
       const { runAIPipeline } = await import('./ai-pipeline.js');
 
       const phase = url.searchParams.get('phase') || 'fetch';
@@ -653,6 +715,7 @@ export async function handleApi(request, env) {
             fetchCSLTKeyDates(env, { force: true }).then(() => log.push('cslt-keydates: ok')).catch(e => log.push(`cslt-keydates: ${e.message}`)),
             fetchPodcasts(env, { force: true }).then(() => log.push('podcasts: ok')).catch(e => log.push(`podcasts: ${e.message}`)),
             fetchGDELT(env, { force: true }).then(() => log.push('gdelt: ok')).catch(e => log.push(`gdelt: ${e.message}`)),
+            fetchCFBD(env, { force: true }).then(() => log.push('cfbd: ok')).catch(e => log.push(`cfbd: ${e.message}`)),
           ]);
           clearDedupCache();
         }

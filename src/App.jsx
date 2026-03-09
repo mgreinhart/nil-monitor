@@ -536,6 +536,223 @@ const StateLegislationMap = () => {
 };
 
 // ╔═══════════════════════════════════════════════════════════════════
+//  PORTAL PULSE — Transfer portal aggregate intelligence
+// ╚═══════════════════════════════════════════════════════════════════
+const PortalPulse = ({ isMobile }) => {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/portal-pulse")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.snapshot) setData(d); })
+      .catch(() => {});
+  }, []);
+
+  if (!data || !data.snapshot) return null;
+
+  const { mode, snapshot, preseason } = data;
+  const fmt = (n) => n != null ? n.toLocaleString() : "—";
+
+  // Window name for titles
+  const windowName = (() => {
+    const now = new Date();
+    const m = now.getMonth() + 1;
+    const y = now.getFullYear();
+    if (m === 12 || m === 1) return `Winter ${m === 12 ? y + 1 : y}`;
+    if (m >= 2 && m <= 5) return `Spring ${y}`;
+    return `${y}`;
+  })();
+
+  // Next window date
+  const nextWindow = (() => {
+    const m = new Date().getMonth() + 1;
+    if (m >= 2 && m <= 3) return "April 1";
+    if (m >= 5 && m <= 11) return "December 1";
+    return "April 1";
+  })();
+
+  // Volume stat block
+  const StatBlock = ({ label, value, sub }) => (
+    <div style={{ flex: 1, textAlign: "center", padding: "10px 8px" }}>
+      <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>{label}</Mono>
+      <div style={{ fontFamily: T.mono, fontSize: 28, fontWeight: 700, color: T.text, lineHeight: 1.2, marginTop: 2 }}>{value}</div>
+      {sub && <Mono style={{ fontSize: 11, color: T.textDim, marginTop: 2 }}>{sub}</Mono>}
+    </div>
+  );
+
+  // School list item
+  const SchoolRow = ({ rank, school, net, positive }) => (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 6, padding: "3px 0" }}>
+      <Mono style={{ fontSize: 11, color: T.textDim, width: 16, textAlign: "right" }}>{rank}.</Mono>
+      <span style={{ fontFamily: T.sans, fontSize: 13, color: T.text, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{school}</span>
+      <Mono style={{ fontSize: 13, fontWeight: 700, color: positive ? T.green : T.accent }}>{positive ? "+" : ""}{net}</Mono>
+    </div>
+  );
+
+  // ── LIVE MODE ──
+  if (mode === "live") {
+    const commitRate = snapshot.total_entries > 0
+      ? Math.round((snapshot.total_committed / snapshot.total_entries) * 100) : 0;
+    const yoy = snapshot.prior_year_total
+      ? Math.round(((snapshot.total_entries - snapshot.prior_year_total) / snapshot.prior_year_total) * 100) : null;
+
+    return (
+      <Panel title="Portal Pulse" accent={T.amber}
+        right={<Mono style={{ fontSize: 11, color: T.textDim, fontWeight: 400 }}>{windowName}</Mono>}>
+        {/* Volume strip */}
+        <div style={{ display: "flex", borderBottom: `1px solid ${T.border}` }}>
+          <StatBlock label="In Portal" value={fmt(snapshot.total_entries)} />
+          <div style={{ width: 1, background: T.border }} />
+          <StatBlock label="Available" value={fmt(snapshot.total_available)} />
+          <div style={{ width: 1, background: T.border }} />
+          <StatBlock label="Committed" value={fmt(snapshot.total_committed)} sub={`${commitRate}% committed rate`} />
+        </div>
+
+        {/* Velocity line */}
+        <div style={{ padding: "8px 16px", borderBottom: `1px solid ${T.border}`, background: T.surfaceAlt }}>
+          <Mono style={{ fontSize: 12, color: T.textMid }}>
+            This week: <strong>{fmt(snapshot.entries_7d)}</strong> entries
+            {yoy != null && <> &middot; YoY: <strong style={{ color: yoy >= 0 ? T.green : T.accent }}>{yoy >= 0 ? "+" : ""}{yoy}%</strong></>}
+          </Mono>
+        </div>
+
+        {/* Gainers / Losers */}
+        {(snapshot.top_gainers?.length > 0 || snapshot.top_losers?.length > 0) && (
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", borderBottom: `1px solid ${T.border}` }}>
+            <div style={{ padding: "10px 16px", borderRight: isMobile ? "none" : `1px solid ${T.border}` }}>
+              <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.green, textTransform: "uppercase", marginBottom: 6 }}>Gaining</Mono>
+              {(snapshot.top_gainers || []).map((g, i) => (
+                <SchoolRow key={i} rank={i + 1} school={g.school} net={g.net} positive />
+              ))}
+            </div>
+            <div style={{ padding: "10px 16px" }}>
+              <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.accent, textTransform: "uppercase", marginBottom: 6 }}>Losing</Mono>
+              {(snapshot.top_losers || []).map((g, i) => (
+                <SchoolRow key={i} rank={i + 1} school={g.school} net={g.net} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Coaching fallout */}
+        {snapshot.coaching_fallout?.length > 0 && (
+          <div style={{ padding: "10px 16px" }}>
+            <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 6 }}>
+              Coaching Changes &rarr; Portal Fallout
+            </Mono>
+            {snapshot.coaching_fallout.map((c, i) => (
+              <div key={i} style={{ padding: "3px 0", fontFamily: T.sans, fontSize: 13, color: T.textMid }}>
+                <strong style={{ color: T.text }}>{c.school}</strong>: {c.coach} departed &rarr; <Mono style={{ fontWeight: 700, color: T.accent }}>{c.portal_entries_30d}</Mono> portal entries
+              </div>
+            ))}
+          </div>
+        )}
+      </Panel>
+    );
+  }
+
+  // ── PRESEASON MODE ──
+  if (mode === "preseason" && preseason) {
+    const retProd = preseason.returning_production || {};
+    const topRet = retProd.top || [];
+    const bottomRet = retProd.bottom || [];
+    const recruiting = preseason.recruiting_rankings || [];
+
+    return (
+      <Panel title={`Roster Intel \u00b7 ${preseason.year} Season`} accent={T.amber}>
+        {/* Returning production */}
+        {(topRet.length > 0 || bottomRet.length > 0) && (
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", borderBottom: `1px solid ${T.border}` }}>
+            <div style={{ padding: "10px 16px", borderRight: isMobile ? "none" : `1px solid ${T.border}` }}>
+              <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.green, textTransform: "uppercase", marginBottom: 6 }}>Most Production Returning</Mono>
+              {topRet.map((r, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 6, padding: "3px 0" }}>
+                  <Mono style={{ fontSize: 11, color: T.textDim, width: 16, textAlign: "right" }}>{i + 1}.</Mono>
+                  <span style={{ fontFamily: T.sans, fontSize: 13, color: T.text, flex: 1 }}>{r.school}</span>
+                  <Mono style={{ fontSize: 13, fontWeight: 700, color: T.green }}>{r.ppa_returning_pct}%</Mono>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: "10px 16px" }}>
+              <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.accent, textTransform: "uppercase", marginBottom: 6 }}>Least Returning</Mono>
+              {bottomRet.map((r, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 6, padding: "3px 0" }}>
+                  <Mono style={{ fontSize: 11, color: T.textDim, width: 16, textAlign: "right" }}>{i + 1}.</Mono>
+                  <span style={{ fontFamily: T.sans, fontSize: 13, color: T.text, flex: 1 }}>{r.school}</span>
+                  <Mono style={{ fontSize: 13, fontWeight: 700, color: T.accent }}>{r.ppa_returning_pct}%</Mono>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recruiting rankings */}
+        {recruiting.length > 0 && (
+          <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}>
+            <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 6 }}>
+              {preseason.year} Recruiting Class Rankings
+            </Mono>
+            <Mono style={{ fontSize: 12, color: T.textMid, lineHeight: 1.8 }}>
+              {recruiting.map((r, i) => (
+                <Fragment key={i}>{i > 0 && " \u00b7 "}{r.rank}. {r.school}</Fragment>
+              ))}
+            </Mono>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div style={{ padding: "8px 16px", background: T.surfaceAlt }}>
+          <Mono style={{ fontSize: 11, color: T.textDim }}>
+            {snapshot.total_entries > 0 && <>Portal moved {fmt(snapshot.total_entries)} players &middot; </>}
+            Next window: {nextWindow}
+          </Mono>
+        </div>
+      </Panel>
+    );
+  }
+
+  // ── SUMMARY MODE ──
+  return (
+    <Panel title={`Portal Pulse \u00b7 ${windowName} Summary`} accent={T.amber}>
+      {/* Volume strip */}
+      <div style={{ display: "flex", borderBottom: `1px solid ${T.border}` }}>
+        <StatBlock label="Total Moved" value={fmt(snapshot.total_entries)} />
+        <div style={{ width: 1, background: T.border }} />
+        <StatBlock label="Committed" value={fmt(snapshot.total_committed)} />
+        <div style={{ width: 1, background: T.border }} />
+        <StatBlock label="Still Available" value={fmt(snapshot.total_available)} />
+      </div>
+
+      {/* Top 3 gainers / losers */}
+      {(snapshot.top_gainers?.length > 0 || snapshot.top_losers?.length > 0) && (
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", borderBottom: `1px solid ${T.border}` }}>
+          <div style={{ padding: "10px 16px", borderRight: isMobile ? "none" : `1px solid ${T.border}` }}>
+            <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.green, textTransform: "uppercase", marginBottom: 6 }}>Biggest Gainers</Mono>
+            {(snapshot.top_gainers || []).slice(0, 3).map((g, i) => (
+              <SchoolRow key={i} rank={i + 1} school={g.school} net={g.net} positive />
+            ))}
+          </div>
+          <div style={{ padding: "10px 16px" }}>
+            <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.accent, textTransform: "uppercase", marginBottom: 6 }}>Biggest Losers</Mono>
+            {(snapshot.top_losers || []).slice(0, 3).map((g, i) => (
+              <SchoolRow key={i} rank={i + 1} school={g.school} net={g.net} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div style={{ padding: "8px 16px", background: T.surfaceAlt }}>
+        <Mono style={{ fontSize: 11, color: T.textDim }}>
+          {snapshot.prior_year_total > 0 && <>vs. prior year: {snapshot.total_entries > snapshot.prior_year_total ? "+" : ""}{Math.round(((snapshot.total_entries - snapshot.prior_year_total) / snapshot.prior_year_total) * 100)}% total entries &middot; </>}
+          Next window: {nextWindow}
+        </Mono>
+      </div>
+    </Panel>
+  );
+};
+
+// ╔═══════════════════════════════════════════════════════════════════
 //  MONITOR PAGE — The Dashboard (live from D1, falls back to mock)
 // ╚═══════════════════════════════════════════════════════════════════
 const MonitorPage = ({ onRefresh, isMobile }) => {
@@ -1090,6 +1307,9 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
           )}
           </>}
         </Panel>
+
+        {/* ── Portal Pulse ── */}
+        <PortalPulse isMobile={isMobile} />
 
         {/* ── State NIL Legislation Map ── */}
         <StateLegislationMap />

@@ -24,6 +24,7 @@ import { fetchPublications } from './fetch-publications.js';
 import { fetchCSLT, fetchCSLTKeyDates } from './fetch-cslt.js';
 import { fetchPodcasts } from './fetch-podcasts.js';
 import { fetchGDELT } from './fetch-gdelt.js';
+import { fetchCFBD } from './fetch-cfbd.js';
 import { runAIPipeline } from './ai-pipeline.js';
 
 // Wrap a fetcher so errors are logged to D1, not just console
@@ -51,6 +52,7 @@ const GROUP_B = [
   ['cslt-keydates', fetchCSLTKeyDates],
   ['podcasts', fetchPodcasts],
   ['gdelt', fetchGDELT],
+  ['cfbd', fetchCFBD],
 ];
 
 export default {
