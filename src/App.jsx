@@ -555,13 +555,15 @@ const PortalPulse = ({ isMobile }) => {
 
   // Window name for titles
   // CFBD is football-only — single transfer window Jan 2–24
+  // Live label: "January 2026" (current window). Summary label: last completed window.
   const windowName = (() => {
     const now = new Date();
     const m = now.getMonth() + 1;
     const y = now.getFullYear();
-    if (m === 1) return `Winter ${y}`;
-    return `Winter ${y + (m >= 2 ? 1 : 0)}`;
+    if (m === 1) return `January ${y}`;         // during the window
+    return `January ${y}`;                       // after the window (same year's Jan)
   })();
+  const summaryName = `January Portal Summary`;
 
   // Next football portal window: always January 2
   const nextWindow = (() => {
@@ -715,7 +717,7 @@ const PortalPulse = ({ isMobile }) => {
 
   // ── SUMMARY MODE ──
   return (
-    <Panel title={`Portal Pulse \u00b7 ${windowName} Summary`} accent={T.accent}>
+    <Panel title={`Portal Pulse \u00b7 ${summaryName}`} accent={T.accent}>
       {/* Volume strip */}
       <div style={{ display: "flex", borderBottom: `1px solid ${T.border}` }}>
         <StatBlock label="Total Moved" value={fmt(snapshot.total_entries)} />
