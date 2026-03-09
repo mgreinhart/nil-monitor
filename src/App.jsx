@@ -551,71 +551,44 @@ const PortalPulse = ({ isMobile }) => {
   if (!data || !data.snapshot) return null;
 
   const { mode, snapshot, preseason } = data;
-  const fmt = (n) => n != null ? n.toLocaleString() : "—";
+  const fmt = (n) => n != null ? n.toLocaleString() : "\u2014";
 
-  // Window name for titles
   // CFBD is football-only — single transfer window Jan 2–24
-  // Live label: "January 2026" (current window). Summary label: last completed window.
-  const windowName = (() => {
-    const now = new Date();
-    const m = now.getMonth() + 1;
-    const y = now.getFullYear();
-    if (m === 1) return `January ${y}`;         // during the window
-    return `January ${y}`;                       // after the window (same year's Jan)
-  })();
-  const summaryName = `January Portal Summary`;
-
-  // Next football portal window: always January 2
+  const windowName = `January ${new Date().getFullYear()}`;
   const nextWindow = (() => {
     const now = new Date();
-    const m = now.getMonth() + 1;
-    const d = now.getDate();
-    // If we're past Jan 24, next window is next year's Jan 2
+    const m = now.getMonth() + 1, d = now.getDate();
     if (m > 1 || d > 24) return `January 2, ${now.getFullYear() + (m > 1 ? 1 : 0)}`;
     return `January 2, ${now.getFullYear()}`;
   })();
 
-  // Volume stat block
-  const StatBlock = ({ label, value, sub }) => (
-    <div style={{ flex: 1, textAlign: "center", padding: "10px 8px" }}>
-      <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>{label}</Mono>
-      <div style={{ fontFamily: T.mono, fontSize: 28, fontWeight: 700, color: T.text, lineHeight: 1.2, marginTop: 2 }}>{value}</div>
-      {sub && <Mono style={{ fontSize: 11, color: T.textDim, marginTop: 2 }}>{sub}</Mono>}
-    </div>
-  );
-
-  // School list item
-  const SchoolRow = ({ rank, school, net, positive }) => (
-    <div style={{ display: "flex", alignItems: "baseline", gap: 6, padding: "3px 0" }}>
-      <Mono style={{ fontSize: 11, color: T.textDim, width: 16, textAlign: "right" }}>{rank}.</Mono>
-      <span style={{ fontFamily: T.sans, fontSize: 13, color: T.text, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{school}</span>
-      <Mono style={{ fontSize: 13, fontWeight: 700, color: positive ? T.green : T.accent }}>{positive ? "+" : ""}{net}</Mono>
-    </div>
-  );
+  const commitRate = snapshot.total_entries > 0
+    ? Math.round((snapshot.total_committed / snapshot.total_entries) * 100) : 0;
+  const yoy = snapshot.prior_year_total
+    ? Math.round(((snapshot.total_entries - snapshot.prior_year_total) / snapshot.prior_year_total) * 100) : null;
 
   // ── LIVE MODE ──
   if (mode === "live") {
-    const commitRate = snapshot.total_entries > 0
-      ? Math.round((snapshot.total_committed / snapshot.total_entries) * 100) : 0;
-    const yoy = snapshot.prior_year_total
-      ? Math.round(((snapshot.total_entries - snapshot.prior_year_total) / snapshot.prior_year_total) * 100) : null;
-
     return (
-      <Panel title="Portal Pulse" accent={T.accent}
+      <Panel title="Portal Pulse" accent={T.accent} noPad
         right={<Mono style={{ fontSize: 11, color: T.textDim, fontWeight: 400 }}>{windowName}</Mono>}>
         {/* Volume strip */}
-        <div style={{ display: "flex", borderBottom: `1px solid ${T.border}` }}>
-          <StatBlock label="In Portal" value={fmt(snapshot.total_entries)} />
-          <div style={{ width: 1, background: T.border }} />
-          <StatBlock label="Available" value={fmt(snapshot.total_available)} />
-          <div style={{ width: 1, background: T.border }} />
-          <StatBlock label="Committed" value={fmt(snapshot.total_committed)} sub={`${commitRate}% committed rate`} />
+        <div style={{ display: "flex", alignItems: "baseline", padding: "6px 16px", gap: 16, borderBottom: `1px solid ${T.border}` }}>
+          <Mono style={{ fontSize: 12, color: T.textMid }}>
+            <strong style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: T.text }}>{fmt(snapshot.total_entries)}</strong> in portal
+          </Mono>
+          <Mono style={{ fontSize: 12, color: T.textMid }}>
+            <strong style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: T.text }}>{fmt(snapshot.total_available)}</strong> available
+          </Mono>
+          <Mono style={{ fontSize: 12, color: T.textMid }}>
+            <strong style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: T.text }}>{fmt(snapshot.total_committed)}</strong> committed <span style={{ color: T.textDim }}>&middot; {commitRate}%</span>
+          </Mono>
         </div>
 
         {/* Velocity line */}
-        <div style={{ padding: "8px 16px", borderBottom: `1px solid ${T.border}`, background: T.surfaceAlt }}>
-          <Mono style={{ fontSize: 12, color: T.textMid }}>
-            This week: <strong>{fmt(snapshot.entries_7d)}</strong> entries
+        <div style={{ padding: "5px 16px", borderBottom: `1px solid ${T.border}` }}>
+          <Mono style={{ fontSize: 11, color: T.textDim }}>
+            This week: <strong style={{ color: T.textMid }}>{fmt(snapshot.entries_7d)}</strong> entries
             {yoy != null && <> &middot; YoY: <strong style={{ color: yoy >= 0 ? T.green : T.accent }}>{yoy >= 0 ? "+" : ""}{yoy}%</strong></>}
           </Mono>
         </div>
@@ -623,16 +596,22 @@ const PortalPulse = ({ isMobile }) => {
         {/* Gainers / Losers */}
         {(snapshot.top_gainers?.length > 0 || snapshot.top_losers?.length > 0) && (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", borderBottom: `1px solid ${T.border}` }}>
-            <div style={{ padding: "10px 16px", borderRight: isMobile ? "none" : `1px solid ${T.border}` }}>
-              <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.green, textTransform: "uppercase", marginBottom: 6 }}>Gaining</Mono>
+            <div style={{ padding: "6px 16px 8px", borderRight: isMobile ? "none" : `1px solid ${T.border}` }}>
+              <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.green, textTransform: "uppercase", marginBottom: 3 }}>Gaining</Mono>
               {(snapshot.top_gainers || []).map((g, i) => (
-                <SchoolRow key={i} rank={i + 1} school={g.school} net={g.net} positive />
+                <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 4, padding: "1px 0", fontFamily: T.sans, fontSize: 13, color: T.text }}>
+                  <Mono style={{ fontSize: 11, color: T.textDim, width: 14, textAlign: "right", flexShrink: 0 }}>{i + 1}.</Mono>
+                  {g.school} <Mono style={{ fontSize: 12, fontWeight: 700, color: T.green }}>+{g.net}</Mono>
+                </div>
               ))}
             </div>
-            <div style={{ padding: "10px 16px" }}>
-              <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.accent, textTransform: "uppercase", marginBottom: 6 }}>Losing</Mono>
+            <div style={{ padding: "6px 16px 8px" }}>
+              <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.accent, textTransform: "uppercase", marginBottom: 3 }}>Losing</Mono>
               {(snapshot.top_losers || []).map((g, i) => (
-                <SchoolRow key={i} rank={i + 1} school={g.school} net={g.net} />
+                <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 4, padding: "1px 0", fontFamily: T.sans, fontSize: 13, color: T.text }}>
+                  <Mono style={{ fontSize: 11, color: T.textDim, width: 14, textAlign: "right", flexShrink: 0 }}>{i + 1}.</Mono>
+                  {g.school} <Mono style={{ fontSize: 12, fontWeight: 700, color: T.accent }}>{g.net}</Mono>
+                </div>
               ))}
             </div>
           </div>
@@ -640,12 +619,12 @@ const PortalPulse = ({ isMobile }) => {
 
         {/* Coaching fallout */}
         {snapshot.coaching_fallout?.length > 0 && (
-          <div style={{ padding: "10px 16px" }}>
-            <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 6 }}>
+          <div style={{ padding: "6px 16px 8px", borderBottom: `1px solid ${T.border}` }}>
+            <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 3 }}>
               Coaching Changes &rarr; Portal Fallout
             </Mono>
             {snapshot.coaching_fallout.map((c, i) => (
-              <div key={i} style={{ padding: "3px 0", fontFamily: T.sans, fontSize: 13, color: T.textMid }}>
+              <div key={i} style={{ padding: "1px 0", fontFamily: T.sans, fontSize: 13, color: T.textMid }}>
                 <strong style={{ color: T.text }}>{c.school}</strong>: {c.coach} departed &rarr; <Mono style={{ fontWeight: 700, color: T.accent }}>{c.portal_entries_30d}</Mono> portal entries
               </div>
             ))}
@@ -663,40 +642,36 @@ const PortalPulse = ({ isMobile }) => {
     const recruiting = preseason.recruiting_rankings || [];
 
     return (
-      <Panel title={`Roster Intel \u00b7 ${preseason.year} Season`} accent={T.accent}>
-        {/* Returning production */}
+      <Panel title={`Roster Intel \u00b7 ${preseason.year} Season`} accent={T.accent} noPad>
         {(topRet.length > 0 || bottomRet.length > 0) && (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", borderBottom: `1px solid ${T.border}` }}>
-            <div style={{ padding: "10px 16px", borderRight: isMobile ? "none" : `1px solid ${T.border}` }}>
-              <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.green, textTransform: "uppercase", marginBottom: 6 }}>Most Production Returning</Mono>
+            <div style={{ padding: "6px 16px 8px", borderRight: isMobile ? "none" : `1px solid ${T.border}` }}>
+              <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.green, textTransform: "uppercase", marginBottom: 3 }}>Most Production Returning</Mono>
               {topRet.map((r, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 6, padding: "3px 0" }}>
-                  <Mono style={{ fontSize: 11, color: T.textDim, width: 16, textAlign: "right" }}>{i + 1}.</Mono>
-                  <span style={{ fontFamily: T.sans, fontSize: 13, color: T.text, flex: 1 }}>{r.school}</span>
-                  <Mono style={{ fontSize: 13, fontWeight: 700, color: T.green }}>{r.ppa_returning_pct}%</Mono>
+                <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 4, padding: "1px 0", fontFamily: T.sans, fontSize: 13, color: T.text }}>
+                  <Mono style={{ fontSize: 11, color: T.textDim, width: 14, textAlign: "right", flexShrink: 0 }}>{i + 1}.</Mono>
+                  {r.school} <Mono style={{ fontSize: 12, fontWeight: 700, color: T.green }}>{r.ppa_returning_pct}%</Mono>
                 </div>
               ))}
             </div>
-            <div style={{ padding: "10px 16px" }}>
-              <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.accent, textTransform: "uppercase", marginBottom: 6 }}>Least Returning</Mono>
+            <div style={{ padding: "6px 16px 8px" }}>
+              <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.accent, textTransform: "uppercase", marginBottom: 3 }}>Least Returning</Mono>
               {bottomRet.map((r, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 6, padding: "3px 0" }}>
-                  <Mono style={{ fontSize: 11, color: T.textDim, width: 16, textAlign: "right" }}>{i + 1}.</Mono>
-                  <span style={{ fontFamily: T.sans, fontSize: 13, color: T.text, flex: 1 }}>{r.school}</span>
-                  <Mono style={{ fontSize: 13, fontWeight: 700, color: T.accent }}>{r.ppa_returning_pct}%</Mono>
+                <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 4, padding: "1px 0", fontFamily: T.sans, fontSize: 13, color: T.text }}>
+                  <Mono style={{ fontSize: 11, color: T.textDim, width: 14, textAlign: "right", flexShrink: 0 }}>{i + 1}.</Mono>
+                  {r.school} <Mono style={{ fontSize: 12, fontWeight: 700, color: T.accent }}>{r.ppa_returning_pct}%</Mono>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Recruiting rankings */}
         {recruiting.length > 0 && (
-          <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}>
-            <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 6 }}>
+          <div style={{ padding: "6px 16px 8px", borderBottom: `1px solid ${T.border}` }}>
+            <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 3 }}>
               {preseason.year} Recruiting Class Rankings
             </Mono>
-            <Mono style={{ fontSize: 12, color: T.textMid, lineHeight: 1.8 }}>
+            <Mono style={{ fontSize: 12, color: T.textMid, lineHeight: 1.6 }}>
               {recruiting.map((r, i) => (
                 <Fragment key={i}>{i > 0 && " \u00b7 "}{r.rank}. {r.school}</Fragment>
               ))}
@@ -704,8 +679,7 @@ const PortalPulse = ({ isMobile }) => {
           </div>
         )}
 
-        {/* Footer */}
-        <div style={{ padding: "8px 16px", background: T.surfaceAlt }}>
+        <div style={{ padding: "5px 16px", background: T.surfaceAlt, borderTop: `1px solid ${T.borderLight}` }}>
           <Mono style={{ fontSize: 11, color: T.textDim }}>
             {snapshot.total_entries > 0 && <>Portal moved {fmt(snapshot.total_entries)} players &middot; </>}
             Next window: {nextWindow}
@@ -717,38 +691,56 @@ const PortalPulse = ({ isMobile }) => {
 
   // ── SUMMARY MODE ──
   return (
-    <Panel title={`Portal Pulse \u00b7 ${summaryName}`} accent={T.accent}>
-      {/* Volume strip */}
-      <div style={{ display: "flex", borderBottom: `1px solid ${T.border}` }}>
-        <StatBlock label="Total Moved" value={fmt(snapshot.total_entries)} />
-        <div style={{ width: 1, background: T.border }} />
-        <StatBlock label="Committed" value={fmt(snapshot.total_committed)} />
-        <div style={{ width: 1, background: T.border }} />
-        <StatBlock label="Still Available" value={fmt(snapshot.total_available)} />
+    <Panel title="Portal Pulse \u00b7 January Portal Summary" accent={T.accent} noPad>
+      {/* Volume strip — compact inline */}
+      <div style={{ display: "flex", alignItems: "baseline", padding: "6px 16px", gap: 16, borderBottom: `1px solid ${T.border}` }}>
+        <Mono style={{ fontSize: 12, color: T.textMid }}>
+          <strong style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: T.text }}>{fmt(snapshot.total_entries)}</strong> total moved
+        </Mono>
+        <Mono style={{ fontSize: 12, color: T.textMid }}>
+          <strong style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: T.text }}>{fmt(snapshot.total_committed)}</strong> committed <span style={{ color: T.textDim }}>&middot; {commitRate}%</span>
+        </Mono>
+        <Mono style={{ fontSize: 12, color: T.textMid }}>
+          <strong style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: T.text }}>{fmt(snapshot.total_available)}</strong> still available
+        </Mono>
       </div>
 
-      {/* Top 3 gainers / losers */}
+      {/* Gainers / Losers — top 5 */}
       {(snapshot.top_gainers?.length > 0 || snapshot.top_losers?.length > 0) && (
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", borderBottom: `1px solid ${T.border}` }}>
-          <div style={{ padding: "10px 16px", borderRight: isMobile ? "none" : `1px solid ${T.border}` }}>
-            <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.green, textTransform: "uppercase", marginBottom: 6 }}>Biggest Gainers</Mono>
-            {(snapshot.top_gainers || []).slice(0, 3).map((g, i) => (
-              <SchoolRow key={i} rank={i + 1} school={g.school} net={g.net} positive />
+          <div style={{ padding: "6px 16px 8px", borderRight: isMobile ? "none" : `1px solid ${T.border}` }}>
+            <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.green, textTransform: "uppercase", marginBottom: 3 }}>Biggest Gainers</Mono>
+            {(snapshot.top_gainers || []).slice(0, 5).map((g, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 4, padding: "1px 0", fontFamily: T.sans, fontSize: 13, color: T.text }}>
+                <Mono style={{ fontSize: 11, color: T.textDim, width: 14, textAlign: "right", flexShrink: 0 }}>{i + 1}.</Mono>
+                {g.school} <Mono style={{ fontSize: 12, fontWeight: 700, color: T.green }}>+{g.net}</Mono>
+              </div>
             ))}
           </div>
-          <div style={{ padding: "10px 16px" }}>
-            <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.accent, textTransform: "uppercase", marginBottom: 6 }}>Biggest Losers</Mono>
-            {(snapshot.top_losers || []).slice(0, 3).map((g, i) => (
-              <SchoolRow key={i} rank={i + 1} school={g.school} net={g.net} />
+          <div style={{ padding: "6px 16px 8px" }}>
+            <Mono style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", color: T.accent, textTransform: "uppercase", marginBottom: 3 }}>Biggest Losers</Mono>
+            {(snapshot.top_losers || []).slice(0, 5).map((g, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 4, padding: "1px 0", fontFamily: T.sans, fontSize: 13, color: T.text }}>
+                <Mono style={{ fontSize: 11, color: T.textDim, width: 14, textAlign: "right", flexShrink: 0 }}>{i + 1}.</Mono>
+                {g.school} <Mono style={{ fontSize: 12, fontWeight: 700, color: T.accent }}>{g.net}</Mono>
+              </div>
             ))}
           </div>
         </div>
       )}
 
+      {/* YoY line */}
+      {yoy != null && (
+        <div style={{ padding: "5px 16px", borderBottom: `1px solid ${T.border}` }}>
+          <Mono style={{ fontSize: 11, color: T.textDim }}>
+            vs. prior year: <strong style={{ color: yoy >= 0 ? T.green : T.accent }}>{yoy >= 0 ? "+" : ""}{yoy}%</strong> total entries
+          </Mono>
+        </div>
+      )}
+
       {/* Footer */}
-      <div style={{ padding: "8px 16px", background: T.surfaceAlt }}>
+      <div style={{ padding: "5px 16px", background: T.surfaceAlt, borderTop: `1px solid ${T.borderLight}` }}>
         <Mono style={{ fontSize: 11, color: T.textDim }}>
-          {snapshot.prior_year_total > 0 && <>vs. prior year: {snapshot.total_entries > snapshot.prior_year_total ? "+" : ""}{Math.round(((snapshot.total_entries - snapshot.prior_year_total) / snapshot.prior_year_total) * 100)}% total entries &middot; </>}
           Next window: {nextWindow}
         </Mono>
       </div>
