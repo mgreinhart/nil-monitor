@@ -597,7 +597,7 @@ const PortalPulse = ({ isMobile }) => {
       ? Math.round(((snapshot.total_entries - snapshot.prior_year_total) / snapshot.prior_year_total) * 100) : null;
 
     return (
-      <Panel title="Portal Pulse" accent={T.amber}
+      <Panel title="Portal Pulse" accent={T.accent}
         right={<Mono style={{ fontSize: 11, color: T.textDim, fontWeight: 400 }}>{windowName}</Mono>}>
         {/* Volume strip */}
         <div style={{ display: "flex", borderBottom: `1px solid ${T.border}` }}>
@@ -659,7 +659,7 @@ const PortalPulse = ({ isMobile }) => {
     const recruiting = preseason.recruiting_rankings || [];
 
     return (
-      <Panel title={`Roster Intel \u00b7 ${preseason.year} Season`} accent={T.amber}>
+      <Panel title={`Roster Intel \u00b7 ${preseason.year} Season`} accent={T.accent}>
         {/* Returning production */}
         {(topRet.length > 0 || bottomRet.length > 0) && (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", borderBottom: `1px solid ${T.border}` }}>
@@ -713,7 +713,7 @@ const PortalPulse = ({ isMobile }) => {
 
   // ── SUMMARY MODE ──
   return (
-    <Panel title={`Portal Pulse \u00b7 ${windowName} Summary`} accent={T.amber}>
+    <Panel title={`Portal Pulse \u00b7 ${windowName} Summary`} accent={T.accent}>
       {/* Volume strip */}
       <div style={{ display: "flex", borderBottom: `1px solid ${T.border}` }}>
         <StatBlock label="Total Moved" value={fmt(snapshot.total_entries)} />
