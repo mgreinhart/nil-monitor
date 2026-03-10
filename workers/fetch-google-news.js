@@ -87,6 +87,21 @@ const QUERIES = [
   '"athletic department" fundraising OR philanthropy OR "capital campaign"',
   '"college athletics" OR university "facility naming rights"',
   '"college" OR "university" "suite" OR "loge box" OR "club seats" athletics',
+  // D1 ticker coverage gaps — coaching contracts, NIL ops, tech, emerging sports, governance
+  '"coaching contract" extension college OR university',
+  '"head coach" contract OR salary college OR university',
+  '"NIL collective" OR "collective" restructuring college OR university',
+  '"in-house NIL" OR "NIL operations" college athletics',
+  '"multimedia rights" college OR university OR conference',
+  '"athletic department" technology OR "tech partnership" OR vendor',
+  '"Teamworks" OR "Influxer" OR "Opendorse" college athletics',
+  '"ticket revenue" OR "ticket sales" college OR university athletics',
+  '"women\'s wrestling" OR "emerging sport" NCAA',
+  '"new sport" OR "adding sport" college OR university athletics',
+  '"university president" hired OR named OR "board of trustees" athletics',
+  '"scheduling alliance" OR "non-conference" deal OR series college',
+  'NCAA tournament format OR expansion OR "player availability"',
+  '"conference tournament" venue OR naming rights OR broadcast deal',
 ];
 
 function getCooldown() {

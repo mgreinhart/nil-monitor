@@ -64,6 +64,13 @@ const QUERIES = [
   '"college athletics" "premium seating" OR "ticket revenue" OR reseating',
   '"athletic department" donor OR philanthropy OR "giving society"',
   '"college athletics" "brand partnership" OR "corporate sponsor"',
+  // D1 ticker coverage gaps — coaching contracts, NIL ops, emerging sports, governance
+  '"coaching contract" college OR university extension OR salary',
+  '"NIL collective" restructuring OR operations',
+  '"multimedia rights" college OR conference extension',
+  '"ticket revenue" college OR university athletics',
+  '"emerging sport" OR "new sport" NCAA university',
+  '"board of trustees" athletics OR "athletic department"',
 ];
 
 function getCooldown() {

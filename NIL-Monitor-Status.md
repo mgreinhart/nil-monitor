@@ -74,8 +74,8 @@ Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use sha
 
 | Fetcher | Source | Queries/Feeds | Table | Cooldown | Auth |
 |---------|--------|---------------|-------|----------|------|
-| `fetch-google-news.js` | Google News RSS | 68 queries | headlines | 15–30 min | None |
-| `fetch-bing-news.js` | Bing News RSS | 48 queries | headlines | 15–30 min | None |
+| `fetch-google-news.js` | Google News RSS | 82 queries | headlines | 15–30 min | None |
+| `fetch-bing-news.js` | Bing News RSS | 54 queries | headlines | 15–30 min | None |
 | `fetch-newsdata.js` | NewsData.io API | 18 queries | headlines | 30–60 min | `NEWSDATA_KEY` |
 | `fetch-ncaa-rss.js` | NCAA.com RSS | 3 feeds | headlines | 15–30 min | None |
 | `fetch-courtlistener.js` | CourtListener RECAP | — | cases | 120–240 min | Optional token |
@@ -485,8 +485,8 @@ workers/
   ai-pipeline.js       — 3 active AI tasks (tag, CSC detect, briefing)
   fetcher-utils.js     — Shared: cooldowns, dedup cache (Jaccard), noise filter, relevance gate, categorization
   rss-parser.js        — Regex-based RSS parser (no DOMParser in Workers)
-  fetch-google-news.js — Google News RSS (68 queries)
-  fetch-bing-news.js   — Bing News RSS (48 queries)
+  fetch-google-news.js — Google News RSS (82 queries)
+  fetch-bing-news.js   — Bing News RSS (54 queries)
   fetch-newsdata.js    — NewsData.io API (18 queries)
   fetch-ncaa-rss.js    — NCAA.com RSS (3 feeds)
   fetch-courtlistener.js — CourtListener RECAP (dormant)
