@@ -440,7 +440,7 @@ const GAME_NOISE_RE = new RegExp([
 /**
  * Business/regulatory signals — if present, never filter the headline.
  */
-const BUSINESS_SIGNAL_RE = /\bnil\b|name.image.likeness|ncaa\s*(?:governance|rule|board|enforce|investigat|reform|restructur|commission|settlement|antitrust)|college sports commission|\bcsc\b|revenue.shar|salary.cap|legislation|congress|senate|house bill|\bbill\b.*(?:athlete|sport|college)|compliance|collective|waiver|title ix.*(?:nil|revenue|athlete)|transfer portal.*(?:rule|window|policy)|realignment|media rights|athlete.*(?:pay|compensat|employ|union|rights)|lawsuit|settlement|litigation|antitrust|private equity|conference.*(?:deal|revenue|expansion)|athletic\s+(?:department|budget|deficit)|intercollegiate|\bsu(?:es?|ed|ing)\b|\btrademark\b|\beligibility\b|\bbuyout\b|\binjunction\b|\brestraining.order\b|jersey\s+patch|above.cap|athletic\s+fee|apparel|operating\s+(?:expense|revenue|budget)|\$\d+[mb].*(?:arena|stadium|facility|venue)|(?:arena|stadium|facility)\s+(?:vote|bond|fund|approv|construct|renovati)|athletic\s+director|conference\s+commissioner|\bfundraising\b|\bcampaign\b.*(?:college|university|athletic)|\b(?:arena|stadium)\b.*(?:vote|bond|approv|construct|renovat|fund)/i;
+const BUSINESS_SIGNAL_RE = /\bnil\b|name.image.likeness|ncaa\s*(?:governance|rule|board|enforce|investigat|reform|restructur|commission|settlement|antitrust)|college sports commission|\bcsc\b|revenue.shar|salary.cap|legislation|congress|senate|house bill|\bbill\b.*(?:athlete|sport|college)|compliance|collective|waiver|title ix.*(?:nil|revenue|athlete)|transfer portal.*(?:rule|window|policy)|realignment|media rights|athlete.*(?:pay|compensat|employ|union|rights)|lawsuit|settlement|litigation|antitrust|private equity|conference.*(?:deal|revenue|expansion)|athletic\s+(?:department|budget|deficit)|intercollegiate|\bsu(?:es?|ed|ing)\b|\btrademark\b|\beligibility\b|\bbuyout\b|\binjunction\b|\brestraining.order\b|jersey\s+patch|above.cap|athletic\s+fee|apparel|operating\s+(?:expense|revenue|budget)|\$\d+[mb].*(?:arena|stadium|facility|venue)|(?:arena|stadium|facility)\s+(?:vote|bond|fund|approv|construct|renovati)|athletic\s+director|conference\s+commissioner|\bfundraising\b|\bphilanthropy\b|\bcapital campaign\b|\bcampaign\b.*(?:college|university|athletic)|\b(?:arena|stadium)\b.*(?:vote|bond|approv|construct|renovat|fund)|\bsponsorship\b|\bnaming rights\b|\bpremium seating\b|\breseating\b|\bticket sales\b|\bseason tickets\b|\bfan rewards\b|\bloyalty program\b/i;
 
 /**
  * Returns true if the title is game/tournament noise (not business/regulatory).
@@ -473,8 +473,8 @@ export function categorizeByKeyword(title) {
   // Broader enforcement/investigation patterns (after CSC check)
   if (/\benforcement\b|\binvestigation\b|\bcompliance\b/.test(t)) return 'CSC / Enforcement';
 
-  // Business / Finance — personnel, fundraising, facilities, PE, ownership
-  if (/\bathletic director\b|\bconference commissioner\b|\bfundraising\b|\bcampaign\b.*(?:athlet|universit)|\barena\b.*(?:\$|million|bond|vote)|\bstadium\b.*(?:\$|million|bond|vote)|private equity|\bownership\b.*(?:college|university|athlet)/.test(t)) return 'Business / Finance';
+  // Business / Finance — personnel, fundraising, facilities, PE, ownership, revenue ops
+  if (/\bathletic director\b|\bconference commissioner\b|\bfundraising\b|\bphilanthropy\b|\bcapital campaign\b|\bdonor\b.*(?:college|university|athlet)|\bcampaign\b.*(?:athlet|universit)|\barena\b.*(?:\$|million|bond|vote)|\bstadium\b.*(?:\$|million|bond|vote)|private equity|\bownership\b.*(?:college|university|athlet)|\bsponsorship\b|\bnaming rights\b|\bpremium seating\b|\breseating\b|\bticket sales\b|\bseason tickets\b|\bfan rewards\b|\bloyalty program\b/.test(t)) return 'Business / Finance';
 
   return null;
 }
@@ -538,6 +538,15 @@ const TITLE_RELEVANCE_RE = new RegExp([
   '(?:arena|stadium).*(?:college|university).*(?:\\$\\d|million|bond|vote|approv|construction|renovation)',
   // Industry association
   '\\bnacda\\b',
+  // Revenue operations — sponsorship, naming rights, premium seating, fundraising
+  '(?:naming rights|premium seating|reseating|suite|loge|club seats).*(?:college|university|athletic)',
+  '(?:college|university|athletic).*(?:naming rights|premium seating|reseating|suite|loge|club seats)',
+  '(?:sponsorship|partnership|corporate sponsor).*(?:college|university|athletic)',
+  '(?:college|university|athletic).*(?:sponsorship|partnership|corporate sponsor)',
+  '(?:fundraising|philanthropy|capital campaign|donor|giving).*(?:college|university|athletic)',
+  '(?:college|university|athletic).*(?:fundraising|philanthropy|capital campaign|donor|giving)',
+  '(?:ticket sales|season tickets|sellout streak|attendance record).*(?:college|university|athletic)',
+  'fan rewards|loyalty program|card.linked.*(?:college|university|athletic)',
 ].join('|'), 'i');
 
 export function isTitleRelevant(title) {

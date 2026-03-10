@@ -59,6 +59,11 @@ const QUERIES = [
   '"athletic department" "institutional support" OR "general fund" OR subsidy',
   '"college athletics" "budget crisis" OR "financial shortfall"',
   '"university president" athletics OR "athletic department"',
+  // Revenue operations / sponsorship / monetization
+  '"athletic department" sponsorship revenue OR "naming rights"',
+  '"college athletics" "premium seating" OR "ticket revenue" OR reseating',
+  '"athletic department" donor OR philanthropy OR "giving society"',
+  '"college athletics" "brand partnership" OR "corporate sponsor"',
 ];
 
 function getCooldown() {

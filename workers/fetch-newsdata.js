@@ -32,6 +32,9 @@ const QUERIES = [
   // College sports business & personnel
   'athletic director hired OR fired college',
   'college athletics fundraising OR stadium',
+  // Revenue operations / sponsorship
+  'college athletics sponsorship OR naming rights',
+  'athletic department revenue OR fundraising',
 ];
 
 function getCooldown() {

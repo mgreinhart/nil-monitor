@@ -78,6 +78,15 @@ const QUERIES = [
   '"college athletics" "financial plan" OR "budget crisis" OR "fundraising campaign"',
   'university diverts OR allocates OR redirects funding athletics',
   '"conference expansion" candidate OR positioning OR "realignment" strategy',
+  // Revenue operations / sponsorship / monetization
+  '"college athletics" sponsorship OR partnership OR "naming rights"',
+  '"athletic department" revenue OR "ticket sales" OR "premium seating"',
+  '"athletic department" reseating OR "season tickets" OR "sellout"',
+  '"college athletics" OR "athletic department" "card-linked" OR "fan rewards" OR "loyalty program"',
+  '"jersey patch" OR "uniform sponsorship" college OR university',
+  '"athletic department" fundraising OR philanthropy OR "capital campaign"',
+  '"college athletics" OR university "facility naming rights"',
+  '"college" OR "university" "suite" OR "loge box" OR "club seats" athletics',
 ];
 
 function getCooldown() {
