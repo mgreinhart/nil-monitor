@@ -649,7 +649,7 @@ const PortalPulse = ({ isMobile }) => {
       <Panel title="Portal Pulse" accent={T.accent} noPad
         right={<Mono style={{ fontSize: 11, color: T.textDim, fontWeight: 400 }}>{windowName}</Mono>}>
         <div style={{ padding: "6px 16px 0" }}>
-          <Mono style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.8px", color: T.textMid, textTransform: "uppercase" }}>{modeLabel}</Mono>
+          <Mono style={{ fontSize: 15, fontWeight: 700, letterSpacing: "0.8px", color: T.textMid, textTransform: "uppercase" }}>{modeLabel}</Mono>
         </div>
         <VolumeStrip labels={["in portal", "committed", "available", "most active"]} />
         <div style={{ display: "flex", alignItems: "baseline", gap: 4, padding: "4px 16px", borderBottom: `1px solid ${T.border}` }}>
@@ -673,7 +673,7 @@ const PortalPulse = ({ isMobile }) => {
     return (
       <Panel title="Portal Pulse" accent={T.accent} noPad>
         <div style={{ padding: "6px 16px 0" }}>
-          <Mono style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.8px", color: T.textMid, textTransform: "uppercase" }}>{modeLabel} · {preseason.year}</Mono>
+          <Mono style={{ fontSize: 15, fontWeight: 700, letterSpacing: "0.8px", color: T.textMid, textTransform: "uppercase" }}>{modeLabel} · {preseason.year}</Mono>
         </div>
         {(topRet.length > 0 || bottomRet.length > 0) && (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", borderBottom: `1px solid ${T.border}` }}>
@@ -722,7 +722,7 @@ const PortalPulse = ({ isMobile }) => {
   return (
     <Panel title="Portal Pulse" accent={T.accent} noPad>
       <div style={{ padding: "6px 16px 0" }}>
-        <Mono style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.8px", color: T.textMid, textTransform: "uppercase" }}>{modeLabel}</Mono>
+        <Mono style={{ fontSize: 15, fontWeight: 700, letterSpacing: "0.8px", color: T.textMid, textTransform: "uppercase" }}>{modeLabel}</Mono>
       </div>
       <VolumeStrip labels={["total moved", "committed", "still available", "most active"]} />
       <SchoolColumns />
