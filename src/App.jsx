@@ -638,11 +638,19 @@ const PortalPulse = ({ isMobile }) => {
     );
   };
 
+  // Mode label inside the panel body
+  const modeLabel = mode === "live" ? "Active Portal"
+    : mode === "preseason" ? "Preseason Intelligence"
+    : "January Portal Summary";
+
   // ── LIVE MODE ──
   if (mode === "live") {
     return (
       <Panel title="Portal Pulse" accent={T.accent} noPad
         right={<Mono style={{ fontSize: 11, color: T.textDim, fontWeight: 400 }}>{windowName}</Mono>}>
+        <div style={{ padding: "6px 16px 0" }}>
+          <Mono style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.8px", color: T.textMid, textTransform: "uppercase" }}>{modeLabel}</Mono>
+        </div>
         <VolumeStrip labels={["in portal", "committed", "available", "most active"]} />
         <div style={{ display: "flex", alignItems: "baseline", gap: 4, padding: "4px 16px", borderBottom: `1px solid ${T.border}` }}>
           <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.8px", color: T.textDim, textTransform: "uppercase" }}>This week</Mono>
@@ -663,7 +671,10 @@ const PortalPulse = ({ isMobile }) => {
     const recruiting = preseason.recruiting_rankings || [];
 
     return (
-      <Panel title={`Roster Intel \u00b7 ${preseason.year} Season`} accent={T.accent} noPad>
+      <Panel title="Portal Pulse" accent={T.accent} noPad>
+        <div style={{ padding: "6px 16px 0" }}>
+          <Mono style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.8px", color: T.textMid, textTransform: "uppercase" }}>{modeLabel} · {preseason.year}</Mono>
+        </div>
         {(topRet.length > 0 || bottomRet.length > 0) && (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", borderBottom: `1px solid ${T.border}` }}>
             <div style={{ padding: "6px 16px 7px", borderRight: isMobile ? "none" : `1px solid ${T.border}` }}>
@@ -709,7 +720,10 @@ const PortalPulse = ({ isMobile }) => {
 
   // ── SUMMARY MODE ──
   return (
-    <Panel title="Portal Pulse · January Portal Summary" accent={T.accent} noPad>
+    <Panel title="Portal Pulse" accent={T.accent} noPad>
+      <div style={{ padding: "6px 16px 0" }}>
+        <Mono style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.8px", color: T.textMid, textTransform: "uppercase" }}>{modeLabel}</Mono>
+      </div>
       <VolumeStrip labels={["total moved", "committed", "still available", "most active"]} />
       <SchoolColumns />
       <PositionLine />
