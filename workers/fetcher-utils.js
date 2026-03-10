@@ -244,7 +244,20 @@ const PRO_SPORTS_NOISE_RE = new RegExp([
   '\\bufc\\b(?!.*(?:college|ncaa|nil|university))',
   '\\bwrexham\\b',
   // Figure skating, Olympics without college context
-  '\\bfigure skating\\b', '\\bolympics?\\b(?!.*(?:college|ncaa|nil|university))',
+  '\\bfigure skating\\b', '\\bolympics?\\b(?!.*(?:college|ncaa|nil|university|student.athlete))',
+  '\\bolympic\\b(?!.*(?:college|ncaa|nil|university|student.athlete))',
+  // FIFA, World Cup, international soccer without college context
+  '\\bfifa\\b(?!.*(?:college|ncaa|nil|university))',
+  '\\bworld cup\\b(?!.*(?:college|ncaa|nil|university))',
+  '\\bcopa america\\b',
+  // World Baseball Classic
+  '\\bworld baseball classic\\b', '\\bwbc\\b(?!.*(?:college|ncaa|nil|university))',
+  // MLB spring training without college context
+  '\\bspring training\\b(?!.*(?:college|ncaa|nil|university))',
+  '\\bmlb spring\\b',
+  // Pro sports hospitality / experience economy
+  '\\bexperience economy\\b.*(?:sports?|hospitality)',
+  '\\bhospitality\\b.*(?:fifa|world cup|super bowl|nfl|nba|mlb|nhl|mls|olympics?)',
   // General sports psychology / body language without college context
   '\\b(?:sports? psychology|body language)\\b(?!.*(?:college|ncaa|nil|university|athlete))',
 ].join('|'), 'i');
@@ -297,6 +310,8 @@ const GAME_NOISE_RE = new RegExp([
   'tournament (?:seed|bubble|bid|hopes|action|update)',
   'top.(?:16|4|8)\\s+seed', '\\d-seed\\b', 'seed line',
   'selection committee(?!.*(?:reform|governance|restructur))',
+  'punch(?:ed|es|ing)?\\s+(?:ticket|bid).*(?:big dance|march madness|ncaa tournament)',
+  'punch(?:ed|es|ing)?\\s+(?:ticket|bid)\\s+to\\b',
   // Game coverage
   'game recap', 'game preview', 'game day', 'gameday', 'tipoff', 'tip-off',
   'kickoff', 'kick-off', 'halftime', 'overtime', 'final score',
@@ -351,9 +366,10 @@ const GAME_NOISE_RE = new RegExp([
   'watch (?:list|party)',
   // Practice / camp
   'spring (?:game|practice)', 'fall camp', 'preseason (?:poll|rank)',
-  // Poll rankings
+  // Poll rankings / media ballots / predictions
   'ap poll', 'coaches poll', '(?:moved|moves) up.*(?:poll|rank)',
   'dropped out.*(?:poll|rank)',
+  'media\\s+ballot', 'all.(?:conference|big\\s+ten|sec|acc|pac|big\\s+12)\\s+(?:ballot|vote|pick|prediction)',
   // Bowl / playoff matchup content
   'bowl (?:game|matchup)', 'playoff (?:game|matchup|bracket|picture|seeding)',
   // Schedule / scores roundups
@@ -371,6 +387,8 @@ const GAME_NOISE_RE = new RegExp([
   '\\bwin over\\b', 'glimpse into the future',
   // Recap / review articles
   'week in review', 'weekly (?:recap|roundup|rundown)',
+  // Listicle / takes format (not policy analysis)
+  'top\\s+(?:five|5|ten|10)\\s+takes?:?',
   // Player features / nostalgia (not policy)
   'I played with', 'changed my life', 'sports trivia',
   // Coaching hot seat / firings (broader)

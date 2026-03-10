@@ -55,6 +55,10 @@ const QUERIES = [
   '"arena" OR "stadium" college OR university construction OR renovation',
   '"college sports" business OR industry',
   'NFLPA OR "NFL Players Association" college sports',
+  // Institutional budget / financial strategy
+  '"athletic department" "institutional support" OR "general fund" OR subsidy',
+  '"college athletics" "budget crisis" OR "financial shortfall"',
+  '"university president" athletics OR "athletic department"',
 ];
 
 function getCooldown() {

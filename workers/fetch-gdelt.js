@@ -5,19 +5,42 @@
 //  Self-governing cooldown: every 6 hours, 6 AM–10 PM ET
 // ═══════════════════════════════════════════════════════════════════
 
-import { getETHour, shouldRun, recordRun } from './fetcher-utils.js';
+import { getETHour, shouldRun, recordRun, recordError } from './fetcher-utils.js';
 
 const FETCHER = 'gdelt';
+const BASE_COOLDOWN = 720; // 12 hours — GDELT rate-limits aggressively
 
-// Construct URL with proper encoding — GDELT expects + for spaces
+// Simplified query — shorter URL is less likely to trigger 429
 const GDELT_URL = 'https://api.gdeltproject.org/api/v2/doc/doc'
-  + '?query=(NIL+OR+%22name+image+likeness%22+OR+NCAA+OR+%22transfer+portal%22+OR+%22college+athlete%22+OR+%22revenue+sharing%22+OR+%22House+v+NCAA%22+OR+%22private+equity%22+%22college+sports%22)'
+  + '?query=(NIL+OR+NCAA+OR+%22transfer+portal%22+OR+%22college+athlete%22+OR+%22revenue+sharing%22)'
   + '&mode=TimelineVolRaw&TIMESPAN=1m&format=json';
 
-function getCooldown() {
+/**
+ * Exponential backoff: check fetcher_runs for recent errors.
+ * If last run was an error, double the cooldown (up to 48h).
+ */
+async function getEffectiveCooldown(db) {
   const h = getETHour();
-  if (h >= 6 && h < 22) return 360; // 6 hours
-  return null; // skip overnight
+  if (h < 6 || h >= 22) return null; // skip overnight
+
+  const row = await db.prepare(
+    'SELECT last_run, last_error_at FROM fetcher_runs WHERE fetcher_name = ?'
+  ).bind(FETCHER).first();
+
+  if (!row?.last_error_at) return BASE_COOLDOWN;
+
+  // If last error is more recent than last successful run, backoff
+  const lastRun = row.last_run ? new Date(row.last_run.includes('T') ? row.last_run : row.last_run + 'Z').getTime() : 0;
+  const lastErr = new Date(row.last_error_at.includes('T') ? row.last_error_at : row.last_error_at + 'Z').getTime();
+
+  if (lastErr > lastRun) {
+    // How many hours since the error? Double cooldown for each consecutive failure
+    const hoursSinceErr = (Date.now() - lastErr) / 3600000;
+    if (hoursSinceErr < 12) return BASE_COOLDOWN * 2;  // 24h
+    if (hoursSinceErr < 24) return BASE_COOLDOWN * 4;  // 48h
+  }
+
+  return BASE_COOLDOWN;
 }
 
 /**
@@ -73,7 +96,7 @@ function parseTimeline(json) {
 
 export async function fetchGDELT(env, { force = false } = {}) {
   if (!force) {
-    const cooldown = getCooldown();
+    const cooldown = await getEffectiveCooldown(env.DB);
     if (cooldown === null) {
       console.log('GDELT: outside active hours, skipping');
       return;
@@ -87,12 +110,20 @@ export async function fetchGDELT(env, { force = false } = {}) {
   console.log('Fetching GDELT news volume...');
 
   let data;
-  const resp = await fetch(GDELT_URL);
+  const resp = await fetch(GDELT_URL, {
+    headers: { 'User-Agent': 'NILMonitor/1.0 (College Athletics Dashboard)' },
+  });
   if (!resp.ok) {
+    await recordError(env.DB, FETCHER, new Error(`API returned ${resp.status}`));
+    if (resp.status === 429) {
+      console.warn('GDELT: rate limited (429), backing off');
+      return; // don't throw — just skip gracefully
+    }
     throw new Error(`API returned ${resp.status}`);
   }
   const text = await resp.text();
   if (!text.startsWith('{')) {
+    await recordError(env.DB, FETCHER, new Error('Non-JSON response'));
     throw new Error(`API returned non-JSON: ${text.slice(0, 200)}`);
   }
   data = JSON.parse(text);

@@ -73,6 +73,11 @@ const QUERIES = [
   '"college sports" business OR industry',
   '"athletic department" layoffs OR restructuring OR "budget cuts"',
   'NACDA OR "National Association of Collegiate Directors of Athletics"',
+  // Institutional budget / financial strategy
+  '"athletic department" "institutional support" OR "general fund" OR subsidy',
+  '"college athletics" "financial plan" OR "budget crisis" OR "fundraising campaign"',
+  'university diverts OR allocates OR redirects funding athletics',
+  '"conference expansion" candidate OR positioning OR "realignment" strategy',
 ];
 
 function getCooldown() {

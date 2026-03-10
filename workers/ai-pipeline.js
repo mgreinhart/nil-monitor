@@ -375,6 +375,9 @@ Focus on developments that have institutional implications -- things an athletic
 CSC / ENFORCEMENT PRIORITY:
 Stories about CSC enforcement actions, NIL clearinghouse delays or rejections, schools receiving letters of inquiry, compliance process breakdowns, or statements from ADs about enforcement fairness are ALWAYS high-priority items. These are the most operationally actionable stories for the AD audience -- they directly affect institutional compliance obligations and risk. If a CSC/enforcement story appears in the headlines, it should nearly always make the briefing.
 
+UNIVERSITY LEADERSHIP PRIORITY:
+University president resignations, hirings, firings, or major actions directly affecting athletics are HIGH PRIORITY items. The president is the AD's boss -- any leadership change at a major program has immediate institutional implications for athletics governance, budget authority, and strategic direction. A president resigning amid scandal, a new president with a known stance on athletics spending, or a provost overruling an AD on a budget decision are all briefing-worthy. Do not bury these behind routine stories.
+
 The audience is athletic directors managing institutional risk, competitive positioning, and financial strategy.
 Every item should answer: "Does this require action, awareness, or preparation from our institution?"
 If the answer is no, don't include it.
