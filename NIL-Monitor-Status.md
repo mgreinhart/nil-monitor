@@ -1,6 +1,6 @@
 # NIL Monitor — Project Status
 
-> Last audited: 2026-03-07 from source files, deployed endpoints, and conversation history.
+> Last audited: 2026-03-10 from source files, deployed endpoints, and conversation history.
 
 ## Architecture
 
@@ -13,7 +13,7 @@ Browser → nilmonitor.com (Cloudflare Pages)
                                                   └── D1: nil-monitor-db
 ```
 
-- **Frontend:** Single-file React app (`src/App.jsx`, ~1340 lines), Vite build, Cloudflare Pages
+- **Frontend:** Single-file React app (`src/App.jsx`, ~1530 lines), Vite build, Cloudflare Pages
 - **Backend:** Cloudflare Worker (`workers/index.js` entry), D1 SQLite database
 - **AI Pipeline:** `workers/ai-pipeline.js`, Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`) via Anthropic API
 - **Proxy:** `functions/api/[[path]].js` — Pages Function forwards `/api/*` to Worker
@@ -44,7 +44,7 @@ ID: `c205339b-2bde-4f06-ab64-bedef8db1f53`, name: `nil-monitor-db`
 | `bills` | Federal bills (Congress.gov); no state bills (LegiScan blocked) |
 | `house_settlement` | Key settlement metrics (7 seed rows) |
 | `gdelt_volume` | Daily article counts for GDELT news volume chart |
-| `podcast_episodes` | Latest episode dates for 5 podcasts |
+| `podcast_episodes` | Latest episode dates for 6 podcasts |
 | `cslt_key_dates` | Curated monthly dates from CSLT homepage |
 | `pe_deals` | Private equity deals in college athletics (10 rows) |
 | `pipeline_runs` | AI pipeline execution log |
@@ -68,15 +68,15 @@ ID: `c205339b-2bde-4f06-ab64-bedef8db1f53`, name: `nil-monitor-db`
 
 ## What's Working
 
-### Data Fetchers (12 functions from 11 files, cron `*/15 * * * *`)
+### Data Fetchers (12 functions from 11 files, two-group cron split)
 
 Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use shared utilities from `fetcher-utils.js` (ET timezone, cooldowns, entity decoding, URL normalization, game-noise filtering, keyword categorization, relevance gating, Jaccard-based headline dedup cache).
 
 | Fetcher | Source | Queries/Feeds | Table | Cooldown | Auth |
 |---------|--------|---------------|-------|----------|------|
-| `fetch-google-news.js` | Google News RSS | 47 queries | headlines | 15–30 min | None |
-| `fetch-bing-news.js` | Bing News RSS | 35 queries | headlines | 15–30 min | None |
-| `fetch-newsdata.js` | NewsData.io API | 14 queries | headlines | 30–60 min | `NEWSDATA_KEY` |
+| `fetch-google-news.js` | Google News RSS | 84 queries | headlines | 15–30 min | None |
+| `fetch-bing-news.js` | Bing News RSS | 43 queries | headlines | 15–30 min | None |
+| `fetch-newsdata.js` | NewsData.io API | 17 queries | headlines | 30–60 min | `NEWSDATA_KEY` |
 | `fetch-ncaa-rss.js` | NCAA.com RSS | 3 feeds | headlines | 15–30 min | None |
 | `fetch-courtlistener.js` | CourtListener RECAP | — | cases | 120–240 min | Optional token |
 | `fetch-nil-revolution.js` | Troutman Pepper blog RSS | 1 feed | headlines | 120 min | None |
@@ -84,7 +84,7 @@ Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use sha
 | `fetch-cslt.js` (cases) | College Sports Litigation Tracker (scrape) | 1 page | cases, case_updates | 360 min | None |
 | `fetch-cslt.js` (key dates) | CSLT homepage | 1 page | cslt_key_dates | 360 min | None |
 | `fetch-podcasts.js` | 6 podcast RSS feeds | 6 feeds | podcast_episodes | 120 min | None |
-| `fetch-gdelt.js` | GDELT DOC 2.0 API | 1 query | gdelt_volume | 360 min | None |
+| `fetch-gdelt.js` | GDELT DOC 2.0 API | 1 query | gdelt_volume | 720 min (12h base, backoff to 48h) | None |
 | `fetch-cfbd.js` | CollegeFootballData.com API | portal + coaches + recruiting | portal_snapshot, preseason_intel | 360–1440 min | `CFBD_KEY` |
 
 All fetchers active 6 AM–10 PM ET, skip overnight. In-memory dedup cache pre-loaded before fetchers run, cleared after.
@@ -99,10 +99,10 @@ All fetchers active 6 AM–10 PM ET, skip overnight. In-memory dedup cache pre-l
 #### Publication Feeds — Three-Tier Filtering Model
 
 **Tier 1 (5 feeds) — No relevance gate, noise filter only:**
-Business of College Sports, AthleticDirectorU, Sportico, Front Office Sports, Sports Litigation Alert
+Business of College Sports, AthleticDirectorU, Sportico, Front Office Sports, The Athletic (college sports)
 
 **Tier 2 (11 feeds) — Relevance gate + noise filter:**
-On3, CBS Sports (football + basketball), ESPN (football + basketball), Yahoo Sports, The Athletic (football + college sports), Horizon League, ACC, Big 12
+Sports Litigation Alert, On3, CBS Sports (football + basketball), ESPN (football + basketball), Yahoo Sports, The Athletic (football), Horizon League, ACC, Big 12
 
 Conference feeds (Horizon League, ACC, Big 12) are in Tier 2 because they produce mostly sports results, not business/governance content.
 
@@ -120,13 +120,15 @@ Multi-layer dedup system:
 
 Cache pre-loaded once per cron invocation (`loadDedupCache`) to avoid per-headline DB queries. Updated in-memory as headlines are inserted so parallel fetchers see each other's inserts.
 
-### AI Pipeline (cron `0 11,21 * * *` — 6 AM / 4 PM ET)
+### AI Pipeline (cron `0 10,11,20,21 * * *` — DST-aware, 6 AM / 4 PM ET)
+
+Fires at all four candidate UTC hours; handler checks actual ET hour and only runs when h=6 or h=16. This ensures correct timing across EST/EDT transitions.
 
 Uses `claude-sonnet-4-5-20250929`, 4096 max tokens per response. Three active tasks:
 
 1. **Tag untagged headlines** — Assigns category + severity + CSC sub-tag. Batches of 50 headlines. 9 categories defined in prompt.
 2. **Detect CSC activity** — Keyword pre-filter on headlines → Claude sub-tagging (Guidance, Investigation, Enforcement, Personnel, Rule Clarification). Event-level dedup.
-3. **Generate briefing** — 4-section format. CFO/COO institutional voice. 36-hour recency window on `published_at`. Source tiering (Tier 1–4). Headline deduplication before sending to Claude (>0.5 similarity threshold). Non-ASCII validation on output. Date computed in ET (not UTC).
+3. **Generate briefing** — 4-section format. CFO/COO institutional voice. 36-hour recency window on `published_at`. Source tiering (Tier 1–4). Headline deduplication before sending to Claude (>0.5 similarity threshold). Non-ASCII validation on output. Date computed in ET (not UTC). Includes CSC/Enforcement priority and University Leadership priority instructions.
 
 #### Headline Categories (9 total)
 
@@ -158,6 +160,8 @@ Uses `claude-sonnet-4-5-20250929`, 4096 max tokens per response. Three active ta
 - Connects dots across related stories (PE deal + school deficit in same cycle)
 - Excludes routine roster/game news, individual transfers, game results
 - Focuses on enforcement, regulation, court rulings, policy, financial signals
+- **CSC/Enforcement priority:** Always high-priority — directly affects institutional compliance obligations
+- **University Leadership priority:** President resignations/hirings/firings are high-priority — the president is the AD's boss
 
 ### API Endpoints (all at `/api/*`)
 
@@ -307,44 +311,57 @@ Dead deals are filtered from display. 7 visible on the frontend.
 ### Known Issues
 
 - **No multi-page routing** — Build spec envisioned separate pages (Monitor, States, Cases, Headlines, About). The app is a single scrollable dashboard with an info modal.
-- **GDELT error handling** — Errors throw for diagnostic visibility in trigger log. GDELT API outage shows as error in trigger response. Intentional.
+- **GDELT rate limiting** — Exponential backoff (12h→24h→48h) on 429 errors. Graceful handling returns silently. Non-429 errors still throw for diagnostic visibility.
 - **Knight-Newhouse link** — `knightnewhousedata.org` returns 403 to automated requests (bot blocking). Works in browsers. Link is correct.
 - **FOS non-college content** — Front Office Sports is Tier 1 (no relevance gate) because it covers college sports business, but also publishes non-college sports business (Mike Tyson deals, F1, Padres). The game noise filter catches some but not all. These get tagged Off-Topic by the AI pipeline.
 - **OpenDNS blocks `*.workers.dev`** — Local dev must use nilmonitor.com, not the Workers.dev URL directly.
 
 ---
 
-## Changes Since Last Audit (2026-02-28 → 2026-03-07)
+## Changes Since Last Audit (2026-03-07 → 2026-03-10)
 
-### Headline Dedup Improvements (fetcher-utils.js)
+### Two-Group Cron Split (index.js, wrangler.toml)
 
-1. **Source suffix stripping** — New `stripSourceSuffix()` strips " - ESPN", " - CBS News" etc. from aggregator titles before dedup comparison.
-2. **Jaccard word similarity** — New `jaccardSimilarity()` computes `|A∩B| / |A∪B|` between significant word sets (>3 chars). Threshold ≥0.65 catches moderate rewordings of the same headline.
-3. **Improved `normalizeForDedup()`** — Combines suffix stripping + lowercase + alphanumeric-only normalization.
-4. **Dedup cache refactored** — Now stores `entries` array with `{norm, words}` pre-computed (was `{exactTitles, normalizedTitles}`).
-5. **Multi-layer dedup chain** — exact match → normalized match → substring containment → Jaccard similarity.
+1. **Staggered fetcher groups** — Split single `*/15 * * * *` into Group A (`0,30 * * * *`: Google News, Bing News, NewsData, Publications, NCAA RSS) and Group B (`7,37 * * * *`: CourtListener, NIL Revolution, CSLT, Podcasts, GDELT, CFBD). Halves CPU budget per invocation.
+2. **DST-aware AI pipeline** — Changed `0 11,21 * * *` to `0 10,11,20,21 * * *`. Handler checks actual ET hour, only runs when h=6 or h=16.
+3. **Deploy concurrency queue** — GitHub Actions deploy.yml uses concurrency group to prevent overlapping deploys.
 
-### Game Noise Filter Expansion (fetcher-utils.js)
+### Revenue Operations Queries (all news fetchers)
 
-6. **Massive `GAME_NOISE_RE` expansion** — Added patterns for: NFL Combine/scouting, 30+ NFL team names with transaction context, NBA team names with transaction context, non-college pro sports (WNBA, MLB, NHL, MLS, NASCAR, UFC, Premier League, F1), sportsbook companies (FanDuel, DraftKings, BetMGM), CBS prediction model articles, recruiting/commitment patterns, coaching carousel, player features/nostalgia, power rankings/Top 25, game analysis phrases (straight loss, OT thriller, signature victory), hot seat/coaching firings, gold medal/Team USA (without college context), high school/districts, podcast/radio show content, odds/best bets roundups.
-7. **`BUSINESS_SIGNAL_RE` expansion** — Added: arena/stadium/facility funding patterns, jersey patch, above-cap, athletic fee, apparel, operating expense/revenue/budget.
+4. **Google News** — Added 37 new queries (47→84) covering institutional budget, revenue operations, sponsorship, naming rights, premium seating, fundraising, media rights, facility financing, personnel, conference commissioners, and more.
+5. **Bing News** — Added 8 new queries (35→43) covering institutional budget, revenue operations, sponsorship, premium seating, fundraising.
+6. **NewsData** — Added 3 new queries (14→17) covering college sports business/personnel and revenue operations.
 
-### Three-Tier Publication Filtering (fetch-publications.js)
+### Relevance Gate & Categorization (fetcher-utils.js)
 
-8. **Three-tier model** — Split flat `FEEDS` array into `TIER1_FEEDS` (5 business/regulatory) and `TIER2_FEEDS` (11 broad sports + conference). Tier 1 feeds skip relevance gate; Tier 2 feeds require `isTitleRelevant()` pass.
-9. **Conference feeds in Tier 2** — Horizon League, ACC, Big 12 moved from Tier 1 to Tier 2 after data showed they produce 95% sports results, not business content.
+7. **`TITLE_RELEVANCE_RE` expansion** — Added 8 revenue operations pattern pairs (naming rights, premium seating, sponsorship, fundraising, ticket sales, fan rewards — all requiring college/university/athletic context).
+8. **`categorizeByKeyword` expansion** — Business/Finance regex expanded with: sponsorship, naming rights, premium seating, reseating, ticket sales, season tickets, philanthropy, capital campaign, donor, fan rewards, loyalty program.
+9. **`BUSINESS_SIGNAL_RE` expansion** — Added: sponsorship, naming rights, premium seating, reseating, ticket sales, season tickets, philanthropy, capital campaign, fan rewards, loyalty program.
 
-### Admin Authentication (api.js)
+### Noise Filter Improvements (fetcher-utils.js)
 
-10. **Password protection** — `/api/admin` and `/api/trigger` now require `ADMIN_KEY` authentication. Cookie-based (HttpOnly, Secure, SameSite=Strict, 24h expiry) + `?key=` query param support. Login form served when unauthenticated.
+10. **`PRO_SPORTS_NOISE_RE` expansion** — Added FIFA, World Cup, Copa America, WBC, spring training, experience economy/hospitality, singular "olympic".
+11. **`GAME_NOISE_RE` expansion** — Added punch ticket/bid, top five/ten takes, media ballot, all-conference predictions.
 
-### State Map Labels (App.jsx)
+### AI Pipeline (ai-pipeline.js)
 
-11. **MD callout label** — Moved MD label to offset position below DE with dashed connector line from state center (like DC callout).
-12. **NJ white text** — Fixed condition so NJ gets white text on enacted (coral) fill.
-13. **VA repositioned** — Shifted right from -79.4 to -78.1 (centers in wider western half).
-14. **KY repositioned** — Shifted right from -85.3 to -84.3 (centers in state body).
-15. **CA repositioned** — Nudged left from -119.5 to -120.3.
+12. **University Leadership Priority** — Added instruction block to briefing system prompt: university president resignations, hirings, firings are high-priority items (president is the AD's boss → immediate institutional implications).
+
+### GDELT Backoff (fetch-gdelt.js)
+
+13. **Base cooldown 6h→12h** — Reduced call frequency to avoid rate limits.
+14. **Simplified query** — Removed "name image likeness", "House v NCAA", "private equity college sports" to shorten URL.
+15. **Exponential backoff** — On 429: checks `last_error_at` vs `last_run`, doubles cooldown (12h→24h→48h).
+16. **Graceful 429 handling** — Returns silently instead of throwing on rate limit.
+17. **User-Agent header** — Added `NILMonitor/1.0 (College Athletics Dashboard)`.
+
+### Frontend Typography Overhaul (App.jsx)
+
+18. **The Courtroom** — Case names 14px/700wt accent color, descriptions 12px, dates 12px mono, badges 9px, subheaders 9px/500wt, show-more 11px ghost text, footer link 11px.
+19. **Portal Pulse** — StatBlock hero numbers 28px/700wt, 9px uppercase labels above, school names 13px sans, values 13px mono, position lines flex grid.
+20. **Portal Pulse mode label** — Moved from panel title to body label at 15px/700wt uppercase. Three modes: "Active Portal" (live), "Preseason Intelligence" (preseason), "January Portal Summary" (summary).
+21. **Most Active clarifier** — Added "(in + out)" subtitle to explain total movement score.
+22. **Typography hierarchy** — Established consistent flow: 9px micro-labels → 12-13px body → 14px primary names → 15px section headers → 19px panel titles → 28px hero numbers.
 
 ---
 
@@ -365,8 +382,9 @@ Dead deals are filtered from display. 7 visible on the frontend.
 
 ## Headline Filtering Rules (full pipeline)
 
-1. **Relevance gate** (`fetcher-utils.js: isTitleRelevant`) — Strict regex match for NIL, NCAA, college athletics, transfer portal, revenue sharing, eligibility, lawsuits, jersey patches, above-cap, athletic fees, media rights with college context, etc. Applied by Tier 2 publications, all aggregator fetchers, NCAA RSS. Tier 1 publications skip this gate.
-2. **Game noise filter** (`fetcher-utils.js: isGameNoise`) — Rejects game recaps, brackets, draft/combine coverage, recruiting noise, pro sports transactions, sportsbooks, power rankings, coaching carousel, player features. ~100 patterns. Business signals (NIL, NCAA governance, CSC, revenue sharing, legislation, antitrust, jersey patch, above-cap, athletic fee, apparel, facility funding) always pass through via `BUSINESS_SIGNAL_RE`.
+1. **Relevance gate** (`fetcher-utils.js: isTitleRelevant`) — Strict regex match for NIL, NCAA, college athletics, transfer portal, revenue sharing, eligibility, lawsuits, jersey patches, above-cap, athletic fees, media rights, naming rights, premium seating, sponsorship, fundraising, ticket sales, fan rewards — all with college/university/athletic context. Applied by Tier 2 publications, all aggregator fetchers, NCAA RSS. Tier 1 publications skip this gate.
+2. **Game noise filter** (`fetcher-utils.js: isGameNoise`) — Rejects game recaps, brackets, draft/combine coverage, recruiting noise, pro sports transactions, sportsbooks, power rankings, coaching carousel, player features. ~100 patterns. Business signals (NIL, NCAA governance, CSC, revenue sharing, legislation, antitrust, jersey patch, above-cap, athletic fee, apparel, facility funding, sponsorship, naming rights, premium seating, philanthropy, fan rewards) always pass through via `BUSINESS_SIGNAL_RE`.
+2b. **Pro sports noise filter** (`fetcher-utils.js: isProSportsNoise`) — Rejects NFL/NBA/MLB/NHL/MLS/FIFA/World Cup/Copa America/WBC/spring training/Olympics/experience economy headlines. Applied after game noise filter in publications and at insert time in fetcher-utils.
 3. **URL dedup** — `headlines.url` has UNIQUE constraint. URLs normalized (strip UTM params, fragments, www, trailing slashes).
 4. **Title dedup at insert** — In-memory cache of 7-day titles. Five checks: exact match → normalized match (with source suffix stripping) → substring containment → Jaccard word similarity (≥0.65) → URL constraint.
 5. **AI tagging** — Claude assigns category + severity. Off-Topic tagged for non-college-sports content.
@@ -378,11 +396,12 @@ Dead deals are filtered from display. 7 visible on the frontend.
 ## GDELT Integration
 
 - **Status:** Working
-- **Fetcher:** `fetch-gdelt.js`, runs every 6 hours (6 AM–10 PM ET)
+- **Fetcher:** `fetch-gdelt.js`, base cooldown 12 hours (6 AM–10 PM ET) with exponential backoff on 429 errors
 - **API:** GDELT DOC 2.0 (free, no auth)
-- **Query:** `(NIL OR "name image likeness" OR NCAA OR "transfer portal" OR "college athlete" OR "revenue sharing" OR "House v NCAA" OR "private equity" "college sports")`
+- **Query:** `(NIL OR NCAA OR "transfer portal" OR "college athlete" OR "revenue sharing")` (simplified to reduce 429s)
+- **Backoff:** Checks `last_error_at` vs `last_run` in fetcher_runs. If last error more recent: 24h cooldown (<12h since error), 48h cooldown (<24h since error). Graceful 429 handling — returns silently instead of throwing.
 - **Data:** 30-day rolling daily article counts → `gdelt_volume` table
-- **Frontend:** Not directly charted (Coverage Intelligence uses its own headline counts). GDELT volume available at `/api/gdelt-volume` but not currently displayed on the dashboard.
+- **Frontend:** Not directly charted. GDELT volume available at `/api/gdelt-volume` but not currently displayed on the dashboard.
 
 ## CSLT Integration
 
@@ -442,11 +461,14 @@ Design tokens in the `T` object at top of `App.jsx`:
 From `wrangler.toml`:
 
 ```
-crons = ["*/15 * * * *", "0 11,21 * * *"]
+crons = ["0,30 * * * *", "7,37 * * * *", "0 10,11,20,21 * * *"]
 ```
 
-- `*/15 * * * *` — All 11 fetcher functions fire (each self-governs via cooldown table)
-- `0 11,21 * * *` — AI pipeline (11:00 UTC = 6 AM ET, 21:00 UTC = 4 PM ET), always includes briefing
+- `0,30 * * * *` — **Group A** fetchers (high-volume news): Google News, Bing News, NewsData, Publications, NCAA RSS
+- `7,37 * * * *` — **Group B** fetchers (lighter/supplemental): CourtListener, NIL Revolution, CSLT (cases + key dates), Podcasts, GDELT, CFBD
+- `0 10,11,20,21 * * *` — AI pipeline (fires at 4 UTC hours; handler checks actual ET hour, only runs when h=6 or h=16, auto-adjusting for DST)
+
+Splitting fetchers into two staggered groups halves the CPU budget per invocation, preventing Cloudflare from killing the Worker.
 
 ---
 
@@ -454,7 +476,7 @@ crons = ["*/15 * * * *", "0 11,21 * * *"]
 
 ```
 src/
-  App.jsx              — Entire frontend (~1600 lines, single file)
+  App.jsx              — Entire frontend (~1530 lines, single file)
   nil-state-data.json  — Static state legislation data (50 states)
   main.jsx             — React entry point
 workers/
@@ -463,9 +485,9 @@ workers/
   ai-pipeline.js       — 3 active AI tasks (tag, CSC detect, briefing)
   fetcher-utils.js     — Shared: cooldowns, dedup cache (Jaccard), noise filter, relevance gate, categorization
   rss-parser.js        — Regex-based RSS parser (no DOMParser in Workers)
-  fetch-google-news.js — Google News RSS (47 queries)
-  fetch-bing-news.js   — Bing News RSS (35 queries)
-  fetch-newsdata.js    — NewsData.io API (14 queries)
+  fetch-google-news.js — Google News RSS (84 queries)
+  fetch-bing-news.js   — Bing News RSS (43 queries)
+  fetch-newsdata.js    — NewsData.io API (17 queries)
   fetch-ncaa-rss.js    — NCAA.com RSS (3 feeds)
   fetch-courtlistener.js — CourtListener RECAP (dormant)
   fetch-nil-revolution.js — Troutman Pepper blog RSS
