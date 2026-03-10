@@ -80,7 +80,7 @@ const FETCHER_CONFIG = {
   'courtlistener':  { getCooldown: h => h >= 6 && h < 17 ? 120 : h >= 17 && h < 22 ? 240 : null },
   'cslt':           { getCooldown: h => h >= 6 && h < 22 ? 360 : null },
   'cslt-keydates':  { getCooldown: h => h >= 6 && h < 22 ? 360 : null },
-  'gdelt':          { getCooldown: h => h >= 6 && h < 22 ? 360 : null },
+  'gdelt':          { getCooldown: h => h >= 6 && h < 22 ? 720 : null },
   'podcasts':       { getCooldown: h => h >= 6 && h < 22 ? 360 : null },
   'cfbd':           { getCooldown: () => {
     const now = new Date();
