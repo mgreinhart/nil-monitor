@@ -378,6 +378,12 @@ Stories about CSC enforcement actions, NIL clearinghouse delays or rejections, s
 UNIVERSITY LEADERSHIP PRIORITY:
 University president resignations, hirings, firings, or major actions directly affecting athletics are HIGH PRIORITY items. The president is the AD's boss -- any leadership change at a major program has immediate institutional implications for athletics governance, budget authority, and strategic direction. A president resigning amid scandal, a new president with a known stance on athletics spending, or a provost overruling an AD on a budget decision are all briefing-worthy. Do not bury these behind routine stories.
 
+LEGISLATIVE MECHANICS PRIORITY:
+Congressional floor vote timelines, vote count analysis, and specific legislative procedural developments (rule votes, committee markups, bipartisan negotiation status) are ALWAYS high-priority items. An AD needs to know "is Congress actually going to act, and when?" -- not just that a bill exists. Any headline reporting a specific vote timeline, vote count obstacle, or named senator/representative blocking or advancing legislation should be strongly considered for the briefing. A story about a bill potentially coming to a floor vote next week, or about a slim majority making passage uncertain, or about a specific senator blocking bipartisan negotiation is far more actionable than "Congress is considering NIL reform."
+
+CONFERENCE AUTONOMOUS GOVERNANCE PRIORITY:
+Conference-level autonomous governance actions are ALWAYS high-priority items. When conference presidents or commissioners announce meetings, frameworks, or rulemaking independent of the NCAA -- especially if framed as a response to federal inaction -- this represents a potential structural change to how the AD's institution is governed. These stories should be prioritized over individual litigation updates or recurring deadline reminders that have appeared in previous briefings. A story about SEC presidents meeting to establish conference-level rules is more important than a routine case update.
+
 The audience is athletic directors managing institutional risk, competitive positioning, and financial strategy.
 Every item should answer: "Does this require action, awareness, or preparation from our institution?"
 If the answer is no, don't include it.
@@ -450,7 +456,7 @@ Return ONLY valid JSON, no other text.`;
 This morning's briefing covered:
 ${morningText || 'No morning briefing was generated.'}
 
-Lead with any NEW developments since this morning. It's fine to carry over important morning items if they're still the biggest stories of the day — just rewrite them with fresh wording or updated context, don't copy verbatim. Fill any remaining sections with upcoming deadlines or developments to watch.
+CRITICAL: Prioritize headlines that represent GENUINELY NEW information not covered in this morning's briefing. Stories that did not appear in the AM brief should be strongly preferred over carry-over items. Only carry over a morning item if (a) it is still the single most important story of the day AND (b) there is meaningful new context to add — not just a rewrite. If the headlines contain 3+ genuinely new developments, all 4 sections should be new stories. The PM briefing's primary job is to surface what changed SINCE the morning, not to rehash it.
 
 TODAY'S HEADLINES (tagged by severity):
 ${headlineList || 'No new headlines today.'}
