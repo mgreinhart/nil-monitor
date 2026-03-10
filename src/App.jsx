@@ -567,77 +567,72 @@ const PortalPulse = ({ isMobile }) => {
   const topActive = (snapshot.most_active || [])[0];
   const positions = snapshot.position_availability || [];
 
-  // Stat block: tiny uppercase label above, big mono number below
+  // Stat block: tiny label above, big dominant number below
   const StatBlock = ({ label, value, sub }) => (
     <div style={{ minWidth: 0 }}>
-      <Mono style={{ fontSize: 9, fontWeight: 600, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", display: "block", lineHeight: 1 }}>{label}</Mono>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 2 }}>
-        <Mono style={{ fontSize: 17, fontWeight: 700, color: T.text, lineHeight: 1 }}>{fmt(value)}</Mono>
-        {sub && <Mono style={{ fontSize: 11, color: T.textDim }}>{sub}</Mono>}
-      </div>
+      <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.8px", color: T.textDim, textTransform: "uppercase", display: "block", lineHeight: 1, marginBottom: 3 }}>{label}</Mono>
+      <Mono style={{ fontSize: 22, fontWeight: 700, color: T.text, lineHeight: 1, display: "block" }}>{fmt(value)}</Mono>
+      {sub && <Mono style={{ fontSize: 10, color: T.textDim, lineHeight: 1, marginTop: 1 }}>{sub}</Mono>}
     </div>
   );
 
-  // Shared volume strip — stat blocks in a row
+  // Volume strip — stat blocks in a row, numbers dominate
   const VolumeStrip = ({ labels }) => (
-    <div style={{ display: "flex", padding: "8px 16px", gap: isMobile ? 14 : 20, borderBottom: `1px solid ${T.border}`, flexWrap: "wrap" }}>
+    <div style={{ display: "flex", padding: "10px 16px 8px", gap: isMobile ? 16 : 24, borderBottom: `1px solid ${T.border}`, flexWrap: "wrap" }}>
       <StatBlock label={labels[0]} value={snapshot.total_entries} />
-      <StatBlock label={labels[1]} value={snapshot.total_committed} sub={`(${commitRate}%)`} />
+      <StatBlock label={labels[1]} value={snapshot.total_committed} sub={`${commitRate}% rate`} />
       <StatBlock label={labels[2]} value={snapshot.total_available} />
       {topActive && <StatBlock label={labels[3]} value={topActive.total_moves} sub={topActive.school} />}
     </div>
   );
 
-  // School row — no numbered list, just school name + value
+  // School row — compact, no numbers, school left / value right
   const SchoolRow = ({ school, value, color }) => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "1px 0", fontFamily: T.sans, fontSize: 12, color: T.text, lineHeight: 1.5 }}>
-      <span>{school}</span>
-      <Mono style={{ fontSize: 11, fontWeight: 700, color, flexShrink: 0, marginLeft: 6 }}>{value}</Mono>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "1px 0", lineHeight: 1.3 }}>
+      <span style={{ fontFamily: T.sans, fontSize: 12, color: T.text, fontWeight: 400 }}>{school}</span>
+      <Mono style={{ fontSize: 11, fontWeight: 700, color, flexShrink: 0, marginLeft: 8 }}>{value}</Mono>
     </div>
   );
 
-  // Shared three-column school section
+  // Three-column school section — tight table-like layout
   const SchoolColumns = () => {
     const hasData = snapshot.top_gainers?.length > 0 || snapshot.top_losers?.length > 0 || snapshot.most_active?.length > 0;
     if (!hasData) return null;
     return (
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", borderBottom: `1px solid ${T.border}` }}>
-        <div style={{ padding: "5px 16px 6px", borderRight: isMobile ? "none" : `1px solid ${T.border}` }}>
-          <Mono style={{ fontSize: 9, fontWeight: 600, letterSpacing: "1px", color: T.green, textTransform: "uppercase", marginBottom: 2, display: "block" }}>Biggest Gainers</Mono>
-          {(snapshot.top_gainers || []).slice(0, 5).map((g, i) => (
-            <SchoolRow key={i} school={g.school} value={`+${g.net}`} color={T.green} />
-          ))}
-        </div>
-        <div style={{ padding: "5px 16px 6px", borderRight: isMobile ? "none" : `1px solid ${T.border}` }}>
-          <Mono style={{ fontSize: 9, fontWeight: 600, letterSpacing: "1px", color: T.accent, textTransform: "uppercase", marginBottom: 2, display: "block" }}>Biggest Losers</Mono>
-          {(snapshot.top_losers || []).slice(0, 5).map((g, i) => (
-            <SchoolRow key={i} school={g.school} value={`${g.net}`} color={T.accent} />
-          ))}
-        </div>
-        <div style={{ padding: "5px 16px 6px" }}>
-          <Mono style={{ fontSize: 9, fontWeight: 600, letterSpacing: "1px", color: T.textMid, textTransform: "uppercase", marginBottom: 2, display: "block" }}>Most Active</Mono>
-          {(snapshot.most_active || []).slice(0, 5).map((a, i) => (
-            <SchoolRow key={i} school={a.school} value={a.total_moves} color={T.textMid} />
-          ))}
-        </div>
+        {[
+          { label: "Gainers", items: snapshot.top_gainers, color: T.green, fmt: g => `+${g.net}`, key: "net" },
+          { label: "Losers", items: snapshot.top_losers, color: T.accent, fmt: g => `${g.net}`, key: "net" },
+          { label: "Most Active", items: snapshot.most_active, color: T.textMid, fmt: a => a.total_moves, key: "total_moves" },
+        ].map((col, ci) => (
+          <div key={ci} style={{ padding: "6px 16px 7px", borderRight: ci < 2 && !isMobile ? `1px solid ${T.border}` : "none" }}>
+            <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.8px", color: col.color, textTransform: "uppercase", display: "block", marginBottom: 3 }}>{col.label}</Mono>
+            {(col.items || []).slice(0, 5).map((item, i) => (
+              <SchoolRow key={i} school={item.school} value={col.fmt(item)} color={col.color} />
+            ))}
+          </div>
+        ))}
       </div>
     );
   };
 
-  // Position availability — labeled section with inline star rating
+  // Position availability — labeled section, compact grid with inline star rating
   const PositionLine = () => {
     if (positions.length === 0 && !snapshot.avg_star_rating) return null;
     return (
-      <div style={{ padding: "5px 16px 6px", borderBottom: `1px solid ${T.border}` }}>
-        <Mono style={{ fontSize: 9, fontWeight: 600, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", display: "block", marginBottom: 2 }}>
+      <div style={{ padding: "6px 16px 7px", borderBottom: `1px solid ${T.border}` }}>
+        <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.8px", color: T.textDim, textTransform: "uppercase", display: "block", marginBottom: 4 }}>
           Available by Position{snapshot.avg_star_rating ? ` · ${snapshot.avg_star_rating}★ avg` : ""}
         </Mono>
         {positions.length > 0 && (
-          <Mono style={{ fontSize: 11, color: T.textDim, display: "block", lineHeight: 1.6 }}>
-            {positions.filter(p => p.count > 0).map((p, i) => (
-              <Fragment key={p.position}>{i > 0 && " · "}<span style={{ color: T.textMid, fontWeight: 600 }}>{p.position}</span> {p.count}</Fragment>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "1px 12px" }}>
+            {positions.filter(p => p.count > 0).map(p => (
+              <div key={p.position} style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+                <Mono style={{ fontSize: 11, fontWeight: 600, color: T.textMid }}>{p.position}</Mono>
+                <Mono style={{ fontSize: 11, color: T.textDim }}>{p.count}</Mono>
+              </div>
             ))}
-          </Mono>
+          </div>
         )}
       </div>
     );
@@ -649,10 +644,10 @@ const PortalPulse = ({ isMobile }) => {
       <Panel title="Portal Pulse" accent={T.accent} noPad
         right={<Mono style={{ fontSize: 11, color: T.textDim, fontWeight: 400 }}>{windowName}</Mono>}>
         <VolumeStrip labels={["in portal", "committed", "available", "most active"]} />
-        <div style={{ padding: "5px 16px", borderBottom: `1px solid ${T.border}` }}>
-          <Mono style={{ fontSize: 11, color: T.textDim }}>
-            This week: <strong style={{ color: T.textMid }}>{fmt(snapshot.entries_7d)}</strong> entries
-          </Mono>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 4, padding: "4px 16px", borderBottom: `1px solid ${T.border}` }}>
+          <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.8px", color: T.textDim, textTransform: "uppercase" }}>This week</Mono>
+          <Mono style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{fmt(snapshot.entries_7d)}</Mono>
+          <Mono style={{ fontSize: 10, color: T.textDim }}>new entries</Mono>
         </div>
         <SchoolColumns />
         <PositionLine />
@@ -671,14 +666,14 @@ const PortalPulse = ({ isMobile }) => {
       <Panel title={`Roster Intel \u00b7 ${preseason.year} Season`} accent={T.accent} noPad>
         {(topRet.length > 0 || bottomRet.length > 0) && (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", borderBottom: `1px solid ${T.border}` }}>
-            <div style={{ padding: "5px 16px 6px", borderRight: isMobile ? "none" : `1px solid ${T.border}` }}>
-              <Mono style={{ fontSize: 9, fontWeight: 600, letterSpacing: "1px", color: T.green, textTransform: "uppercase", marginBottom: 2, display: "block" }}>Most Production Returning</Mono>
+            <div style={{ padding: "6px 16px 7px", borderRight: isMobile ? "none" : `1px solid ${T.border}` }}>
+              <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.8px", color: T.green, textTransform: "uppercase", marginBottom: 3, display: "block" }}>Most Production Returning</Mono>
               {topRet.map((r, i) => (
                 <SchoolRow key={i} school={r.school} value={`${r.ppa_returning_pct}%`} color={T.green} />
               ))}
             </div>
-            <div style={{ padding: "5px 16px 6px" }}>
-              <Mono style={{ fontSize: 9, fontWeight: 600, letterSpacing: "1px", color: T.accent, textTransform: "uppercase", marginBottom: 2, display: "block" }}>Least Returning</Mono>
+            <div style={{ padding: "6px 16px 7px" }}>
+              <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.8px", color: T.accent, textTransform: "uppercase", marginBottom: 3, display: "block" }}>Least Returning</Mono>
               {bottomRet.map((r, i) => (
                 <SchoolRow key={i} school={r.school} value={`${r.ppa_returning_pct}%`} color={T.accent} />
               ))}
@@ -687,15 +682,18 @@ const PortalPulse = ({ isMobile }) => {
         )}
 
         {recruiting.length > 0 && (
-          <div style={{ padding: "5px 16px 6px", borderBottom: `1px solid ${T.border}` }}>
-            <Mono style={{ fontSize: 9, fontWeight: 600, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase", marginBottom: 2, display: "block" }}>
-              {preseason.year} Recruiting Class Rankings
+          <div style={{ padding: "6px 16px 7px", borderBottom: `1px solid ${T.border}` }}>
+            <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.8px", color: T.textDim, textTransform: "uppercase", marginBottom: 3, display: "block" }}>
+              {preseason.year} Recruiting
             </Mono>
-            <Mono style={{ fontSize: 11, color: T.textMid, lineHeight: 1.6 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "1px 10px" }}>
               {recruiting.map((r, i) => (
-                <Fragment key={i}>{i > 0 && " · "}<span style={{ fontWeight: 600 }}>{r.rank}.</span> {r.school}</Fragment>
+                <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+                  <Mono style={{ fontSize: 10, color: T.textDim }}>{r.rank}.</Mono>
+                  <span style={{ fontFamily: T.sans, fontSize: 12, color: T.text }}>{r.school}</span>
+                </div>
               ))}
-            </Mono>
+            </div>
           </div>
         )}
 
@@ -1092,8 +1090,8 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
             const top5 = upcomingCaseDates.slice(0, 5);
             return top5.length > 0 ? (
               <div style={{ borderBottom: `1px solid ${T.border}` }}>
-                <div style={{ padding: "8px 16px 3px" }}>
-                  <Mono style={{ fontSize: 9, fontWeight: 600, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
+                <div style={{ padding: "7px 16px 2px" }}>
+                  <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.8px", color: T.textDim, textTransform: "uppercase" }}>
                     Upcoming
                   </Mono>
                 </div>
@@ -1112,33 +1110,29 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                       <div
                         onClick={hasExpand ? () => setExpCase(isOpen ? null : expandId) : undefined}
                         style={{
-                          display: "flex", alignItems: "center", gap: 6, padding: "4px 16px",
+                          display: "flex", alignItems: "center", gap: 6, padding: "3px 16px",
                           background: `${T.accent}06`,
                           ...(hasExpand ? { cursor: "pointer" } : {}),
                         }}
                         onMouseEnter={hasExpand ? e => { e.currentTarget.style.background = `${T.accent}0c`; } : undefined}
                         onMouseLeave={hasExpand ? e => { e.currentTarget.style.background = `${T.accent}06`; } : undefined}
                       >
-                        {hasExpand && <Mono style={{ fontSize: 10, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>}
-                        <span style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, color: T.text, flexShrink: 0 }}>{item.name}</span>
-                        {snippet && <Mono style={{ fontSize: 11, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{snippet}</Mono>}
+                        {hasExpand && <Mono style={{ fontSize: 9, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>}
+                        <span style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, color: T.accent, flexShrink: 0 }}>{item.name}</span>
+                        {snippet && <span style={{ fontFamily: T.sans, fontSize: 11, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{snippet}</span>}
                         <div style={{ flex: 1 }} />
-                        <span style={{
-                          fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px",
-                          color: T.textDim, background: `${T.textDim}15`,
-                          padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
-                        }}>
+                        <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.5px", color: T.textDim, background: `${T.textDim}10`, padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0 }}>
                           {typeLabel(item.detail)}
-                        </span>
-                        <span style={{
-                          fontFamily: T.mono, fontSize: 10, fontWeight: 700, letterSpacing: "0.5px",
+                        </Mono>
+                        <Mono style={{
+                          fontSize: 9, fontWeight: 700, letterSpacing: "0.5px",
                           color: days <= 3 ? "#fff" : T.accent,
-                          background: days <= 3 ? T.accent : `${T.accent}18`,
-                          padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
+                          background: days <= 3 ? T.accent : `${T.accent}15`,
+                          padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0,
                         }}>
                           {countdownLabel(days)}
-                        </span>
-                        <Mono style={{ fontSize: 13, color: T.accent, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
+                        </Mono>
+                        <Mono style={{ fontSize: 11, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 46, textAlign: "right" }}>
                           {formatDate(item.date)}
                         </Mono>
                       </div>
@@ -1193,8 +1187,8 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
 
             return items.length > 0 ? (
               <div style={{ borderBottom: `1px solid ${T.border}` }}>
-                <div style={{ padding: "8px 16px 3px" }}>
-                  <Mono style={{ fontSize: 9, fontWeight: 600, letterSpacing: "1px", color: T.textDim, textTransform: "uppercase" }}>
+                <div style={{ padding: "7px 16px 2px" }}>
+                  <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.8px", color: T.textDim, textTransform: "uppercase" }}>
                     Recent Activity
                   </Mono>
                 </div>
@@ -1209,24 +1203,20 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                       <div
                         onClick={hasExpand ? () => setExpCase(isOpen ? null : item.id) : undefined}
                         style={{
-                          display: "flex", alignItems: "center", gap: 6, padding: "4px 16px",
+                          display: "flex", alignItems: "center", gap: 6, padding: "3px 16px",
                           ...(hasExpand ? { cursor: "pointer" } : {}),
                         }}
                         onMouseEnter={hasExpand ? e => { e.currentTarget.style.background = T.surfaceAlt; } : undefined}
                         onMouseLeave={hasExpand ? e => { e.currentTarget.style.background = "transparent"; } : undefined}
                       >
-                        {hasExpand && <Mono style={{ fontSize: 10, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>}
+                        {hasExpand && <Mono style={{ fontSize: 9, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>}
                         <span style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, color: T.text, flexShrink: 0 }}>{item.name}</span>
-                        {snippet && <Mono style={{ fontSize: 11, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{snippet}</Mono>}
+                        {snippet && <span style={{ fontFamily: T.sans, fontSize: 11, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{snippet}</span>}
                         <div style={{ flex: 1 }} />
-                        <span style={{
-                          fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px",
-                          color: T.textDim, background: `${T.textDim}15`,
-                          padding: "3px 8px", borderRadius: 4, whiteSpace: "nowrap", flexShrink: 0,
-                        }}>
+                        <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.5px", color: T.textDim, background: `${T.textDim}10`, padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0 }}>
                           FILING
-                        </span>
-                        <Mono style={{ fontSize: 13, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
+                        </Mono>
+                        <Mono style={{ fontSize: 11, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 46, textAlign: "right" }}>
                           {item.dateStr}
                         </Mono>
                       </div>
@@ -1254,12 +1244,12 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                 {remaining > 0 && (
                   <div
                     onClick={() => setShowAllTimeline(v => !v)}
-                    style={{ padding: "5px 16px", cursor: "pointer", textAlign: "center" }}
+                    style={{ padding: "4px 16px", cursor: "pointer", textAlign: "center" }}
                     onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                   >
-                    <Mono style={{ fontSize: 11, fontWeight: 500, color: T.textDim }}>
-                      {showAllTimeline ? "Show fewer ↑" : `${remaining} more →`}
+                    <Mono style={{ fontSize: 10, fontWeight: 400, color: T.textDim }}>
+                      {showAllTimeline ? "Show fewer" : `${remaining} more`}
                     </Mono>
                   </div>
                 )}
@@ -1268,8 +1258,8 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
           })()}
           {/* ── Full tracker link ── */}
           {totalTracked > 0 && (
-            <div style={{ padding: "6px 16px", background: T.surfaceAlt, borderTop: `1px solid ${T.borderLight}` }}>
-              <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" style={{ color: T.textDim, textDecoration: "none", fontFamily: T.mono, fontSize: 11, fontWeight: 500, display: "block" }}>
+            <div style={{ padding: "5px 16px", background: T.surfaceAlt, borderTop: `1px solid ${T.borderLight}` }}>
+              <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" style={{ color: T.textDim, textDecoration: "none", fontFamily: T.mono, fontSize: 10, fontWeight: 400, display: "block" }}>
                 All {totalTracked} cases on CSLT →
               </a>
             </div>
