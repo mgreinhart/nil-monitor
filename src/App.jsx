@@ -603,7 +603,7 @@ const PortalPulse = ({ isMobile }) => {
         {[
           { label: "Gainers", items: snapshot.top_gainers, color: T.green, fmt: g => `+${g.net}`, key: "net" },
           { label: "Losers", items: snapshot.top_losers, color: T.accent, fmt: g => `${g.net}`, key: "net" },
-          { label: "Most Active", sub: "in + out", items: snapshot.most_active, color: T.textMid, fmt: a => { const net = (a.arrivals || 0) - (a.departures || 0); return `${a.total_moves} (${net >= 0 ? "+" : ""}${net})`; }, key: "total_moves" },
+          { label: "Most Active", sub: "in + out", items: snapshot.most_active, color: T.textMid, fmt: a => a.total_moves, key: "total_moves" },
         ].map((col, ci) => (
           <div key={ci} style={{ padding: "6px 16px 7px", borderRight: ci < 2 && !isMobile ? `1px solid ${T.border}` : "none" }}>
             <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.8px", color: col.color, textTransform: "uppercase", display: "block", marginBottom: 3 }}>{col.label}{col.sub && <span style={{ fontWeight: 400, letterSpacing: 0, textTransform: "none", color: T.textDim }}> ({col.sub})</span>}</Mono>
