@@ -571,7 +571,7 @@ const PortalPulse = ({ isMobile }) => {
   const StatBlock = ({ label, value, sub }) => (
     <div style={{ minWidth: 0 }}>
       <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.8px", color: T.textDim, textTransform: "uppercase", display: "block", lineHeight: 1, marginBottom: 3 }}>{label}</Mono>
-      <Mono style={{ fontSize: 22, fontWeight: 700, color: T.text, lineHeight: 1, display: "block" }}>{fmt(value)}</Mono>
+      <Mono style={{ fontSize: 28, fontWeight: 700, color: T.text, lineHeight: 1, display: "block" }}>{fmt(value)}</Mono>
       {sub && <Mono style={{ fontSize: 10, color: T.textDim, lineHeight: 1, marginTop: 1 }}>{sub}</Mono>}
     </div>
   );
@@ -589,8 +589,8 @@ const PortalPulse = ({ isMobile }) => {
   // School row — compact, no numbers, school left / value right
   const SchoolRow = ({ school, value, color }) => (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "1px 0", lineHeight: 1.3 }}>
-      <span style={{ fontFamily: T.sans, fontSize: 12, color: T.text, fontWeight: 400 }}>{school}</span>
-      <Mono style={{ fontSize: 11, fontWeight: 700, color, flexShrink: 0, marginLeft: 8 }}>{value}</Mono>
+      <span style={{ fontFamily: T.sans, fontSize: 13, color: T.text, fontWeight: 400 }}>{school}</span>
+      <Mono style={{ fontSize: 13, fontWeight: 700, color, flexShrink: 0, marginLeft: 8 }}>{value}</Mono>
     </div>
   );
 
@@ -628,8 +628,8 @@ const PortalPulse = ({ isMobile }) => {
           <div style={{ display: "flex", flexWrap: "wrap", gap: "1px 12px" }}>
             {positions.filter(p => p.count > 0).map(p => (
               <div key={p.position} style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
-                <Mono style={{ fontSize: 11, fontWeight: 600, color: T.textMid }}>{p.position}</Mono>
-                <Mono style={{ fontSize: 11, color: T.textDim }}>{p.count}</Mono>
+                <Mono style={{ fontSize: 12, fontWeight: 600, color: T.textMid }}>{p.position}</Mono>
+                <Mono style={{ fontSize: 12, color: T.textDim }}>{p.count}</Mono>
               </div>
             ))}
           </div>
@@ -689,8 +689,8 @@ const PortalPulse = ({ isMobile }) => {
             <div style={{ display: "flex", flexWrap: "wrap", gap: "1px 10px" }}>
               {recruiting.map((r, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
-                  <Mono style={{ fontSize: 10, color: T.textDim }}>{r.rank}.</Mono>
-                  <span style={{ fontFamily: T.sans, fontSize: 12, color: T.text }}>{r.school}</span>
+                  <Mono style={{ fontSize: 11, color: T.textDim }}>{r.rank}.</Mono>
+                  <span style={{ fontFamily: T.sans, fontSize: 13, color: T.text }}>{r.school}</span>
                 </div>
               ))}
             </div>
@@ -1118,8 +1118,8 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                         onMouseLeave={hasExpand ? e => { e.currentTarget.style.background = `${T.accent}06`; } : undefined}
                       >
                         {hasExpand && <Mono style={{ fontSize: 9, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>}
-                        <span style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, color: T.accent, flexShrink: 0 }}>{item.name}</span>
-                        {snippet && <span style={{ fontFamily: T.sans, fontSize: 11, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{snippet}</span>}
+                        <span style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 700, color: T.accent, flexShrink: 0 }}>{item.name}</span>
+                        {snippet && <span style={{ fontFamily: T.sans, fontSize: 12, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{snippet}</span>}
                         <div style={{ flex: 1 }} />
                         <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.5px", color: T.textDim, background: `${T.textDim}10`, padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0 }}>
                           {typeLabel(item.detail)}
@@ -1132,7 +1132,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                         }}>
                           {countdownLabel(days)}
                         </Mono>
-                        <Mono style={{ fontSize: 11, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 46, textAlign: "right" }}>
+                        <Mono style={{ fontSize: 12, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
                           {formatDate(item.date)}
                         </Mono>
                       </div>
@@ -1143,12 +1143,12 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                           opacity: isOpen ? 1 : 0, background: `${T.accent}04`,
                         }}>
                           <div style={{ padding: "4px 16px 8px 28px" }}>
-                            {meta && <Mono style={{ fontSize: 11, color: T.textDim, marginBottom: 4, display: "block" }}>{meta}</Mono>}
-                            {c.description && <div style={{ fontFamily: T.sans, fontSize: 12, color: T.textDim, lineHeight: 1.4, marginBottom: 4 }}>{c.description}</div>}
-                            {c.last_event_text && <Mono style={{ fontSize: 11, color: T.textDim, marginBottom: 4, display: "block" }}>Latest: {c.last_event_text}{c.last_event_date ? ` (${formatDate(c.last_event_date)})` : ""}</Mono>}
+                            {meta && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 4, display: "block" }}>{meta}</Mono>}
+                            {c.description && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textDim, lineHeight: 1.4, marginBottom: 4 }}>{c.description}</div>}
+                            {c.last_event_text && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 4, display: "block" }}>Latest: {c.last_event_text}{c.last_event_date ? ` (${formatDate(c.last_event_date)})` : ""}</Mono>}
                             {c.cslt_url && (
                               <a href={c.cslt_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}>
-                                <Mono style={{ fontSize: 11, fontWeight: 500, color: T.textDim }}>Case detail →</Mono>
+                                <Mono style={{ fontSize: 12, fontWeight: 500, color: T.textDim }}>Case detail →</Mono>
                               </a>
                             )}
                           </div>
@@ -1210,13 +1210,13 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                         onMouseLeave={hasExpand ? e => { e.currentTarget.style.background = "transparent"; } : undefined}
                       >
                         {hasExpand && <Mono style={{ fontSize: 9, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>}
-                        <span style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, color: T.text, flexShrink: 0 }}>{item.name}</span>
-                        {snippet && <span style={{ fontFamily: T.sans, fontSize: 11, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{snippet}</span>}
+                        <span style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 700, color: T.text, flexShrink: 0 }}>{item.name}</span>
+                        {snippet && <span style={{ fontFamily: T.sans, fontSize: 12, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{snippet}</span>}
                         <div style={{ flex: 1 }} />
                         <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.5px", color: T.textDim, background: `${T.textDim}10`, padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0 }}>
                           FILING
                         </Mono>
-                        <Mono style={{ fontSize: 11, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 46, textAlign: "right" }}>
+                        <Mono style={{ fontSize: 12, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
                           {item.dateStr}
                         </Mono>
                       </div>
@@ -1227,12 +1227,12 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                           opacity: isOpen ? 1 : 0,
                         }}>
                           <div style={{ padding: "4px 16px 8px 28px" }}>
-                            {item.expandDetail.meta && <Mono style={{ fontSize: 11, color: T.textDim, marginBottom: 4, display: "block" }}>{item.expandDetail.meta}</Mono>}
-                            {item.expandDetail.description && <div style={{ fontFamily: T.sans, fontSize: 12, color: T.textDim, lineHeight: 1.4, marginBottom: 4 }}>{item.expandDetail.description}</div>}
-                            {item.expandDetail.lastEvent && <Mono style={{ fontSize: 11, color: T.textDim, marginBottom: 4, display: "block" }}>Latest: {item.expandDetail.lastEvent}{item.expandDetail.lastEventDate ? ` (${formatDate(item.expandDetail.lastEventDate)})` : ""}</Mono>}
+                            {item.expandDetail.meta && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 4, display: "block" }}>{item.expandDetail.meta}</Mono>}
+                            {item.expandDetail.description && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textDim, lineHeight: 1.4, marginBottom: 4 }}>{item.expandDetail.description}</div>}
+                            {item.expandDetail.lastEvent && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 4, display: "block" }}>Latest: {item.expandDetail.lastEvent}{item.expandDetail.lastEventDate ? ` (${formatDate(item.expandDetail.lastEventDate)})` : ""}</Mono>}
                             {item.expandDetail.csltUrl && (
                               <a href={item.expandDetail.csltUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: "none" }}>
-                                <Mono style={{ fontSize: 11, fontWeight: 500, color: T.textDim }}>Case detail →</Mono>
+                                <Mono style={{ fontSize: 12, fontWeight: 500, color: T.textDim }}>Case detail →</Mono>
                               </a>
                             )}
                           </div>
@@ -1248,7 +1248,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                     onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                   >
-                    <Mono style={{ fontSize: 10, fontWeight: 400, color: T.textDim }}>
+                    <Mono style={{ fontSize: 11, fontWeight: 400, color: T.textDim }}>
                       {showAllTimeline ? "Show fewer" : `${remaining} more`}
                     </Mono>
                   </div>
@@ -1259,7 +1259,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
           {/* ── Full tracker link ── */}
           {totalTracked > 0 && (
             <div style={{ padding: "5px 16px", background: T.surfaceAlt, borderTop: `1px solid ${T.borderLight}` }}>
-              <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" style={{ color: T.textDim, textDecoration: "none", fontFamily: T.mono, fontSize: 10, fontWeight: 400, display: "block" }}>
+              <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" style={{ color: T.textDim, textDecoration: "none", fontFamily: T.mono, fontSize: 11, fontWeight: 400, display: "block" }}>
                 All {totalTracked} cases on CSLT →
               </a>
             </div>
