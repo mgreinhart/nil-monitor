@@ -1,6 +1,6 @@
 # NIL Monitor — Project Status
 
-> Last audited: 2026-03-10 from source files, deployed endpoints, and conversation history.
+> Last audited: 2026-03-10 from source files (query counts verified against actual arrays).
 
 ## Architecture
 
@@ -74,9 +74,9 @@ Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use sha
 
 | Fetcher | Source | Queries/Feeds | Table | Cooldown | Auth |
 |---------|--------|---------------|-------|----------|------|
-| `fetch-google-news.js` | Google News RSS | 84 queries | headlines | 15–30 min | None |
-| `fetch-bing-news.js` | Bing News RSS | 43 queries | headlines | 15–30 min | None |
-| `fetch-newsdata.js` | NewsData.io API | 17 queries | headlines | 30–60 min | `NEWSDATA_KEY` |
+| `fetch-google-news.js` | Google News RSS | 68 queries | headlines | 15–30 min | None |
+| `fetch-bing-news.js` | Bing News RSS | 48 queries | headlines | 15–30 min | None |
+| `fetch-newsdata.js` | NewsData.io API | 18 queries | headlines | 30–60 min | `NEWSDATA_KEY` |
 | `fetch-ncaa-rss.js` | NCAA.com RSS | 3 feeds | headlines | 15–30 min | None |
 | `fetch-courtlistener.js` | CourtListener RECAP | — | cases | 120–240 min | Optional token |
 | `fetch-nil-revolution.js` | Troutman Pepper blog RSS | 1 feed | headlines | 120 min | None |
@@ -328,9 +328,9 @@ Dead deals are filtered from display. 7 visible on the frontend.
 
 ### Revenue Operations Queries (all news fetchers)
 
-4. **Google News** — Added 37 new queries (47→84) covering institutional budget, revenue operations, sponsorship, naming rights, premium seating, fundraising, media rights, facility financing, personnel, conference commissioners, and more.
-5. **Bing News** — Added 8 new queries (35→43) covering institutional budget, revenue operations, sponsorship, premium seating, fundraising.
-6. **NewsData** — Added 3 new queries (14→17) covering college sports business/personnel and revenue operations.
+4. **Google News** — Added revenue operations queries (now 68 total) covering institutional budget, revenue operations, sponsorship, naming rights, premium seating, fundraising, media rights, facility financing, personnel, conference commissioners, and more.
+5. **Bing News** — Added revenue operations queries (now 48 total) covering institutional budget, revenue operations, sponsorship, premium seating, fundraising.
+6. **NewsData** — Added revenue operations queries (now 18 total) covering college sports business/personnel and revenue operations.
 
 ### Relevance Gate & Categorization (fetcher-utils.js)
 
@@ -485,9 +485,9 @@ workers/
   ai-pipeline.js       — 3 active AI tasks (tag, CSC detect, briefing)
   fetcher-utils.js     — Shared: cooldowns, dedup cache (Jaccard), noise filter, relevance gate, categorization
   rss-parser.js        — Regex-based RSS parser (no DOMParser in Workers)
-  fetch-google-news.js — Google News RSS (84 queries)
-  fetch-bing-news.js   — Bing News RSS (43 queries)
-  fetch-newsdata.js    — NewsData.io API (17 queries)
+  fetch-google-news.js — Google News RSS (68 queries)
+  fetch-bing-news.js   — Bing News RSS (48 queries)
+  fetch-newsdata.js    — NewsData.io API (18 queries)
   fetch-ncaa-rss.js    — NCAA.com RSS (3 feeds)
   fetch-courtlistener.js — CourtListener RECAP (dormant)
   fetch-nil-revolution.js — Troutman Pepper blog RSS
