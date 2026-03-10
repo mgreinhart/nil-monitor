@@ -80,7 +80,6 @@ const FETCHER_CONFIG = {
   'courtlistener':  { getCooldown: h => h >= 6 && h < 17 ? 120 : h >= 17 && h < 22 ? 240 : null },
   'cslt':           { getCooldown: h => h >= 6 && h < 22 ? 360 : null },
   'cslt-keydates':  { getCooldown: h => h >= 6 && h < 22 ? 360 : null },
-  'gdelt':          { getCooldown: h => h >= 6 && h < 22 ? 720 : null },
   'podcasts':       { getCooldown: h => h >= 6 && h < 22 ? 360 : null },
   'cfbd':           { getCooldown: () => {
     const now = new Date();
@@ -153,7 +152,7 @@ async function buildAdminDashboard(env) {
   // ── Parallel D1 queries ──
   const [
     fetcherRows, headlineTotal, headlinesToday, headlinesWeek, headlines24h,
-    activeCases, casesWithDates, latestBriefing, gdeltStats, csltStats, latestPipeline,
+    activeCases, casesWithDates, latestBriefing, csltStats, latestPipeline,
     untaggedHeadlines,
   ] = await Promise.all([
     env.DB.prepare('SELECT fetcher_name, last_run, last_error, last_error_at FROM fetcher_runs').all()
@@ -165,7 +164,6 @@ async function buildAdminDashboard(env) {
     env.DB.prepare('SELECT COUNT(*) as cnt FROM cases WHERE is_active = 1').first(),
     env.DB.prepare("SELECT COUNT(*) as cnt FROM cases WHERE is_active = 1 AND upcoming_dates IS NOT NULL AND upcoming_dates != '[]'").first(),
     env.DB.prepare('SELECT date, generated_at FROM briefings ORDER BY date DESC LIMIT 1').first(),
-    env.DB.prepare('SELECT COUNT(DISTINCT date) as days, MAX(fetched_at) as latest FROM gdelt_volume').first(),
     env.DB.prepare('SELECT COUNT(*) as cnt, MAX(month) as latest_month FROM cslt_key_dates').first(),
     env.DB.prepare('SELECT * FROM pipeline_runs ORDER BY id DESC LIMIT 1').first(),
     env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE category IS NULL OR severity IS NULL").first(),
@@ -221,10 +219,6 @@ async function buildAdminDashboard(env) {
 
   if (etHour >= 7 && (!latestBriefing || latestBriefing.date !== todayStr)) {
     issues.push({ level: 'red', text: `No briefing generated today (last: ${latestBriefing?.date || 'none'})` });
-  }
-
-  if ((gdeltStats?.days || 0) === 0) {
-    issues.push({ level: 'amber', text: 'GDELT table has no data' });
   }
 
   const hasRed = issues.some(i => i.level === 'red');
@@ -330,11 +324,6 @@ ${fetcherRowsHtml}
     <div class="label">Latest Briefing</div>
     <div class="value">${latestBriefing?.date || 'None'}</div>
     <div class="sub">${latestBriefing?.generated_at ? adminTimestamp(latestBriefing.generated_at) : 'No briefings yet'}</div>
-  </div>
-  <div class="card">
-    <div class="label">GDELT Volume</div>
-    <div class="value">${gdeltStats?.days || 0} days</div>
-    <div class="sub">${gdeltStats?.latest ? 'Updated ' + adminTimestamp(gdeltStats.latest) : 'No data'}</div>
   </div>
   <div class="card">
     <div class="label">Key Dates</div>
@@ -568,27 +557,6 @@ export async function handleApi(request, env) {
       return json(results);
     }
 
-    // Coverage Intelligence (stat cards + stacked area chart)
-    // GDELT news volume (30-day chart)
-    if (path === '/api/gdelt-volume') {
-      const { daysAgo } = getETDates();
-      const { results } = await env.DB.prepare(
-        `SELECT date, article_count as count FROM gdelt_volume
-         WHERE date >= ?
-         ORDER BY date ASC`
-      ).bind(daysAgo(30)).all();
-      const total = results.reduce((s, r) => s + r.count, 0);
-      const avg = results.length > 0 ? Math.round(total / results.length) : 0;
-      const lastRow = await env.DB.prepare(
-        'SELECT fetched_at FROM gdelt_volume ORDER BY fetched_at DESC LIMIT 1'
-      ).first();
-      return json({
-        data: results,
-        total,
-        avg,
-        last_updated: lastRow?.fetched_at || null,
-      });
-    }
 
     // Podcast freshness (for NEW badges on sidebar)
     if (path === '/api/podcasts') {
@@ -699,7 +667,6 @@ export async function handleApi(request, env) {
       const { fetchPublications } = await import('./fetch-publications.js');
       const { fetchCSLT, fetchCSLTKeyDates } = await import('./fetch-cslt.js');
       const { fetchPodcasts } = await import('./fetch-podcasts.js');
-      const { fetchGDELT } = await import('./fetch-gdelt.js');
       const { fetchCFBD } = await import('./fetch-cfbd.js');
       const { runAIPipeline } = await import('./ai-pipeline.js');
 
@@ -720,7 +687,6 @@ export async function handleApi(request, env) {
             fetchCSLT(env, { force: true }).then(() => log.push('cslt: ok')).catch(e => log.push(`cslt: ${e.message}`)),
             fetchCSLTKeyDates(env, { force: true }).then(() => log.push('cslt-keydates: ok')).catch(e => log.push(`cslt-keydates: ${e.message}`)),
             fetchPodcasts(env, { force: true }).then(() => log.push('podcasts: ok')).catch(e => log.push(`podcasts: ${e.message}`)),
-            fetchGDELT(env, { force: true }).then(() => log.push('gdelt: ok')).catch(e => log.push(`gdelt: ${e.message}`)),
             fetchCFBD(env, { force: true }).then(() => log.push('cfbd: ok')).catch(e => log.push(`cfbd: ${e.message}`)),
           ]);
           clearDedupCache();

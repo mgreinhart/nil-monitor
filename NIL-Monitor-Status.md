@@ -43,7 +43,6 @@ ID: `c205339b-2bde-4f06-ab64-bedef8db1f53`, name: `nil-monitor-db`
 | `briefings` | AI-generated daily briefings (keyed by date) |
 | `bills` | Federal bills (Congress.gov); no state bills (LegiScan blocked) |
 | `house_settlement` | Key settlement metrics (7 seed rows) |
-| `gdelt_volume` | Daily article counts for GDELT news volume chart |
 | `podcast_episodes` | Latest episode dates for 6 podcasts |
 | `cslt_key_dates` | Curated monthly dates from CSLT homepage |
 | `pe_deals` | Private equity deals in college athletics (10 rows) |
@@ -68,7 +67,7 @@ ID: `c205339b-2bde-4f06-ab64-bedef8db1f53`, name: `nil-monitor-db`
 
 ## What's Working
 
-### Data Fetchers (12 functions from 11 files, two-group cron split)
+### Data Fetchers (11 functions from 10 files, two-group cron split)
 
 Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use shared utilities from `fetcher-utils.js` (ET timezone, cooldowns, entity decoding, URL normalization, game-noise filtering, keyword categorization, relevance gating, Jaccard-based headline dedup cache).
 
@@ -84,7 +83,6 @@ Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use sha
 | `fetch-cslt.js` (cases) | College Sports Litigation Tracker (scrape) | 1 page | cases, case_updates | 360 min | None |
 | `fetch-cslt.js` (key dates) | CSLT homepage | 1 page | cslt_key_dates | 360 min | None |
 | `fetch-podcasts.js` | 6 podcast RSS feeds | 6 feeds | podcast_episodes | 120 min | None |
-| `fetch-gdelt.js` | GDELT DOC 2.0 API | 1 query | gdelt_volume | 720 min (12h base, backoff to 48h) | None |
 | `fetch-cfbd.js` | CollegeFootballData.com API | portal + coaches + recruiting | portal_snapshot, preseason_intel | 360–1440 min | `CFBD_KEY` |
 
 All fetchers active 6 AM–10 PM ET, skip overnight. In-memory dedup cache pre-loaded before fetchers run, cleared after.
@@ -180,7 +178,6 @@ Uses `claude-sonnet-4-5-20250929`, 4096 max tokens per response. Three active ta
 | `/api/last-run` | Last pipeline run timestamp | |
 | `/api/csc` | CSC activity feed (latest 20) | |
 | `/api/coverage-intel` | 14-day category breakdown, source breadth | Excludes Off-Topic |
-| `/api/gdelt-volume` | 30-day article counts + total + avg | |
 | `/api/podcasts` | Podcast freshness dates | spotify_id + latest_date |
 | `/api/portal-pulse` | Latest portal snapshot + mode (live/summary/preseason) | CFBD data |
 | `/api/preseason-intel` | Returning production + recruiting rankings | Direct access |
@@ -347,14 +344,6 @@ Dead deals are filtered from display. 7 visible on the frontend.
 
 12. **University Leadership Priority** — Added instruction block to briefing system prompt: university president resignations, hirings, firings are high-priority items (president is the AD's boss → immediate institutional implications).
 
-### GDELT Backoff (fetch-gdelt.js)
-
-13. **Base cooldown 6h→12h** — Reduced call frequency to avoid rate limits.
-14. **Simplified query** — Removed "name image likeness", "House v NCAA", "private equity college sports" to shorten URL.
-15. **Exponential backoff** — On 429: checks `last_error_at` vs `last_run`, doubles cooldown (12h→24h→48h).
-16. **Graceful 429 handling** — Returns silently instead of throwing on rate limit.
-17. **User-Agent header** — Added `NILMonitor/1.0 (College Athletics Dashboard)`.
-
 ### Frontend Typography Overhaul (App.jsx)
 
 18. **The Courtroom** — Case names 14px/700wt accent color, descriptions 12px, dates 12px mono, badges 9px, subheaders 9px/500wt, show-more 11px ghost text, footer link 11px.
@@ -393,16 +382,6 @@ Dead deals are filtered from display. 7 visible on the frontend.
 
 ---
 
-## GDELT Integration
-
-- **Status:** Working
-- **Fetcher:** `fetch-gdelt.js`, base cooldown 12 hours (6 AM–10 PM ET) with exponential backoff on 429 errors
-- **API:** GDELT DOC 2.0 (free, no auth)
-- **Query:** `(NIL OR NCAA OR "transfer portal" OR "college athlete" OR "revenue sharing")` (simplified to reduce 429s)
-- **Backoff:** Checks `last_error_at` vs `last_run` in fetcher_runs. If last error more recent: 24h cooldown (<12h since error), 48h cooldown (<24h since error). Graceful 429 handling — returns silently instead of throwing.
-- **Data:** 30-day rolling daily article counts → `gdelt_volume` table
-- **Frontend:** Not directly charted. GDELT volume available at `/api/gdelt-volume` but not currently displayed on the dashboard.
-
 ## CSLT Integration
 
 - **Status:** Working, primary case data source
@@ -437,7 +416,6 @@ Dead deals are filtered from display. 7 visible on the frontend.
 | NewsData.io | Free tier (200 credits/day) | $0 |
 | Congress.gov | Free API key | $0 |
 | CourtListener | Free account | $0 |
-| GDELT | Free, no auth | $0 |
 | Google News RSS | Free | $0 |
 | Bing News RSS | Free | $0 |
 | CFBD API | Free (1,000 calls/month) | $0 |
@@ -465,7 +443,7 @@ crons = ["0,30 * * * *", "7,37 * * * *", "0 10,11,20,21 * * *"]
 ```
 
 - `0,30 * * * *` — **Group A** fetchers (high-volume news): Google News, Bing News, NewsData, Publications, NCAA RSS
-- `7,37 * * * *` — **Group B** fetchers (lighter/supplemental): CourtListener, NIL Revolution, CSLT (cases + key dates), Podcasts, GDELT, CFBD
+- `7,37 * * * *` — **Group B** fetchers (lighter/supplemental): CourtListener, NIL Revolution, CSLT (cases + key dates), Podcasts, CFBD
 - `0 10,11,20,21 * * *` — AI pipeline (fires at 4 UTC hours; handler checks actual ET hour, only runs when h=6 or h=16, auto-adjusting for DST)
 
 Splitting fetchers into two staggered groups halves the CPU budget per invocation, preventing Cloudflare from killing the Worker.
@@ -494,11 +472,10 @@ workers/
   fetch-publications.js — 16 RSS feeds (5 Tier 1 + 11 Tier 2, three-tier filtering)
   fetch-cslt.js        — College Sports Litigation Tracker scraper (cases + key dates)
   fetch-podcasts.js    — 6 podcast RSS feeds (freshness check)
-  fetch-gdelt.js       — GDELT news volume API
   fetch-cfbd.js        — CFBD transfer portal + preseason intel
 functions/
   api/[[path]].js      — Pages Function proxy (/api/* → Worker)
-schema.sql             — D1 schema (16 tables)
+schema.sql             — D1 schema (15 tables)
 seed.sql               — House Settlement metrics + deadlines + PE deals
 NIL-Monitor-Status.md  — This file
 CLAUDE.md              — Claude Code project instructions

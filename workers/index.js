@@ -23,7 +23,6 @@ import { fetchBingNews } from './fetch-bing-news.js';
 import { fetchPublications } from './fetch-publications.js';
 import { fetchCSLT, fetchCSLTKeyDates } from './fetch-cslt.js';
 import { fetchPodcasts } from './fetch-podcasts.js';
-import { fetchGDELT } from './fetch-gdelt.js';
 import { fetchCFBD } from './fetch-cfbd.js';
 import { runAIPipeline } from './ai-pipeline.js';
 
@@ -51,7 +50,6 @@ const GROUP_B = [
   ['cslt', fetchCSLT],
   ['cslt-keydates', fetchCSLTKeyDates],
   ['podcasts', fetchPodcasts],
-  ['gdelt', fetchGDELT],
   ['cfbd', fetchCFBD],
 ];
 
