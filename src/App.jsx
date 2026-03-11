@@ -1401,7 +1401,7 @@ const InfoModal = ({ onClose }) => (
       <h3 style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, color: T.text, margin: "0 0 8px" }}>Data Sources</h3>
       <div style={{ marginBottom: 16 }}>
         {[
-          ["Google News RSS", "News aggregation (86 targeted queries)", "Free"],
+          ["Google News RSS", "News aggregation (90 targeted queries)", "Free"],
           ["Bing News RSS", "News aggregation (54 targeted queries)", "Free"],
           ["NewsData.io", "News aggregation (87K+ sources)", "API"],
           ["Sportico", "Sports business journalism", "RSS"],
@@ -1409,12 +1409,14 @@ const InfoModal = ({ onClose }) => (
           ["Business of College Sports", "Sports business journalism", "RSS"],
           ["AthleticDirectorU", "AD-focused news & analysis", "RSS"],
           ["CollegeAD", "AD hiring, personnel & restructuring", "RSS"],
+          ["LexBlog College Sports", "College sports law + compliance", "RSS"],
           ["The Athletic", "College sports + college football", "RSS"],
           ["Sports Litigation Alert", "Sports law coverage", "RSS"],
           ["CBS Sports", "College football + basketball", "RSS"],
           ["ESPN", "College football + basketball", "RSS"],
           ["Yahoo Sports", "College sports coverage", "RSS"],
           ["On3", "College sports + recruiting", "RSS"],
+          ["Norton Rose Fulbright", "Global sports law blog", "RSS"],
           ["ACC / Big 12 / Horizon", "Conference news feeds", "RSS"],
           ["NIL Revolution", "Legal analysis (Troutman Pepper)", "RSS"],
           ["NCAA.org", "Governance + rule changes", "RSS"],
