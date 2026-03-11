@@ -753,7 +753,6 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
   const [briefingDate, setBriefingDate] = useState(null);
   const [cases, setCases] = useState(null);
   const [headlines, setHeadlines] = useState(null);
-  const [gdeltVolume, setGdeltVolume] = useState(null);
   const [keyDates, setKeyDates] = useState(null);
   const [peDeals, setPeDeals] = useState([]);
 
@@ -774,9 +773,6 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
     }).catch(() => {});
     fetch("/api/cases").then(r => r.ok ? r.json() : null).then(d => {
       if (d?.length) setCases(d);
-    }).catch(() => {});
-    fetch("/api/gdelt-volume").then(r => r.ok ? r.json() : null).then(d => {
-      if (d) setGdeltVolume(d);
     }).catch(() => {});
     fetch("/api/cslt-key-dates").then(r => r.ok ? r.json() : null).then(d => {
       if (d) setKeyDates(d);
@@ -1408,7 +1404,6 @@ const InfoModal = ({ onClose }) => (
           ["Google News RSS", "News aggregation (86 targeted queries)", "Free"],
           ["Bing News RSS", "News aggregation (54 targeted queries)", "Free"],
           ["NewsData.io", "News aggregation (87K+ sources)", "API"],
-          ["GDELT", "Global news volume tracking (30-day trends)", "Free"],
           ["Sportico", "Sports business journalism", "RSS"],
           ["Front Office Sports", "Sports business journalism", "RSS"],
           ["Business of College Sports", "Sports business journalism", "RSS"],
