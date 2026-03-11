@@ -547,6 +547,15 @@ const TITLE_RELEVANCE_RE = new RegExp([
   '(?:college|university|athletic).*(?:fundraising|philanthropy|capital campaign|donor|giving)',
   '(?:ticket sales|season tickets|sellout streak|attendance record).*(?:college|university|athletic)',
   'fan rewards|loyalty program|card.linked.*(?:college|university|athletic)',
+  // Antitrust / labor / unionization (require college context)
+  'antitrust.*(?:college|ncaa|athlete|university|intercollegiate)',
+  '(?:college|ncaa|athlete|university|intercollegiate).*antitrust',
+  'employee classification.*(?:college|ncaa|athlete)',
+  '(?:college|ncaa|athlete).*employee classification',
+  '\\bunioniz(?:e|ation|ing)\\b.*(?:college|ncaa|athlete)',
+  '(?:college|ncaa|athlete).*\\bunioniz(?:e|ation|ing)\\b',
+  '\\bnlrb\\b.*(?:college|ncaa|athlete|student)',
+  'collective bargain.*(?:college|ncaa|athlete)',
   // Program discontinuation / emerging sports
   '(?:discontinue|eliminate|cut).*(?:sport|program|team).*(?:college|university|athletic)',
   '(?:college|university|athletic).*(?:discontinue|eliminate|cut).*(?:sport|program|team)',

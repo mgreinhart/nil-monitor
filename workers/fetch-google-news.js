@@ -112,6 +112,12 @@ const QUERIES = [
   'site:cchalaw.com college sports',
   'site:huschblackwell.com college athletics',
   'site:sportslaw.org college OR NIL OR NCAA',
+  // Government/regulatory sources without working RSS
+  'site:justice.gov antitrust NCAA OR "college sports"',
+  'site:commerce.senate.gov NCAA OR NIL OR "college athlete"',
+  // Industry sources without RSS
+  'site:extrapointsmb.com',
+  'site:sportslawinsider.com',
 ];
 
 function getCooldown() {

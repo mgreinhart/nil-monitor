@@ -13,6 +13,10 @@ import { getETHour, shouldRun, recordRun, insertHeadline, isGameNoise, isProSpor
 
 const FETCHER = 'publications';
 
+// Government feeds are in Tier 1 but publish across ALL topics.
+// Apply relevance gate to these sources even though they're Tier 1.
+const GOV_SOURCES = new Set(['NLRB']);
+
 // Tier 1 — Business/regulatory scoped. No relevance gate needed.
 // These outlets focus on college sports business, law, or governance by design.
 const TIER1_FEEDS = [
@@ -23,6 +27,11 @@ const TIER1_FEEDS = [
   { url: 'https://www.nytimes.com/athletic/rss/college-sports/', source: 'The Athletic' },
   { url: 'https://collegead.com/feed/', source: 'CollegeAD' },
   { url: 'https://www.lexblog.com/site/collegiate-professional-sports-law-blog/feed/', source: 'LexBlog College Sports' },
+  { url: 'https://biz.opendorse.com/blog/category/ncaa/feed/', source: 'Opendorse' },
+  { url: 'https://biz.opendorse.com/blog/category/nil/feed/', source: 'Opendorse' },
+  // Government feeds — general topics, source-specific relevance check applied below
+  { url: 'https://www.nlrb.gov/rss/rssPressReleases.xml', source: 'NLRB' },
+  { url: 'https://www.nlrb.gov/rss/rssWeeklySummaries.xml', source: 'NLRB' },
 ];
 
 // Tier 2 — Broad college sports feeds. Relevance gate required.
@@ -91,6 +100,11 @@ export async function fetchPublications(env, { force = false } = {}) {
 
         // Tier 1 (niche business feeds): game noise + pro sports noise filter
         // Tier 2 (broad sports feeds): relevance gate + game noise + pro sports noise filter
+        // Government feeds (Tier 1 but general topics): relevance gate required
+        if (GOV_SOURCES.has(feed.source) && !isTitleRelevant(item.title)) {
+          totalSkipped++;
+          continue;
+        }
         if (feed.tier === 2 && !isTitleRelevant(item.title)) {
           totalSkipped++;
           continue;

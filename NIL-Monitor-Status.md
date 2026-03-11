@@ -73,13 +73,13 @@ Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use sha
 
 | Fetcher | Source | Queries/Feeds | Table | Cooldown | Auth |
 |---------|--------|---------------|-------|----------|------|
-| `fetch-google-news.js` | Google News RSS | 90 queries | headlines | 15–30 min | None |
+| `fetch-google-news.js` | Google News RSS | 94 queries | headlines | 15–30 min | None |
 | `fetch-bing-news.js` | Bing News RSS | 54 queries | headlines | 15–30 min | None |
 | `fetch-newsdata.js` | NewsData.io API | 18 queries | headlines | 30–60 min | `NEWSDATA_KEY` |
 | `fetch-ncaa-rss.js` | NCAA.com RSS | 3 feeds | headlines | 15–30 min | None |
 | `fetch-courtlistener.js` | CourtListener RECAP | — | cases | 120–240 min | Optional token |
 | `fetch-nil-revolution.js` | Troutman Pepper blog RSS | 1 feed | headlines | 120 min | None |
-| `fetch-publications.js` | 19 publication/conference RSS feeds | 7 Tier 1 + 12 Tier 2 | headlines | 30 min | None |
+| `fetch-publications.js` | 23 publication/conference/gov RSS feeds | 11 Tier 1 + 12 Tier 2 | headlines | 30 min | None |
 | `fetch-cslt.js` (cases) | College Sports Litigation Tracker (scrape) | 1 page | cases, case_updates | 360 min | None |
 | `fetch-cslt.js` (key dates) | CSLT homepage | 1 page | cslt_key_dates | 360 min | None |
 | `fetch-podcasts.js` | 6 podcast RSS feeds | 6 feeds | podcast_episodes | 120 min | None |
@@ -96,15 +96,15 @@ All fetchers active 6 AM–10 PM ET, skip overnight. In-memory dedup cache pre-l
 
 #### Publication Feeds — Three-Tier Filtering Model
 
-**Tier 1 (7 feeds) — No relevance gate, noise filter only:**
-Business of College Sports, AthleticDirectorU, Sportico, Front Office Sports, The Athletic (college sports), CollegeAD, LexBlog College Sports
+**Tier 1 (11 feeds) — No relevance gate, noise filter only:**
+Business of College Sports, AthleticDirectorU, Sportico, Front Office Sports, The Athletic (college sports), CollegeAD, LexBlog College Sports, Opendorse (NCAA + NIL, 2 feeds), NLRB (press releases + weekly summaries, 2 feeds — source-specific relevance gate applied despite Tier 1 placement because NLRB publishes across all labor topics)
 
 **Tier 2 (12 feeds) — Relevance gate + noise filter:**
 Sports Litigation Alert, On3, CBS Sports (football + basketball), ESPN (football + basketball), Yahoo Sports, The Athletic (football), Norton Rose Fulbright (global sports law — relevance gate filters non-college), Horizon League, ACC, Big 12
 
 Conference feeds (Horizon League, ACC, Big 12) are in Tier 2 because they produce mostly sports results, not business/governance content.
 
-**Relevance gate:** All headline fetchers (Google News, Bing News, NewsData, NCAA RSS, plus Tier 2 publications) run `isTitleRelevant()` — strict regex check for NIL, NCAA, college athletics, transfer portal, revenue sharing, program discontinuation, endowments, etc. Tier 1 publication feeds skip the relevance gate (they're business-scoped by design) but still run through the game noise filter.
+**Relevance gate:** All headline fetchers (Google News, Bing News, NewsData, NCAA RSS, plus Tier 2 publications) run `isTitleRelevant()` — strict regex check for NIL, NCAA, college athletics, transfer portal, revenue sharing, antitrust, unionization, NLRB, employee classification, collective bargaining, program discontinuation, endowments, etc. Tier 1 publication feeds skip the relevance gate (they're business-scoped by design) but still run through the game noise filter. Exception: government sources (NLRB) in Tier 1 have a source-specific relevance gate applied because they publish across all topics.
 
 ### Headline Deduplication (fetcher-utils.js)
 
@@ -463,13 +463,13 @@ workers/
   ai-pipeline.js       — 3 active AI tasks (tag, CSC detect, briefing)
   fetcher-utils.js     — Shared: cooldowns, dedup cache (Jaccard), noise filter, relevance gate, categorization
   rss-parser.js        — Regex-based RSS parser (no DOMParser in Workers)
-  fetch-google-news.js — Google News RSS (90 queries)
+  fetch-google-news.js — Google News RSS (94 queries)
   fetch-bing-news.js   — Bing News RSS (54 queries)
   fetch-newsdata.js    — NewsData.io API (18 queries)
   fetch-ncaa-rss.js    — NCAA.com RSS (3 feeds)
   fetch-courtlistener.js — CourtListener RECAP (dormant)
   fetch-nil-revolution.js — Troutman Pepper blog RSS
-  fetch-publications.js — 19 RSS feeds (7 Tier 1 + 12 Tier 2, three-tier filtering)
+  fetch-publications.js — 23 RSS feeds (11 Tier 1 + 12 Tier 2, three-tier filtering)
   fetch-cslt.js        — College Sports Litigation Tracker scraper (cases + key dates)
   fetch-podcasts.js    — 6 podcast RSS feeds (freshness check)
   fetch-cfbd.js        — CFBD transfer portal + preseason intel
