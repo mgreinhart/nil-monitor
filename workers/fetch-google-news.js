@@ -107,6 +107,11 @@ const QUERIES = [
   '"endowed" OR "endowment" college OR university athletics OR "athletic department"',
   '"discontinue" OR "eliminate" OR "cut" sport college OR university athletics',
   '"apparel" deal OR extension OR provider college OR university OR conference',
+  // Legal/compliance blogs without RSS feeds
+  'site:burr.com college sports',
+  'site:cchalaw.com college sports',
+  'site:huschblackwell.com college athletics',
+  'site:sportslaw.org college OR NIL OR NCAA',
 ];
 
 function getCooldown() {

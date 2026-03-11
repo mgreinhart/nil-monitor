@@ -22,6 +22,7 @@ const TIER1_FEEDS = [
   { url: 'https://frontofficesports.com/feed/', source: 'Front Office Sports' },
   { url: 'https://www.nytimes.com/athletic/rss/college-sports/', source: 'The Athletic' },
   { url: 'https://collegead.com/feed/', source: 'CollegeAD' },
+  { url: 'https://www.lexblog.com/site/collegiate-professional-sports-law-blog/feed/', source: 'LexBlog College Sports' },
 ];
 
 // Tier 2 — Broad college sports feeds. Relevance gate required.
@@ -35,6 +36,8 @@ const TIER2_FEEDS = [
   { url: 'https://www.espn.com/espn/rss/ncb/news', source: 'ESPN' },
   { url: 'https://sports.yahoo.com/rss/', source: 'Yahoo Sports' },
   { url: 'https://www.nytimes.com/athletic/rss/college-football/', source: 'The Athletic' },
+  // Global sports law — relevance gate filters non-college content
+  { url: 'https://www.nortonrosefulbright.com/en/inside-sports-law/blog/rss', source: 'Norton Rose Fulbright' },
   // Conference feeds — mostly sports results, relevance gate catches the rare business story
   { url: 'https://horizonleague.org/rss.aspx', source: 'Horizon League' },
   { url: 'https://theacc.com/rss.aspx', source: 'ACC' },
