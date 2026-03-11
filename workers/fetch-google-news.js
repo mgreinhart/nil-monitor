@@ -102,6 +102,11 @@ const QUERIES = [
   '"scheduling alliance" OR "non-conference" deal OR series college',
   'NCAA tournament format OR expansion OR "player availability"',
   '"conference tournament" venue OR naming rights OR broadcast deal',
+  // Coverage gaps — policy memos, endowments, program cuts, apparel
+  '"conference" memo OR guidance OR policy NIL OR "uniform patch" OR compliance',
+  '"endowed" OR "endowment" college OR university athletics OR "athletic department"',
+  '"discontinue" OR "eliminate" OR "cut" sport college OR university athletics',
+  '"apparel" deal OR extension OR provider college OR university OR conference',
 ];
 
 function getCooldown() {

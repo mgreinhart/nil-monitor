@@ -474,7 +474,7 @@ export function categorizeByKeyword(title) {
   if (/\benforcement\b|\binvestigation\b|\bcompliance\b/.test(t)) return 'CSC / Enforcement';
 
   // Business / Finance — personnel, fundraising, facilities, PE, ownership, revenue ops
-  if (/\bathletic director\b|\bconference commissioner\b|\bfundraising\b|\bphilanthropy\b|\bcapital campaign\b|\bdonor\b.*(?:college|university|athlet)|\bcampaign\b.*(?:athlet|universit)|\barena\b.*(?:\$|million|bond|vote)|\bstadium\b.*(?:\$|million|bond|vote)|private equity|\bownership\b.*(?:college|university|athlet)|\bsponsorship\b|\bnaming rights\b|\bpremium seating\b|\breseating\b|\bticket sales\b|\bseason tickets\b|\bfan rewards\b|\bloyalty program\b/.test(t)) return 'Business / Finance';
+  if (/\bathletic director\b|\bconference commissioner\b|\bfundraising\b|\bphilanthropy\b|\bcapital campaign\b|\bdonor\b.*(?:college|university|athlet)|\bcampaign\b.*(?:athlet|universit)|\barena\b.*(?:\$|million|bond|vote)|\bstadium\b.*(?:\$|million|bond|vote)|private equity|\bownership\b.*(?:college|university|athlet)|\bsponsorship\b|\bnaming rights\b|\bpremium seating\b|\breseating\b|\bticket sales\b|\bseason tickets\b|\bfan rewards\b|\bloyalty program\b|\bdiscontinue\b|\beliminate\b.*(?:sport|program|team)/.test(t)) return 'Business / Finance';
 
   return null;
 }
@@ -547,6 +547,12 @@ const TITLE_RELEVANCE_RE = new RegExp([
   '(?:college|university|athletic).*(?:fundraising|philanthropy|capital campaign|donor|giving)',
   '(?:ticket sales|season tickets|sellout streak|attendance record).*(?:college|university|athletic)',
   'fan rewards|loyalty program|card.linked.*(?:college|university|athletic)',
+  // Program discontinuation / emerging sports
+  '(?:discontinue|eliminate|cut).*(?:sport|program|team).*(?:college|university|athletic)',
+  '(?:college|university|athletic).*(?:discontinue|eliminate|cut).*(?:sport|program|team)',
+  // Endowments
+  'endow(?:ed|ment).*(?:college|university|athletic)',
+  '(?:college|university|athletic).*endow(?:ed|ment)',
 ].join('|'), 'i');
 
 export function isTitleRelevant(title) {

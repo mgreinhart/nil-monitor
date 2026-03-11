@@ -1405,7 +1405,7 @@ const InfoModal = ({ onClose }) => (
       <h3 style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, color: T.text, margin: "0 0 8px" }}>Data Sources</h3>
       <div style={{ marginBottom: 16 }}>
         {[
-          ["Google News RSS", "News aggregation (82 targeted queries)", "Free"],
+          ["Google News RSS", "News aggregation (86 targeted queries)", "Free"],
           ["Bing News RSS", "News aggregation (54 targeted queries)", "Free"],
           ["NewsData.io", "News aggregation (87K+ sources)", "API"],
           ["GDELT", "Global news volume tracking (30-day trends)", "Free"],
@@ -1413,6 +1413,7 @@ const InfoModal = ({ onClose }) => (
           ["Front Office Sports", "Sports business journalism", "RSS"],
           ["Business of College Sports", "Sports business journalism", "RSS"],
           ["AthleticDirectorU", "AD-focused news & analysis", "RSS"],
+          ["CollegeAD", "AD hiring, personnel & restructuring", "RSS"],
           ["The Athletic", "College sports + college football", "RSS"],
           ["Sports Litigation Alert", "Sports law coverage", "RSS"],
           ["CBS Sports", "College football + basketball", "RSS"],
