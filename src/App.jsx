@@ -1120,7 +1120,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                       <div
                         onClick={hasExpand ? () => setExpCase(isOpen ? null : expandId) : undefined}
                         style={{
-                          display: "flex", alignItems: "center", gap: 6, padding: "3px 16px",
+                          display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "10px 12px" : "6px 16px",
                           background: `${T.accent}06`,
                           ...(hasExpand ? { cursor: "pointer" } : {}),
                         }}
@@ -1131,7 +1131,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                         <span style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 700, color: T.accent, flexShrink: 0 }}>{item.name}</span>
                         {snippet && <span style={{ fontFamily: T.sans, fontSize: 12, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{snippet}</span>}
                         <div style={{ flex: 1 }} />
-                        <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.5px", color: T.textDim, background: `${T.textDim}10`, padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0 }}>
+                        <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.5px", color: T.textDim, background: `${T.textDim}10`, padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0, width: 62, textAlign: "center", display: "inline-block" }}>
                           {typeLabel(item.detail)}
                         </Mono>
                         <Mono style={{
@@ -1139,6 +1139,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                           color: days <= 3 ? "#fff" : T.accent,
                           background: days <= 3 ? T.accent : `${T.accent}15`,
                           padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0,
+                          width: 48, textAlign: "center", display: "inline-block",
                         }}>
                           {countdownLabel(days)}
                         </Mono>
@@ -1213,7 +1214,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                       <div
                         onClick={hasExpand ? () => setExpCase(isOpen ? null : item.id) : undefined}
                         style={{
-                          display: "flex", alignItems: "center", gap: 6, padding: "3px 16px",
+                          display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "10px 12px" : "6px 16px",
                           ...(hasExpand ? { cursor: "pointer" } : {}),
                         }}
                         onMouseEnter={hasExpand ? e => { e.currentTarget.style.background = T.surfaceAlt; } : undefined}
@@ -1223,7 +1224,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                         <span style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 700, color: T.text, flexShrink: 0 }}>{item.name}</span>
                         {snippet && <span style={{ fontFamily: T.sans, fontSize: 12, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{snippet}</span>}
                         <div style={{ flex: 1 }} />
-                        <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.5px", color: T.textDim, background: `${T.textDim}10`, padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0 }}>
+                        <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.5px", color: T.textDim, background: `${T.textDim}10`, padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0, width: 62, textAlign: "center", display: "inline-block" }}>
                           FILING
                         </Mono>
                         <Mono style={{ fontSize: 12, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
@@ -1254,7 +1255,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                 {remaining > 0 && (
                   <div
                     onClick={() => setShowAllTimeline(v => !v)}
-                    style={{ padding: "4px 16px", cursor: "pointer", textAlign: "center" }}
+                    style={{ padding: "6px 16px", cursor: "pointer", textAlign: "center" }}
                     onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                   >
@@ -1297,7 +1298,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                   return (
                     <a key={d.id || i} href={d.source_url} target="_blank" rel="noopener noreferrer"
                       style={{
-                        display: "block", padding: "8px 14px", textDecoration: "none",
+                        display: "block", padding: "6px 16px", textDecoration: "none",
                         borderBottom: `1px solid ${T.borderLight}`, background: "transparent",
                       }}
                       onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
