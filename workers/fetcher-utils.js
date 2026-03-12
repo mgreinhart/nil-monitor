@@ -500,8 +500,8 @@ const TITLE_RELEVANCE_RE = new RegExp([
   '\\buniversit(?:y|ies)\\b.*(?:athlet|nil|revenue|private equity|invest|su(?:es?|ed|ing))',
   // Conferences — Power + Group of 5
   '\\bpower\\s+(?:4|5|four|five)\\b', 'conference\\s+realignment',
-  '\\b(?:big\\s+ten|big\\s+12|big\\s+east|pac.12|mountain\\s+west|sun\\s+belt|mac\\b|\\baac\\b|conference\\s+usa)\\b.*(?:deal|rights|equity|revenue|expansion|realign|transition|media)',
-  '\\b(?:big\\s+ten|big\\s+12|big\\s+east|pac.12|sec)\\b.*(?:deal|rights|equity|revenue|expansion|realign)',
+  '\\b(?:big\\s+ten|big\\s+12|big\\s+east|pac.12|mountain\\s+west|sun\\s+belt|mac\\b|\\baac\\b|conference\\s+usa)\\b.*(?:deal|rights|equity|revenue|expansion|realign|transition|media|governance|self.governance|enforcement|autonomy)',
+  '\\b(?:big\\s+ten|big\\s+12|big\\s+east|pac.12|sec)\\b.*(?:deal|rights|equity|revenue|expansion|realign|governance|self.governance|enforcement|autonomy)',
   // Eligibility / legal
   '\\beligibility\\b',
   '\\bbuyout\\b.*(?:college|athlete|transfer|nil|ncaa)',
@@ -528,9 +528,12 @@ const TITLE_RELEVANCE_RE = new RegExp([
   '(?:media\\s+rights|broadcast\\s+rights|tv\\s+deal).*(?:college|conference|ncaa|\\bsec\\b|big\\s+ten)',
   '(?:college|conference|ncaa).*(?:media\\s+rights|broadcast\\s+rights|tv\\s+deal)',
   // Personnel — AD hires/fires, conference commissioners, senior staff
-  'athletic\\s+director.*(?:hired|named|fired|resigned|contract|new|search)',
-  '(?:hired|named|fired|resigned).*athletic\\s+director',
+  'athletic\\s+director.*(?:hired|named|fired|resigned|contract|extension|new|search)',
+  '(?:hired|named|fired|resigned|extension).*athletic\\s+director',
+  '\\b(?:ad|a\\.d\\.)\\b.*(?:hired|named|fired|resigned|contract\\s+extension|new\\s+ad|ad\\s+search).*(?:college|university|athletic|ncaa)',
+  '(?:college|university|athletic|ncaa|a&m).*\\b(?:ad|a\\.d\\.)\\b.*(?:hired|named|fired|resigned|contract|extension)',
   'conference\\s+commissioner',
+  'conference\\s+(?:governance|self.governance|autonomy|enforcement)',
   '\\bsenior\\s+associate\\s+ad\\b|\\bdeputy\\s+(?:ad|athletic\\s+director)\\b',
   '\\bgeneral\\s+manager\\b.*(?:college|university|athletic)',
   // Facilities — require college context + financial signal

@@ -102,6 +102,14 @@ const QUERIES = [
   '"scheduling alliance" OR "non-conference" deal OR series college',
   'NCAA tournament format OR expansion OR "player availability"',
   '"conference tournament" venue OR naming rights OR broadcast deal',
+  // Conference governance / self-governance / autonomy
+  '"conference governance" OR "conference self-governance" OR "conference autonomy" college',
+  '"SEC governance" OR "SEC self-governance" OR "SEC autonomy"',
+  // AD contract extensions (abbreviation "AD" + context)
+  '"athletic director" "contract extension" OR "contract renewal"',
+  '"AD" "contract extension" college OR university athletics',
+  // 247Sports coverage (no RSS)
+  'site:247sports.com NIL OR "revenue sharing" OR "transfer portal" OR "athletic director"',
   // Coverage gaps — policy memos, endowments, program cuts, apparel
   '"conference" memo OR guidance OR policy NIL OR "uniform patch" OR compliance',
   '"endowed" OR "endowment" college OR university athletics OR "athletic department"',

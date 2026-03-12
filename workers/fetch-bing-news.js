@@ -64,6 +64,11 @@ const QUERIES = [
   '"college athletics" "premium seating" OR "ticket revenue" OR reseating',
   '"athletic department" donor OR philanthropy OR "giving society"',
   '"college athletics" "brand partnership" OR "corporate sponsor"',
+  // Conference governance / self-governance / autonomy
+  '"conference governance" OR "conference self-governance" college',
+  '"SEC governance" OR "SEC self-governance" OR "SEC autonomy"',
+  // AD contract extensions
+  '"athletic director" "contract extension" OR "contract renewal"',
   // D1 ticker coverage gaps — coaching contracts, NIL ops, emerging sports, governance
   '"coaching contract" college OR university extension OR salary',
   '"NIL collective" restructuring OR operations',
