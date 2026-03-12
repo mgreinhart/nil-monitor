@@ -567,22 +567,31 @@ const PortalPulse = ({ isMobile }) => {
   const topActive = (snapshot.most_active || [])[0];
   const positions = snapshot.position_availability || [];
 
-  // Stat block: tiny label above, big dominant number below
+  // Stat block: label left (stacked text), number right
   const StatBlock = ({ label, value, sub }) => (
-    <div style={{ minWidth: 0 }}>
-      <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.8px", color: T.textDim, textTransform: "uppercase", display: "block", lineHeight: 1, marginBottom: 3 }}>{label}</Mono>
-      <Mono style={{ fontSize: 28, fontWeight: 700, color: T.text, lineHeight: 1, display: "block" }}>{fmt(value)}</Mono>
-      {sub && <Mono style={{ fontSize: 10, color: T.textDim, lineHeight: 1, marginTop: 1 }}>{sub}</Mono>}
+    <div style={{ flex: 1, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, minWidth: 0 }}>
+      <Mono style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.6px", color: T.textDim, textTransform: "uppercase", lineHeight: 1.3, maxWidth: 80 }}>{label}</Mono>
+      <div style={{ textAlign: "right", flexShrink: 0 }}>
+        <Mono style={{ fontSize: 26, fontWeight: 700, color: T.text, lineHeight: 1, display: "block" }}>{fmt(value)}</Mono>
+        {sub && <Mono style={{ fontSize: 10, color: T.textDim, lineHeight: 1, marginTop: 2 }}>{sub}</Mono>}
+      </div>
     </div>
   );
 
-  // Volume strip — stat blocks in a row, numbers dominate
+  // Volume strip — stat blocks in a row, label left / number right
   const VolumeStrip = ({ labels }) => (
-    <div style={{ display: "flex", padding: "10px 16px 8px", gap: isMobile ? 16 : 24, borderBottom: `1px solid ${T.border}`, flexWrap: "wrap" }}>
-      <StatBlock label={labels[0]} value={snapshot.total_entries} />
-      <StatBlock label={labels[1]} value={snapshot.total_committed} sub={`${commitRate}% rate`} />
-      <StatBlock label={labels[2]} value={snapshot.total_available} />
-      {topActive && <StatBlock label={labels[3]} value={topActive.total_moves} sub={topActive.school} />}
+    <div style={{ display: "flex", padding: "10px 16px", gap: 0, borderBottom: `1px solid ${T.border}`, flexWrap: isMobile ? "wrap" : "nowrap" }}>
+      {[
+        { label: labels[0], value: snapshot.total_entries },
+        { label: labels[1], value: snapshot.total_committed, sub: `${commitRate}%` },
+        { label: labels[2], value: snapshot.total_available },
+        topActive && { label: labels[3], value: topActive.total_moves, sub: topActive.school },
+      ].filter(Boolean).map((s, i, arr) => (
+        <Fragment key={i}>
+          <StatBlock label={s.label} value={s.value} sub={s.sub} />
+          {i < arr.length - 1 && <div style={{ width: 1, background: T.border, margin: "0 12px", alignSelf: "stretch", flexShrink: 0 }} />}
+        </Fragment>
+      ))}
     </div>
   );
 
