@@ -660,7 +660,7 @@ const PortalPulse = ({ isMobile }) => {
         <div style={{ padding: "6px 16px 0" }}>
           <Mono style={{ fontSize: 15, fontWeight: 700, letterSpacing: "0.8px", color: T.textMid, textTransform: "uppercase" }}>{modeLabel}</Mono>
         </div>
-        <VolumeStrip labels={["in portal", "committed", "available", "most active"]} />
+        <VolumeStrip labels={["total portal entries", "athletes committed", "still available", "most active"]} />
         <div style={{ display: "flex", alignItems: "baseline", gap: 4, padding: "4px 16px", borderBottom: `1px solid ${T.border}` }}>
           <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.8px", color: T.textDim, textTransform: "uppercase" }}>This week</Mono>
           <Mono style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{fmt(snapshot.entries_7d)}</Mono>
@@ -733,7 +733,7 @@ const PortalPulse = ({ isMobile }) => {
       <div style={{ padding: "6px 16px 0" }}>
         <Mono style={{ fontSize: 15, fontWeight: 700, letterSpacing: "0.8px", color: T.textMid, textTransform: "uppercase" }}>{modeLabel}</Mono>
       </div>
-      <VolumeStrip labels={["total moved", "committed", "still available", "most active"]} />
+      <VolumeStrip labels={["total portal entries", "athletes committed", "still available", "most active"]} />
       <SchoolColumns />
       <PositionLine />
       <div style={{ padding: "5px 16px", background: T.surfaceAlt, borderTop: `1px solid ${T.borderLight}` }}>
