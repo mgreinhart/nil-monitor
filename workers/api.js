@@ -764,6 +764,10 @@ export async function handleApi(request, env) {
             }
           }
         }
+        if (phase === 'delete-stale-deadline') {
+          const del = await env.DB.prepare("DELETE FROM deadlines WHERE text LIKE '%Spring transfer portal window closes%'").run();
+          log.push(`deleted ${del.meta?.changes || 0} stale deadline rows`);
+        }
         if (phase === 'fix-tags') {
           const fixes = [
             [92586, 'Business / Finance', 'important'],

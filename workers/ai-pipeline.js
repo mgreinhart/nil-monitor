@@ -143,6 +143,7 @@ OFF-TOPIC GUARDRAILS — read carefully:
 3. Federal government actions affecting college athletics (ICE enforcement on campuses, charter plane regulations, congressional hearings, presidential statements about college sports) are relevant. Tag as Governance or Business / Finance depending on context.
 4. Judge by headline CONTENT, not by source outlet. Headlines from general news outlets (NY Amsterdam News, Yahoo Finance, Montgomery Advertiser, local newspapers) are on-topic if the headline is about college athletics.
 5. Individual athlete NIL deal announcements (brand partnerships, collective deals, marketplace valuations) with NO regulatory, legal, or governance angle should be tagged Business / Finance, not Off-Topic — they reflect the NIL marketplace.
+6. Headlines about NFL scheduling, NFL offseason moves, PGA Tour business, or other professional sports league operations are Off-Topic even if from a Tier 1 source like Front Office Sports. The source being Tier 1 does not override content relevance. Judge by content, not source.
 
 Severity (skip for Off-Topic):
 - critical: Requires immediate institutional action or attention (new enforcement, court orders, imminent deadlines)
@@ -391,6 +392,13 @@ Congressional floor vote timelines, vote count analysis, and specific legislativ
 CONFERENCE AUTONOMOUS GOVERNANCE PRIORITY:
 Conference-level autonomous governance actions are ALWAYS high-priority items. When conference presidents or commissioners announce meetings, frameworks, or rulemaking independent of the NCAA -- especially if framed as a response to federal inaction -- this represents a potential structural change to how the AD's institution is governed. These stories should be prioritized over individual litigation updates or recurring deadline reminders that have appeared in previous briefings. A story about SEC presidents meeting to establish conference-level rules is more important than a routine case update.
 
+STORY SELECTION PRIORITIES (in addition to above):
+- AD/coach CONTRACT DETAILS that include revenue-sharing mechanics, CSC references, or competitive benchmarking clauses are HIGH-PRIORITY -- they are templates for how institutions operationalize the new era, not just personnel news.
+- CSC DEAL REJECTIONS, arbitration filings, or institutional pushback against CSC rulings are HIGH-PRIORITY -- they signal enforcement friction that affects every school's compliance posture.
+- STATE GOVERNOR ACTIONS on NIL legislation (vetoes, signings, executive orders) are HIGH-PRIORITY -- they have immediate competitive implications for schools in that state.
+- CONFERENCE SELF-GOVERNANCE discussions (conferences building enforcement or rulemaking independent of NCAA) are HIGH-PRIORITY -- they signal potential structural breakaway.
+- Do NOT include transfer portal window dates or roster management deadlines unless a headline specifically reports on a portal window opening or closing TODAY. General portal activity (player entering/leaving) is low priority unless it involves a precedent-setting ruling.
+
 The audience is athletic directors managing institutional risk, competitive positioning, and financial strategy.
 Every item should answer: "Does this require action, awareness, or preparation from our institution?"
 If the answer is no, don't include it.
@@ -416,8 +424,11 @@ The Deadlines panel handles countdowns. The briefing handles NEWS. If you cannot
 ADJACENT INDUSTRY STORIES:
 When headlines about sports media mergers, broadcast deals, or entertainment M&A appear in the feed, assess whether they have downstream implications for college athletics conference revenue, media rights, or broadcast partnerships. If they do, include them in the briefing with the college-sports implication stated explicitly. Example: "Paramount's $111B bid for WBD clears path after Netflix withdrawal -- if approved, TNT Sports merges into CBS Sports portfolio, potentially reshaping conference media rights negotiations."
 
+CRITICAL SOURCE FIDELITY RULE:
+Every item in the briefing MUST be directly derived from the headlines provided below. Do not generate briefing items from general knowledge, seed data, or deadline tables. Do not invent institutional guidance or action items that aren't supported by a specific headline in the input. If a headline doesn't contain enough detail for a full briefing item, use the headline as-is with minimal context -- do not fabricate details. Every briefing section must cite at least one specific headline from the input. If fewer than 4 worthy items exist, return fewer sections rather than padding with invented content.
+
 STRICT FORMAT RULES:
-- Always produce EXACTLY 4 sections. No more, no fewer.
+- Produce EXACTLY 4 sections if 4+ worthy headlines exist. If fewer than 4 headlines warrant briefing coverage, return only as many sections as justified -- do not pad.
 - For each section, provide four fields:
   - "short_title": A punchy 6-10 word title that captures the core development. Written like a news ticker or push notification. No periods. Examples: "Nevada judge strikes NCAA eligibility rules", "'Street agents' draw multi-conference alarm", "Power 4 participation deadline holds at March 1"
   - "headline": ONE bold opening sentence stating what happened.
