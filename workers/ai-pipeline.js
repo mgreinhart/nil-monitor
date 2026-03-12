@@ -135,7 +135,14 @@ Category (exactly one):
 - Business / Finance: Athletic department budgets, deficits, and financial reporting. Private equity investments in college athletics (Otro Capital, Elevate Sports, etc.). Conference revenue distribution and media rights economics. Facility financing, naming rights, concert revenue, alcohol sales. Donor economics, fundraising challenges, collective funding models. Revenue models and business-side operations of athletic departments. If a story is primarily about money, business strategy, or institutional finances — even if it touches governance — tag it here.
 - Roster / Portal: Transfer portal windows, roster management rules, eligibility disputes, waiver decisions, scholarship limits, multi-time transfer rules. Player movement mechanics and NCAA eligibility rules.
 - Realignment: Conference membership changes, conference media rights deals, scheduling agreements, conference expansion/contraction, TV contract negotiations. Structural changes to the conference landscape.
-- Off-Topic: NOT about college athletics. Includes: professional sports (NFL, NBA, NHL, WNBA, MLB, etc.), non-US sports, entertainment/celebrity news, stories where "NIL" refers to something other than Name Image Likeness. Also: individual athlete NIL deal announcements (brand partnerships, collective deals, marketplace valuations) that have NO regulatory, legal, or governance angle.
+- Off-Topic: ONLY for headlines with genuinely NO connection to college athletics. Includes: professional sports transactions (NFL, NBA, NHL, WNBA, MLB trades/signings/scores), non-US sports, entertainment/celebrity news, stories where "NIL" refers to something other than Name Image Likeness. When in doubt, tag with the closest matching category rather than Off-Topic.
+
+OFF-TOPIC GUARDRAILS — read carefully:
+1. Headlines containing "NIL" in the title are NEVER Off-Topic. NIL (Name, Image, Likeness) is the core subject of this dashboard. An NIL deal announcement, NIL program launch, or NIL market analysis is at minimum Business / Finance.
+2. College basketball or college football viewership, ratings, attendance, or media metrics are Business / Finance — these are institutional revenue signals, not off-topic.
+3. Federal government actions affecting college athletics (ICE enforcement on campuses, charter plane regulations, congressional hearings, presidential statements about college sports) are relevant. Tag as Governance or Business / Finance depending on context.
+4. Judge by headline CONTENT, not by source outlet. Headlines from general news outlets (NY Amsterdam News, Yahoo Finance, Montgomery Advertiser, local newspapers) are on-topic if the headline is about college athletics.
+5. Individual athlete NIL deal announcements (brand partnerships, collective deals, marketplace valuations) with NO regulatory, legal, or governance angle should be tagged Business / Finance, not Off-Topic — they reflect the NIL marketplace.
 
 Severity (skip for Off-Topic):
 - critical: Requires immediate institutional action or attention (new enforcement, court orders, imminent deadlines)
@@ -152,9 +159,9 @@ Sub-category (ONLY for "CSC / Enforcement" headlines — omit for all other cate
 IMPORTANT DISTINCTIONS:
 - A story about a state passing an NIL bill → Legislation (not Revenue Sharing)
 - A story about the CSC investigating an NIL deal → CSC / Enforcement (not Revenue Sharing)
-- A story about an athlete signing a $2M NIL deal with Nike → Off-Topic (deal announcement, no regulatory angle)
+- A story about an athlete signing a $2M NIL deal with Nike → Business / Finance (NIL marketplace activity)
 - A story about the $20.5M revenue-sharing cap → Revenue Sharing
-- A story about an NHL or WNBA player → Off-Topic
+- A story about an NHL or WNBA player → Off-Topic (professional sports, not college)
 - A story about "private equity in college sports" → Business / Finance
 - A story about an athletic department reporting a deficit → Business / Finance
 - A story about conference media rights revenue distribution → Business / Finance (unless it's about a structural conference change, then Realignment)
