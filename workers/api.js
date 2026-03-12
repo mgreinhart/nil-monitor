@@ -380,7 +380,11 @@ async function trigger(phase) {
 }
 
 function escHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function escXml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
 function getEarliestUpcoming(upcomingJson) {
@@ -785,6 +789,154 @@ export async function handleApi(request, env) {
         headers['Set-Cookie'] = `admin_token=${env.ADMIN_KEY}; Path=/api; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`;
       }
       return new Response(html, { headers });
+    }
+
+    // ── SEO Pages ─────────────────────────────────────────────────
+
+    // Server-rendered /news page (crawlable HTML)
+    if (path === '/news') {
+      const { results } = await env.DB.prepare(
+        "SELECT title, url, source, category, published_at FROM headlines WHERE (category IS NULL OR category != 'Off-Topic') ORDER BY published_at DESC LIMIT 50"
+      ).all();
+
+      const now = new Date();
+      const todayStr = now.toLocaleDateString('en-US', { timeZone: 'America/New_York', year: 'numeric', month: 'long', day: 'numeric' });
+
+      const headlinesHtml = results.map(h => {
+        const ts = h.published_at ? new Date(h.published_at.includes('T') ? h.published_at : h.published_at.replace(' ', 'T') + 'Z') : null;
+        const timeStr = ts && !isNaN(ts) ? ts.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+        const cat = h.category ? `<span class="cat">${escHtml(h.category)}</span>` : '';
+        const src = h.source ? `<span class="src">${escHtml(h.source)}</span>` : '';
+        return `<li>${src} <a href="${escHtml(h.url || '#')}" rel="noopener">${escHtml(h.title)}</a> ${cat}<time>${timeStr}</time></li>`;
+      }).join('\n');
+
+      const newsHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NIL News — College Athletics NIL Headlines Today | NIL Monitor</title>
+<meta name="description" content="Today's college athletics NIL headlines. Live-updated news on NIL legislation, NCAA litigation, revenue sharing, transfer portal, and college sports governance from 20+ sources.">
+<meta name="keywords" content="NIL news, NIL headlines today, college athletics news, NCAA news, NIL legislation news, college sports commission news, revenue sharing news, transfer portal news">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Matt Reinhart">
+<meta name="theme-color" content="#0f1729">
+<link rel="canonical" href="https://nilmonitor.com/news">
+<link rel="alternate" type="application/rss+xml" title="NIL Monitor Headlines" href="/feed.xml">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta property="og:title" content="NIL News — College Athletics NIL Headlines Today | NIL Monitor">
+<meta property="og:description" content="Today's college athletics NIL headlines. Live-updated news from 20+ sources on NIL legislation, NCAA litigation, and college sports governance.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nilmonitor.com/news">
+<meta property="og:site_name" content="NIL Monitor">
+<meta property="og:image" content="https://nilmonitor.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="NIL News — College Athletics NIL Headlines Today | NIL Monitor">
+<meta name="twitter:description" content="Today's college athletics NIL headlines. Live-updated news from 20+ sources.">
+<meta name="twitter:image" content="https://nilmonitor.com/og-image.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "NIL News — College Athletics Headlines",
+  "url": "https://nilmonitor.com/news",
+  "description": "Live-updated college athletics NIL headlines aggregated from 20+ sources including ESPN, The Athletic, Sportico, Yahoo Sports, CBS Sports, and Front Office Sports.",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "NIL Monitor",
+    "url": "https://nilmonitor.com"
+  },
+  "provider": {
+    "@type": "Person",
+    "name": "Matt Reinhart"
+  },
+  "about": {
+    "@type": "Thing",
+    "name": "Name, Image, and Likeness (NIL) in College Athletics"
+  }
+}
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#f1f3f7;color:#0f1729;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;font-size:15px;line-height:1.6;padding:0}
+header{background:#0f1729;color:#e2e8f0;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+header .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:#e2e8f0;font-weight:700;font-size:15px;font-family:'JetBrains Mono','SF Mono',monospace}
+header .pill{background:#DC4A2D;color:#fff;padding:3px 10px;border-radius:5px;font-size:13px;font-weight:700;letter-spacing:.5px}
+header a.dash{color:#94a3b8;font-size:13px;text-decoration:none}
+header a.dash:hover{color:#e2e8f0}
+main{max-width:800px;margin:0 auto;padding:24px 20px}
+h1{font-size:28px;font-weight:700;margin-bottom:4px}
+h2{font-size:16px;font-weight:400;color:#3d4a5c;margin-bottom:20px}
+.updated{font-size:12px;color:#7c8698;margin-bottom:20px}
+ul{list-style:none}
+li{padding:12px 0;border-bottom:1px solid #edf0f4;line-height:1.5}
+li a{color:#0f1729;text-decoration:none;font-weight:500}
+li a:hover{color:#DC4A2D}
+.src{display:inline-block;background:#e8ebf0;color:#3d4a5c;font-size:11px;font-weight:600;padding:2px 6px;border-radius:3px;margin-right:6px;text-transform:uppercase;letter-spacing:.3px}
+.cat{display:inline-block;background:#DC4A2D18;color:#DC4A2D;font-size:11px;font-weight:600;padding:2px 6px;border-radius:3px;margin-left:6px}
+time{display:block;font-size:12px;color:#7c8698;margin-top:2px}
+footer{max-width:800px;margin:32px auto 0;padding:20px 20px 40px;font-size:13px;color:#7c8698;line-height:1.7;border-top:1px solid #edf0f4}
+footer a{color:#DC4A2D;text-decoration:none}
+footer a:hover{text-decoration:underline}
+.rss{font-size:13px;color:#DC4A2D;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.rss:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<header>
+  <a href="https://nilmonitor.com" class="logo"><span class="pill">NIL</span> MONITOR</a>
+  <div><a href="https://nilmonitor.com" class="dash">Full Dashboard &rarr;</a></div>
+</header>
+<main>
+  <h1>NIL News</h1>
+  <h2>Today's College Athletics Headlines</h2>
+  <p class="updated">Updated ${escHtml(todayStr)} &middot; <a href="/feed.xml" class="rss">RSS Feed</a></p>
+  <ul>
+${headlinesHtml}
+  </ul>
+</main>
+<footer>
+  <p>NIL Monitor aggregates NIL news from 20+ sources including ESPN, The Athletic, Sportico, Yahoo Sports, CBS Sports, Front Office Sports, and more. Headlines are updated every 15 minutes. For the full regulatory intelligence dashboard including AI-generated briefings, litigation tracking, and state legislation maps, visit <a href="https://nilmonitor.com">nilmonitor.com</a>.</p>
+</footer>
+</body>
+</html>`;
+      return new Response(newsHtml, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+    }
+
+    // RSS feed
+    if (path === '/feed.xml') {
+      const { results } = await env.DB.prepare(
+        "SELECT title, url, source, category, published_at FROM headlines WHERE (category IS NULL OR category != 'Off-Topic') ORDER BY published_at DESC LIMIT 50"
+      ).all();
+
+      const rssItems = results.map(h => {
+        const ts = h.published_at ? new Date(h.published_at.includes('T') ? h.published_at : h.published_at.replace(' ', 'T') + 'Z') : null;
+        const pubDate = ts && !isNaN(ts) ? ts.toUTCString() : '';
+        return `    <item>
+      <title>${escXml(h.title)}</title>
+      <link>${escXml(h.url || 'https://nilmonitor.com/news')}</link>
+      <guid isPermaLink="false">${escXml(h.url || h.title)}</guid>
+      <pubDate>${pubDate}</pubDate>
+      <source url="https://nilmonitor.com/feed.xml">${escXml(h.source || 'NIL Monitor')}</source>${h.category ? `\n      <category>${escXml(h.category)}</category>` : ''}
+    </item>`;
+      }).join('\n');
+
+      const rss = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>NIL Monitor — College Athletics Headlines</title>
+    <link>https://nilmonitor.com/news</link>
+    <description>Live-updated college athletics headlines covering NIL legislation, NCAA litigation, College Sports Commission enforcement, revenue sharing, and governance from 20+ sources.</description>
+    <language>en-us</language>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    <atom:link href="https://nilmonitor.com/feed.xml" rel="self" type="application/rss+xml"/>
+${rssItems}
+  </channel>
+</rss>`;
+      return new Response(rss, { headers: { 'Content-Type': 'application/rss+xml; charset=utf-8' } });
     }
 
     return json({ error: 'Not found' }, 404);
