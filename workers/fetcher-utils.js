@@ -482,6 +482,33 @@ export function isGameNoise(title) {
  * Instant keyword tagging — assign a category based on title keywords.
  * Returns null if no keywords match (AI pipeline will tag later).
  */
+// Off-Topic patterns for instant tagging at insert time.
+// Only fires when there's NO college context — conservative by design.
+const OFFTOPIC_KEYWORD_RE = new RegExp([
+  // Pro sports league references without college context
+  '\\bnfl\\b', '\\bnba\\b', '\\bnhl\\b', '\\bmlb\\b', '\\bmls\\b',
+  '\\bwnba\\b', '\\bnwsl\\b', '\\bufc\\b', '\\bpga\\b', '\\blpga\\b',
+  '\\bf1\\b', '\\bformula.(?:1|one)\\b', '\\bnascar\\b',
+  // Pro team names (high-confidence subset)
+  '\\b(?:cowboys|eagles|chiefs|packers|bears|49ers|broncos|patriots|steelers|ravens|dolphins|jets|commanders|saints|texans|falcons|bengals|chargers|colts|jaguars|titans|browns|giants|seahawks|rams|lions|panthers|buccaneers|cardinals|vikings|bills)\\b',
+  '\\b(?:lakers|celtics|warriors|heat|bucks|nuggets|76ers|suns|cavaliers|hawks|raptors|grizzlies|pelicans|spurs|mavericks|rockets|timberwolves|blazers|magic|thunder|pistons|wizards|hornets|pacers|nets|knicks|clippers)\\b',
+  '\\b(?:yankees|red sox|dodgers|astros|braves|phillies|cubs|mets|padres|mariners|orioles|twins|guardians|royals|rays|rangers|marlins|brewers|diamondbacks|reds|rockies|pirates|white sox|blue jays|nationals|tigers|angels)\\b',
+  // Pro sports concepts
+  '\\bfranchise tag\\b', '\\bfree agenc\\w*\\b', '\\bsalary cap\\b.*(?:nfl|nba|nhl|mlb)',
+  // Memorabilia / collector
+  '\\bcollector\\b', '\\btrading card\\b', '\\bmemorabilia\\b',
+  // Crime / domestic / charged (no college athletics angle)
+  '\\bcharged\\s+with\\s+\\d+\\s+felon',
+  '\\bdomestic\\s+(?:violence|dispute|assault)\\b',
+  // Golf tournaments
+  '\\bplayers\\s+championship\\b', '\\bmasters\\s+tournament\\b',
+  '\\bpga\\s+championship\\b', '\\bryder\\s+cup\\b',
+  // Olympics without college context
+  '\\bolympics?\\b',
+].join('|'), 'i');
+
+const COLLEGE_KEYWORD_RE = /college|ncaa|\bnil\b|university|athletic director|conference commissioner|college sports|student.athlete|transfer portal|revenue.shar|eligibility|\bcsc\b|college football|college basketball|intercollegiate|\bathletic\s+department/i;
+
 export function categorizeByKeyword(title) {
   const t = title.toLowerCase();
 
@@ -499,6 +526,11 @@ export function categorizeByKeyword(title) {
 
   // Business / Finance — personnel, fundraising, facilities, PE, ownership, revenue ops
   if (/\bathletic director\b|\bconference commissioner\b|\bfundraising\b|\bphilanthropy\b|\bcapital campaign\b|\bdonor\b.*(?:college|university|athlet)|\bcampaign\b.*(?:athlet|universit)|\barena\b.*(?:\$|million|bond|vote)|\bstadium\b.*(?:\$|million|bond|vote)|private equity|\bownership\b.*(?:college|university|athlet)|\bsponsorship\b|\bnaming rights\b|\bpremium seating\b|\breseating\b|\bticket sales\b|\bseason tickets\b|\bfan rewards\b|\bloyalty program\b|\bdiscontinue\b|\beliminate\b.*(?:sport|program|team)/.test(t)) return 'Business / Finance';
+
+  // Off-Topic: pro sports / non-college content with NO college context.
+  // Only fires after all positive categories failed to match, and only when
+  // there's a clear pro sports signal with zero college keywords.
+  if (OFFTOPIC_KEYWORD_RE.test(title) && !COLLEGE_KEYWORD_RE.test(title)) return 'Off-Topic';
 
   return null;
 }

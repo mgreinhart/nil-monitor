@@ -478,6 +478,12 @@ Removed early in development — too heavy. Do not re-attempt.
 - The Athletic college sports RSS is working but limited to ~20 items — the WKU/Collins story didn't make the cut. Known limitation.
 - SBJ remains paywalled with no RSS — the Phillips/SCORE Act story reached us via ESPN and FOS coverage
 
+### Pro Sports Noise Filter + Instant Off-Topic Tagging (fetcher-utils.js)
+
+35. **Strengthened `isProSportsNoise()`** — Added PGA Tour/Championship/LPGA, NFL Network/schedule/offseason/broadcast, NBA scoring/trade deadline/broadcast, memorabilia/collector/trading card, sports TV upfront patterns. Extended NFL catch-all with schedule/season/preseason.
+36. **Fixed business signal override** — `BUSINESS_SIGNAL_RE` no longer rescues pro sports headlines from the noise filter. Only `COLLEGE_CONTEXT_RE` can override the pro sports filter. "NFL Network revenue" is now correctly blocked.
+37. **Instant Off-Topic tagging at insert time** — Added `OFFTOPIC_KEYWORD_RE` + `COLLEGE_KEYWORD_RE` to `categorizeByKeyword()`. Headlines matching pro sports patterns (NFL/NBA/NHL/MLB/PGA/UFC/etc., pro team names, golf tournaments, memorabilia, domestic violence charges) with NO college context get tagged Off-Topic immediately at insert. This prevents irrelevant FOS content from appearing in the feed for hours while waiting for AI tagging. Conservative by design — only fires after all positive category checks fail and only when there's zero college context.
+
 ### AI Pipeline Tagging Fix (ai-pipeline.js)
 
 19. **Off-Topic guardrails** — 5 explicit rules preventing NIL headlines, college viewership, federal government actions, and non-sports outlet content from being mistagged as Off-Topic
@@ -508,11 +514,12 @@ Removed early in development — too heavy. Do not re-attempt.
 
 1. **Relevance gate** (`fetcher-utils.js: isTitleRelevant`) — Strict regex match for NIL, NCAA, college athletics, transfer portal, revenue sharing, eligibility, lawsuits, jersey patches, above-cap, athletic fees, media rights, naming rights, premium seating, sponsorship, fundraising, ticket sales, fan rewards, conference governance/self-governance/autonomy/enforcement, AD abbreviation with university context, board of regents with athletics/oversight context, college athletics LLC/ventures/privatization, Athletes.org, executive orders on college sports — all with college/university/athletic context. Applied by Tier 2 publications, all aggregator fetchers, NCAA RSS. Tier 1 publications skip this gate.
 2. **Game noise filter** (`fetcher-utils.js: isGameNoise`) — Rejects game recaps, brackets, draft/combine coverage, recruiting noise, pro sports transactions, sportsbooks, power rankings, coaching carousel, player features. ~100 patterns. Business signals (NIL, NCAA governance, CSC, revenue sharing, legislation, antitrust, jersey patch, above-cap, athletic fee, apparel, facility funding, sponsorship, naming rights, premium seating, philanthropy, fan rewards) always pass through via `BUSINESS_SIGNAL_RE`.
-2b. **Pro sports noise filter** (`fetcher-utils.js: isProSportsNoise`) — Rejects NFL/NBA/MLB/NHL/MLS/FIFA/World Cup/Copa America/WBC/spring training/Olympics/experience economy headlines. Applied after game noise filter in publications and at insert time in fetcher-utils.
+2b. **Pro sports noise filter** (`fetcher-utils.js: isProSportsNoise`) — Rejects NFL/NBA/MLB/NHL/MLS/FIFA/World Cup/Copa America/WBC/spring training/Olympics/experience economy/PGA Tour/NFL Network/memorabilia/collector/sports TV upfront headlines. Only `COLLEGE_CONTEXT_RE` can override (business signals alone don't rescue pro sports content). Applied after game noise filter in publications and at insert time in fetcher-utils.
 3. **URL dedup** — `headlines.url` has UNIQUE constraint. URLs normalized (strip UTM params, fragments, www, trailing slashes).
 4. **Title dedup at insert** — In-memory cache of 7-day titles. Five checks: exact match → normalized match (with source suffix stripping) → substring containment → Jaccard word similarity (≥0.65) → URL constraint.
+4b. **Instant Off-Topic tagging** (`fetcher-utils.js: categorizeByKeyword`) — Headlines matching pro sports patterns (NFL/NBA/NHL/MLB/PGA/UFC/MLS/NWSL/NASCAR/F1, pro team names, golf tournaments, memorabilia, domestic violence charges) with NO college context are tagged Off-Topic at insert time. Prevents Tier 1 source junk from appearing untagged in the feed. Conservative: only fires after all positive category checks fail.
 5. **AI tagging** — Claude assigns category + severity. Off-Topic tagged for non-college-sports content. Off-Topic guardrails prevent mistagging of NIL headlines, college viewership, and general-outlet college athletics coverage.
-6. **Off-Topic exclusion** — API queries exclude `category = 'Off-Topic'` from headlines, coverage-intel, and stats.
+6. **Off-Topic exclusion** — API queries exclude `category = 'Off-Topic'` from headlines, coverage-intel, and stats. Untagged headlines (NULL category) are still shown to preserve the live feed feel.
 7. **Frontend dedup** — Word overlap >0.6 against already-displayed headlines. Catches aggregator copies that passed URL dedup.
 
 ---
