@@ -220,7 +220,7 @@ const COLLEGE_CONTEXT_RE = /college|ncaa|nil\b|university|athletic director|conf
 const PRO_SPORTS_NOISE_RE = new RegExp([
   // NFL teams and NFL-specific business
   '\\b(?:cowboys?|eagles?|chiefs?|packers?|bears?|49ers|broncos?|patriots?|steelers?|ravens?|dolphins?|jets?|commanders?|saints|texans|falcons|bengals|chargers|colts|jaguars|titans|browns|giants|seahawks|rams|lions|panthers|buccaneers|cardinals|vikings|bills)\\b',
-  '\\bnfl\\b.*(?:free agen|tv|disabilit|contract|trade|roster|staff|franchise tag|combine|draft)',
+  '\\bnfl\\b.*(?:free agen|tv|disabilit|contract|trade|roster|staff|franchise tag|combine|draft|schedule|season|preseason|regular season)',
   '\\bnfl free agent\\b', '\\bfranchise tag\\b.*(?:nfl|\\b(?:cowboys?|eagles?|chiefs?|packers?)\\b)',
   '\\bnflpa\\b',
   // NBA teams and NBA-specific
@@ -260,17 +260,41 @@ const PRO_SPORTS_NOISE_RE = new RegExp([
   '\\bhospitality\\b.*(?:fifa|world cup|super bowl|nfl|nba|mlb|nhl|mls|olympics?)',
   // General sports psychology / body language without college context
   '\\b(?:sports? psychology|body language)\\b(?!.*(?:college|ncaa|nil|university|athlete))',
+  // PGA / golf without college context
+  '\\bpga\\s+tour\\b(?!.*(?:college|ncaa|nil|university))',
+  '\\bpga\\s+championship\\b', '\\bmasters\\s+tournament\\b',
+  '\\blpga\\b(?!.*(?:college|ncaa|nil|university))',
+  // NFL-specific business / media
+  '\\bnfl\\s+network\\b', '\\bnfl\\s+schedule\\b', '\\bnfl\\s+owners?\\b',
+  '\\bnfl\\s+offseason\\b', '\\bnfl\\s+(?:broadcast|ratings|viewership)\\b',
+  '\\bnfl.*(?:free\\s+agenc|salary\\s+cap|franchise\\s+tag|trade\\s+deadline)\\b',
+  // NBA-specific business
+  '\\bnba\\b.*(?:scoring|record|trade deadline|free agenc|salary cap|playoff race|all.star game)',
+  '\\bnba\\s+(?:broadcast|ratings|viewership|schedule)\\b',
+  // Memorabilia / collector / trading cards (pro sports context)
+  '\\bcollector\\s+frenzy\\b', '\\btrading\\s+card\\b', '\\bcard\\s+market\\b',
+  '\\bmemorabilia\\b(?!.*(?:college|ncaa|nil|university))',
+  // Pro sports upfront / TV business without college context
+  '\\bupfront\\s+season\\b(?!.*(?:college|ncaa|nil|university))',
+  // Sports TV business headlines without college context
+  '\\bsports\\s+tv\\b(?!.*(?:college|ncaa|nil|university|conference|march madness))',
 ].join('|'), 'i');
 
 /**
  * Returns true (reject) if the headline is clearly about professional sports
  * with NO college athletics context.
+ *
+ * Logic: If a headline matches pro sports noise AND a business signal but has
+ * no college context, the pro sports filter wins. Business signals only rescue
+ * headlines that also contain college/NCAA/university context.
  */
 export function isProSportsNoise(title) {
   if (!title) return false;
   if (COLLEGE_CONTEXT_RE.test(title)) return false;
-  if (BUSINESS_SIGNAL_RE.test(title)) return false;
-  return PRO_SPORTS_NOISE_RE.test(title);
+  if (!PRO_SPORTS_NOISE_RE.test(title)) return false;
+  // Pro sports noise matched. Business signal alone doesn't save it —
+  // "NFL Network revenue" is still pro sports noise without college context.
+  return true;
 }
 
 // ── Spam Title Filter ───────────────────────────────────────────
