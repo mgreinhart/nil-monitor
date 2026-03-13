@@ -579,21 +579,41 @@ const PortalPulse = ({ isMobile }) => {
   );
 
   // Volume strip — stat blocks in a row, label left / number right
-  const VolumeStrip = ({ labels }) => (
-    <div style={{ display: "flex", padding: "10px 16px", gap: 0, borderBottom: `1px solid ${T.border}`, flexWrap: isMobile ? "wrap" : "nowrap" }}>
-      {[
-        { label: labels[0], value: snapshot.total_entries },
-        { label: labels[1], value: snapshot.total_committed, sub: `${commitRate}%` },
-        { label: labels[2], value: snapshot.total_available },
-        topActive && { label: labels[3], value: topActive.total_moves, sub: topActive.school },
-      ].filter(Boolean).map((s, i, arr) => (
-        <Fragment key={i}>
-          <StatBlock label={s.label} value={s.value} sub={s.sub} />
-          {i < arr.length - 1 && <div style={{ width: 1, background: T.border, margin: "0 12px", alignSelf: "stretch", flexShrink: 0 }} />}
-        </Fragment>
-      ))}
-    </div>
-  );
+  const VolumeStrip = ({ labels }) => {
+    const stats = [
+      { label: labels[0], value: snapshot.total_entries },
+      { label: labels[1], value: snapshot.total_committed, sub: `${commitRate}%` },
+      { label: labels[2], value: snapshot.total_available },
+      topActive && { label: labels[3], value: topActive.total_moves, sub: topActive.school },
+    ].filter(Boolean);
+
+    if (isMobile) {
+      return (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0, borderBottom: `1px solid ${T.border}` }}>
+          {stats.map((s, i) => (
+            <div key={i} style={{
+              padding: "10px 12px",
+              borderRight: i % 2 === 0 ? `1px solid ${T.border}` : "none",
+              borderBottom: i < 2 ? `1px solid ${T.border}` : "none",
+            }}>
+              <StatBlock label={s.label} value={s.value} sub={s.sub} />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ display: "flex", padding: "10px 16px", gap: 0, borderBottom: `1px solid ${T.border}` }}>
+        {stats.map((s, i, arr) => (
+          <Fragment key={i}>
+            <StatBlock label={s.label} value={s.value} sub={s.sub} />
+            {i < arr.length - 1 && <div style={{ width: 1, background: T.border, margin: "0 12px", alignSelf: "stretch", flexShrink: 0 }} />}
+          </Fragment>
+        ))}
+      </div>
+    );
+  };
 
   // School row — compact, no numbers, school left / value right
   const SchoolRow = ({ school, value, color }) => (
@@ -958,9 +978,9 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                   userSelect: "none",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "nowrap" }}>
-                  <span style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: "#fff", background: T.accent, padding: "5px 10px", borderRadius: 4, letterSpacing: ".5px", flexShrink: 0, lineHeight: 1.3 }}>NIL</span>
-                  <Mono style={{ fontSize: 21, fontWeight: 400, letterSpacing: "1.5px", color: T.text }}>
+                <div style={{ display: "flex", alignItems: isMobile ? "center" : "center", gap: 10, flexWrap: isMobile ? "wrap" : "nowrap", justifyContent: "center" }}>
+                  <span style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: "#fff", background: T.accent, padding: "5px 10px", borderRadius: 4, letterSpacing: ".5px", flexShrink: 0, lineHeight: 1, display: "inline-flex", alignItems: "center" }}>NIL</span>
+                  <Mono style={{ fontSize: isMobile ? 16 : 21, fontWeight: 400, letterSpacing: "1.5px", color: T.text, lineHeight: 1 }}>
                     MONITOR
                     {briefingGeneratedAt && <>{" \u00B7 "}{headerMonth} {headerDay}{" \u00B7 "}{headerPeriod}</>}
                     {" "}NEWS BRIEF
@@ -1063,7 +1083,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
               {!isMobile && <Mono style={{ flex: "0 0 96px", fontSize: 12, fontWeight: 600, color: T.textDim, textTransform: "uppercase", letterSpacing: ".3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.src}</Mono>}
-              <div style={{ flex: 1, fontFamily: T.sans, fontSize: 15, fontWeight: h.sev === "critical" ? 600 : 500, color: T.text, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
+              <div style={{ flex: 1, fontFamily: T.sans, fontSize: 15, fontWeight: h.sev === "critical" ? 600 : 500, color: T.text, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", ...(isMobile ? { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", whiteSpace: "normal" } : { whiteSpace: "nowrap" }) }}>{h.title}</div>
               {h.isNew && <span style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, color: "#fff", background: T.green, padding: "2px 6px", borderRadius: 3, letterSpacing: ".5px", flexShrink: 0, textTransform: "uppercase", lineHeight: 1.3 }}>NEW</span>}
               <Mono style={{ flex: "0 0 48px", fontSize: 12, color: T.textDim, textAlign: "right" }}>{h.time}</Mono>
             </a>
@@ -1129,32 +1149,59 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                       <div
                         onClick={hasExpand ? () => setExpCase(isOpen ? null : expandId) : undefined}
                         style={{
-                          display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "10px 12px" : "6px 16px",
+                          display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 4 : 6, padding: isMobile ? "10px 12px" : "6px 16px",
                           background: `${T.accent}06`,
                           ...(hasExpand ? { cursor: "pointer" } : {}),
                         }}
                         onMouseEnter={hasExpand ? e => { e.currentTarget.style.background = `${T.accent}0c`; } : undefined}
                         onMouseLeave={hasExpand ? e => { e.currentTarget.style.background = `${T.accent}06`; } : undefined}
                       >
-                        {hasExpand && <Mono style={{ fontSize: 9, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>}
-                        <span style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 700, color: T.accent, flexShrink: 0 }}>{item.name}</span>
-                        {snippet && <span style={{ fontFamily: T.sans, fontSize: 12, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{snippet}</span>}
-                        <div style={{ flex: 1 }} />
-                        <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.5px", color: T.textDim, background: `${T.textDim}10`, padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0, width: 62, textAlign: "center", display: "inline-block" }}>
-                          {typeLabel(item.detail)}
-                        </Mono>
-                        <Mono style={{
-                          fontSize: 9, fontWeight: 700, letterSpacing: "0.5px",
-                          color: days <= 3 ? "#fff" : T.accent,
-                          background: days <= 3 ? T.accent : `${T.accent}15`,
-                          padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0,
-                          width: 48, textAlign: "center", display: "inline-block",
-                        }}>
-                          {countdownLabel(days)}
-                        </Mono>
-                        <Mono style={{ fontSize: 12, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
-                          {formatDate(item.date)}
-                        </Mono>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
+                          {hasExpand && <Mono style={{ fontSize: 9, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>}
+                          <span style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 700, color: T.accent, flexShrink: 0 }}>{item.name}</span>
+                          {!isMobile && snippet && <span style={{ fontFamily: T.sans, fontSize: 12, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{snippet}</span>}
+                          {!isMobile && <div style={{ flex: 1 }} />}
+                          {!isMobile && <>
+                            <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.5px", color: T.textDim, background: `${T.textDim}10`, padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0, width: 62, textAlign: "center", display: "inline-block" }}>
+                              {typeLabel(item.detail)}
+                            </Mono>
+                            <Mono style={{
+                              fontSize: 9, fontWeight: 700, letterSpacing: "0.5px",
+                              color: days <= 3 ? "#fff" : T.accent,
+                              background: days <= 3 ? T.accent : `${T.accent}15`,
+                              padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0,
+                              width: 48, textAlign: "center", display: "inline-block",
+                            }}>
+                              {countdownLabel(days)}
+                            </Mono>
+                            <Mono style={{ fontSize: 12, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
+                              {formatDate(item.date)}
+                            </Mono>
+                          </>}
+                        </div>
+                        {isMobile && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: hasExpand ? 15 : 0 }}>
+                            {snippet && <span style={{ fontFamily: T.sans, fontSize: 12, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{snippet}</span>}
+                          </div>
+                        )}
+                        {isMobile && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: hasExpand ? 15 : 0 }}>
+                            <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.5px", color: T.textDim, background: `${T.textDim}10`, padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap" }}>
+                              {typeLabel(item.detail)}
+                            </Mono>
+                            <Mono style={{
+                              fontSize: 9, fontWeight: 700, letterSpacing: "0.5px",
+                              color: days <= 3 ? "#fff" : T.accent,
+                              background: days <= 3 ? T.accent : `${T.accent}15`,
+                              padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap",
+                            }}>
+                              {countdownLabel(days)}
+                            </Mono>
+                            <Mono style={{ fontSize: 12, color: T.textDim, whiteSpace: "nowrap" }}>
+                              {formatDate(item.date)}
+                            </Mono>
+                          </div>
+                        )}
                       </div>
                       {hasExpand && (
                         <div style={{
@@ -1223,22 +1270,41 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                       <div
                         onClick={hasExpand ? () => setExpCase(isOpen ? null : item.id) : undefined}
                         style={{
-                          display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "10px 12px" : "6px 16px",
+                          display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 4 : 6, padding: isMobile ? "10px 12px" : "6px 16px",
                           ...(hasExpand ? { cursor: "pointer" } : {}),
                         }}
                         onMouseEnter={hasExpand ? e => { e.currentTarget.style.background = T.surfaceAlt; } : undefined}
                         onMouseLeave={hasExpand ? e => { e.currentTarget.style.background = "transparent"; } : undefined}
                       >
-                        {hasExpand && <Mono style={{ fontSize: 9, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>}
-                        <span style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 700, color: T.text, flexShrink: 0 }}>{item.name}</span>
-                        {snippet && <span style={{ fontFamily: T.sans, fontSize: 12, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{snippet}</span>}
-                        <div style={{ flex: 1 }} />
-                        <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.5px", color: T.textDim, background: `${T.textDim}10`, padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0, width: 62, textAlign: "center", display: "inline-block" }}>
-                          FILING
-                        </Mono>
-                        <Mono style={{ fontSize: 12, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
-                          {item.dateStr}
-                        </Mono>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
+                          {hasExpand && <Mono style={{ fontSize: 9, color: T.textDim, transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", flexShrink: 0 }}>▸</Mono>}
+                          <span style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 700, color: T.text, flexShrink: 0 }}>{item.name}</span>
+                          {!isMobile && snippet && <span style={{ fontFamily: T.sans, fontSize: 12, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{snippet}</span>}
+                          {!isMobile && <div style={{ flex: 1 }} />}
+                          {!isMobile && <>
+                            <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.5px", color: T.textDim, background: `${T.textDim}10`, padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap", flexShrink: 0, width: 62, textAlign: "center", display: "inline-block" }}>
+                              FILING
+                            </Mono>
+                            <Mono style={{ fontSize: 12, color: T.textDim, flexShrink: 0, whiteSpace: "nowrap", width: 48, textAlign: "right" }}>
+                              {item.dateStr}
+                            </Mono>
+                          </>}
+                        </div>
+                        {isMobile && snippet && (
+                          <div style={{ paddingLeft: hasExpand ? 15 : 0 }}>
+                            <span style={{ fontFamily: T.sans, fontSize: 12, color: T.textDim }}>{snippet}</span>
+                          </div>
+                        )}
+                        {isMobile && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: hasExpand ? 15 : 0 }}>
+                            <Mono style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.5px", color: T.textDim, background: `${T.textDim}10`, padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap" }}>
+                              FILING
+                            </Mono>
+                            <Mono style={{ fontSize: 12, color: T.textDim, whiteSpace: "nowrap" }}>
+                              {item.dateStr}
+                            </Mono>
+                          </div>
+                        )}
                       </div>
                       {hasExpand && (
                         <div style={{
@@ -1506,7 +1572,7 @@ export default function NILMonitor() {
         {/* Left: brand + live + date */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: isMobile ? 12 : 20 }}>
           <span style={{ fontFamily: T.mono, fontSize: 17, fontWeight: 700, color: "#fff", background: T.accent, padding: "5px 10px", borderRadius: 5, letterSpacing: ".5px" }}>NIL</span>
-          {!isMobile && <span style={{ fontFamily: T.mono, fontSize: 17, fontWeight: 400, color: "#fff", letterSpacing: "1.5px" }}>MONITOR</span>}
+          <span style={{ fontFamily: T.mono, fontSize: isMobile ? 14 : 17, fontWeight: 400, color: "#fff", letterSpacing: "1.5px" }}>MONITOR</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: isMobile ? 0 : 20 }}>
           <span style={{ width: 10, height: 10, borderRadius: "50%", background: T.green, display: "inline-block", animation: "pulse-live 2s ease-in-out infinite" }} />
