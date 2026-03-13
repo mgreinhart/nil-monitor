@@ -455,62 +455,44 @@ Return ONLY valid JSON, no other text.`;
 
   const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-  const yesterdayET = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); })();
+  // ── Anti-repetition: fetch most recent briefing regardless of AM/PM/date ──
+  let antiRepetitionBlock = '';
+  try {
+    const prevBriefing = await db.prepare(
+      "SELECT content FROM briefings ORDER BY date DESC, generated_at DESC LIMIT 1"
+    ).first();
+    if (prevBriefing?.content) {
+      const prevSections = JSON.parse(prevBriefing.content);
+      const prevHeadlines = prevSections
+        .filter(s => s && typeof s.headline === 'string' && s.headline.trim().length > 0)
+        .map(s => `• ${s.short_title || ''}: ${s.headline}`.trim());
+      if (prevHeadlines.length > 0) {
+        antiRepetitionBlock = `
+ANTI-REPETITION RULE: Here are the items from the most recent briefing that was published:
+${prevHeadlines.join('\n')}
 
-  let userContent;
-  if (isAfternoon) {
-    // Fetch this morning's briefing — carry-over is fine for impactful items
-    const morningBriefing = await db.prepare(
-      "SELECT content FROM briefings WHERE date = ? ORDER BY id DESC LIMIT 1"
-    ).bind(todayET).first();
-    const morningContent = morningBriefing?.content || '[]';
-    const morningText = JSON.parse(morningContent)
-      .map(s => `• ${s.headline} ${s.body}`)
-      .join('\n');
+Do NOT repeat any of these items unless there is a MATERIAL UPDATE -- meaning a new court ruling, a new vote, a new filing, a new statement from a named official, or a quantitative change (dollar amount, vote count, date change). Simply having more outlets cover the same story is NOT a material update. If one of these stories has a genuine new development, lead with what's new, not a recap of the original story.
 
-    userContent = `Generate the afternoon update for ${today}. You must return EXACTLY 4 sections.
+If all the top stories were already covered and nothing materially new has happened, prioritize:
+- Stories from the last 18 hours that were NOT in the previous briefing, even if they are lower severity
+- Upcoming deadlines within 7 days that have not been flagged yet
+- New data points, studies, or surveys
+- Institutional actions (new hires, facility investments, contract structures) with systemic implications
 
-This morning's briefing covered:
-${morningText || 'No morning briefing was generated.'}
-
-CRITICAL: Prioritize headlines that represent GENUINELY NEW information not covered in this morning's briefing. Stories that did not appear in the AM brief should be strongly preferred over carry-over items. Only carry over a morning item if (a) it is still the single most important story of the day AND (b) there is meaningful new context to add — not just a rewrite. If the headlines contain 3+ genuinely new developments, all 4 sections should be new stories. The PM briefing's primary job is to surface what changed SINCE the morning, not to rehash it.
-
-TODAY'S HEADLINES (tagged by severity):
-${headlineList || 'No new headlines today.'}
-
-UPCOMING DEADLINES (next 14 days):
-${deadlineList || 'No imminent deadlines.'}
-
-Return JSON (EXACTLY 4 sections):
-{
-  "sections": [
-    {
-      "short_title": "Punchy 6-10 word title for this item",
-      "headline": "Bold opening sentence stating what happened.",
-      "body": "One to two sentences of context or action items. No more.",
-      "source_index": 0
+A briefing that surfaces 4 genuinely new items is always better than one that recaps 3 known items plus 1 new one.
+`;
+      }
     }
-  ]
-}`;
-  } else {
-    // Fetch yesterday's last briefing so the morning avoids repeating it
-    const yesterdayBriefing = await db.prepare(
-      "SELECT content FROM briefings WHERE date = ? ORDER BY id DESC LIMIT 1"
-    ).bind(yesterdayET).first();
-    const yesterdayContent = yesterdayBriefing?.content || '[]';
-    const yesterdayText = JSON.parse(yesterdayContent)
-      .map(s => `• ${s.headline}`)
-      .join('\n');
+  } catch (e) {
+    console.log('Briefing: could not fetch previous briefing for anti-repetition:', e.message);
+  }
 
-    const yesterdayBlock = yesterdayText
-      ? `\nYESTERDAY'S BRIEFING (do NOT repeat these unless there is a major new development to add):\n${yesterdayText}\n`
-      : '';
+  const periodLabel = isAfternoon ? 'afternoon update' : 'morning briefing';
 
-    userContent = `Generate the morning briefing for ${today}. You must return EXACTLY 4 sections.
+  const userContent = `Generate the ${periodLabel} for ${today}. You must return EXACTLY 4 sections.
 
 Lead with today's most important developments. If today's headlines don't fill all 4 sections, use remaining sections for upcoming deadlines or developments to watch this week.
-${yesterdayBlock}
+${antiRepetitionBlock}
 TODAY'S HEADLINES (tagged by severity):
 ${headlineList || 'No headlines yet today.'}
 
@@ -528,7 +510,6 @@ Return JSON (EXACTLY 4 sections):
     }
   ]
 }`;
-  }
 
   // Retry once on failure (2-min wait between attempts for cron runs)
   let sections = null;
