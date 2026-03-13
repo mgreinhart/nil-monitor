@@ -539,6 +539,17 @@ const TITLE_RELEVANCE_RE = new RegExp([
   // Facilities — require college context + financial signal
   '(?:college|university).*(?:arena|stadium).*(?:\\$\\d|million|bond|vote|approv|construction|renovation)',
   '(?:arena|stadium).*(?:college|university).*(?:\\$\\d|million|bond|vote|approv|construction|renovation)',
+  // Governance bodies — regents, trustees with athletic context
+  '\\b(?:board\\s+of\\s+regents|regents)\\b.*(?:athlet|college|universit|nil|revenue|private\\s+equity|oversight|autonom)',
+  '(?:athlet|college|universit).*\\b(?:board\\s+of\\s+regents|regents)\\b',
+  // Athletic entity structures — LLCs, ventures, privatization
+  '(?:athlet|college|university).*(?:\\bllc\\b|\\bventure[s]?\\b|privatiz)',
+  '(?:\\bllc\\b|\\bventure[s]?\\b|privatiz).*(?:athlet|college|university)',
+  // Athlete advocacy organizations
+  '\\bathletes\\.org\\b',
+  // Executive orders on college sports
+  'executive\\s+order.*(?:college|ncaa|nil|athlete)',
+  '(?:college|ncaa|nil|athlete).*executive\\s+order',
   // Industry association
   '\\bnacda\\b',
   // Revenue operations — sponsorship, naming rights, premium seating, fundraising

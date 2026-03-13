@@ -110,6 +110,18 @@ const QUERIES = [
   '"AD" "contract extension" college OR university athletics',
   // 247Sports coverage (no RSS)
   'site:247sports.com NIL OR "revenue sharing" OR "transfer portal" OR "athletic director"',
+  // Executive orders on college sports
+  '"executive order" college sports OR NCAA',
+  // Board of regents + athletics
+  '"board of regents" athletics OR "college sports" OR "private equity"',
+  // NCAA/NIL damages lawsuits
+  '"NCAA damages" OR "NIL damages" lawsuit',
+  // College athletics entity structures (LLCs, ventures, privatization)
+  '"college athletics" LLC OR venture OR "private entity"',
+  // Athlete surveys and advocacy
+  '"athlete survey" OR "player survey" college OR NCAA',
+  // NIL fund donations / coach salary contributions
+  '"NIL fund" coach OR donation OR salary',
   // Coverage gaps — policy memos, endowments, program cuts, apparel
   '"conference" memo OR guidance OR policy NIL OR "uniform patch" OR compliance',
   '"endowed" OR "endowment" college OR university athletics OR "athletic department"',

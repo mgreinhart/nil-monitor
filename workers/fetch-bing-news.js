@@ -69,6 +69,16 @@ const QUERIES = [
   '"SEC governance" OR "SEC self-governance" OR "SEC autonomy"',
   // AD contract extensions
   '"athletic director" "contract extension" OR "contract renewal"',
+  // Executive orders on college sports
+  '"executive order" college sports OR NCAA',
+  // Board of regents + athletics
+  '"board of regents" athletics OR "college sports"',
+  // NCAA/NIL damages lawsuits
+  '"NCAA damages" OR "NIL damages" lawsuit',
+  // College athletics entity structures
+  '"college athletics" LLC OR venture OR privatization',
+  // NIL fund donations
+  '"NIL fund" coach OR donation OR salary',
   // D1 ticker coverage gaps — coaching contracts, NIL ops, emerging sports, governance
   '"coaching contract" college OR university extension OR salary',
   '"NIL collective" restructuring OR operations',

@@ -86,8 +86,8 @@ Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use sha
 
 | Fetcher | Source | Queries/Feeds | Table | Cooldown | Auth |
 |---------|--------|---------------|-------|----------|------|
-| `fetch-google-news.js` | Google News RSS | 99 queries | headlines | 15–30 min | None |
-| `fetch-bing-news.js` | Bing News RSS | 57 queries | headlines | 15–30 min | None |
+| `fetch-google-news.js` | Google News RSS | 105 queries | headlines | 15–30 min | None |
+| `fetch-bing-news.js` | Bing News RSS | 62 queries | headlines | 15–30 min | None |
 | `fetch-newsdata.js` | NewsData.io API | 18 queries | headlines | 30–60 min | `NEWSDATA_KEY` |
 | `fetch-ncaa-rss.js` | NCAA.com RSS | 3 feeds | headlines | 15–30 min | None |
 | `fetch-courtlistener.js` | CourtListener RECAP | — | cases | 120–240 min | Optional token |
@@ -461,6 +461,23 @@ Removed early in development — too heavy. Do not re-attempt.
 26. **Google News queries (+5)** — Added: conference governance/self-governance/autonomy, SEC governance, AD contract extension/renewal, AD abbreviation + extension + college context, 247Sports site: query for NIL/revenue sharing/transfer portal/AD.
 27. **Bing News queries (+3)** — Added: conference governance/self-governance, SEC governance, AD contract extension/renewal.
 
+### Fetcher Coverage Gap Fix #2 — D1 Ticker Stories (2026-03-13)
+
+28. **Relevance gate: board of regents** — Added `board of regents|regents` + athletics/university/oversight/autonomy context. Catches regents governance votes affecting athletics.
+29. **Relevance gate: entity structures** — Added patterns for college athletics + LLC/ventures/privatization. Catches "Spartan Ventures" and athletics privatization stories.
+30. **Relevance gate: Athletes.org** — Added `\bathletes\.org\b` standalone pattern (always relevant).
+31. **Relevance gate: executive orders** — Added `executive order` + college/NCAA/NIL/athlete context.
+32. **Google News queries (+6, now 105)** — Added: executive orders on college sports, board of regents + athletics, NCAA/NIL damages lawsuits, college athletics LLC/venture/private entity, athlete/player surveys, NIL fund donations.
+33. **Bing News queries (+5, now 62)** — Added: executive orders, board of regents, NCAA/NIL damages, college athletics LLC/venture/privatization, NIL fund donations.
+34. **Anti-repetition rule** — Briefing generation now fetches the most recent previous briefing and passes its headlines into the prompt. Claude avoids repeating items unless there's a material update (new ruling, filing, vote, quantitative change). Replaces separate AM/PM briefing fetch logic.
+
+**Investigation findings:**
+- All 6 D1 ticker stories confirmed missing from headlines table
+- All 6 are present in Google News RSS when searched directly
+- 247Sports has no RSS feed (returns HTML page) — `site:247sports.com` Google query is the only path
+- The Athletic college sports RSS is working but limited to ~20 items — the WKU/Collins story didn't make the cut. Known limitation.
+- SBJ remains paywalled with no RSS — the Phillips/SCORE Act story reached us via ESPN and FOS coverage
+
 ### AI Pipeline Tagging Fix (ai-pipeline.js)
 
 19. **Off-Topic guardrails** — 5 explicit rules preventing NIL headlines, college viewership, federal government actions, and non-sports outlet content from being mistagged as Off-Topic
@@ -489,7 +506,7 @@ Removed early in development — too heavy. Do not re-attempt.
 
 ## Headline Filtering Rules (full pipeline)
 
-1. **Relevance gate** (`fetcher-utils.js: isTitleRelevant`) — Strict regex match for NIL, NCAA, college athletics, transfer portal, revenue sharing, eligibility, lawsuits, jersey patches, above-cap, athletic fees, media rights, naming rights, premium seating, sponsorship, fundraising, ticket sales, fan rewards, conference governance/self-governance/autonomy/enforcement, AD abbreviation with university context — all with college/university/athletic context. Applied by Tier 2 publications, all aggregator fetchers, NCAA RSS. Tier 1 publications skip this gate.
+1. **Relevance gate** (`fetcher-utils.js: isTitleRelevant`) — Strict regex match for NIL, NCAA, college athletics, transfer portal, revenue sharing, eligibility, lawsuits, jersey patches, above-cap, athletic fees, media rights, naming rights, premium seating, sponsorship, fundraising, ticket sales, fan rewards, conference governance/self-governance/autonomy/enforcement, AD abbreviation with university context, board of regents with athletics/oversight context, college athletics LLC/ventures/privatization, Athletes.org, executive orders on college sports — all with college/university/athletic context. Applied by Tier 2 publications, all aggregator fetchers, NCAA RSS. Tier 1 publications skip this gate.
 2. **Game noise filter** (`fetcher-utils.js: isGameNoise`) — Rejects game recaps, brackets, draft/combine coverage, recruiting noise, pro sports transactions, sportsbooks, power rankings, coaching carousel, player features. ~100 patterns. Business signals (NIL, NCAA governance, CSC, revenue sharing, legislation, antitrust, jersey patch, above-cap, athletic fee, apparel, facility funding, sponsorship, naming rights, premium seating, philanthropy, fan rewards) always pass through via `BUSINESS_SIGNAL_RE`.
 2b. **Pro sports noise filter** (`fetcher-utils.js: isProSportsNoise`) — Rejects NFL/NBA/MLB/NHL/MLS/FIFA/World Cup/Copa America/WBC/spring training/Olympics/experience economy headlines. Applied after game noise filter in publications and at insert time in fetcher-utils.
 3. **URL dedup** — `headlines.url` has UNIQUE constraint. URLs normalized (strip UTM params, fragments, www, trailing slashes).
@@ -582,8 +599,8 @@ workers/
   ai-pipeline.js       — 3 active AI tasks (tag, CSC detect, briefing)
   fetcher-utils.js     — Shared: cooldowns, dedup cache (Jaccard), noise filter, relevance gate
   rss-parser.js        — Regex-based RSS parser (no DOMParser in Workers)
-  fetch-google-news.js — Google News RSS (99 queries)
-  fetch-bing-news.js   — Bing News RSS (57 queries)
+  fetch-google-news.js — Google News RSS (105 queries)
+  fetch-bing-news.js   — Bing News RSS (62 queries)
   fetch-newsdata.js    — NewsData.io API (18 queries)
   fetch-ncaa-rss.js    — NCAA.com RSS (3 feeds)
   fetch-courtlistener.js — CourtListener RECAP (dormant)
