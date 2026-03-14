@@ -707,7 +707,8 @@ export async function handleApi(request, env) {
         }
         if (phase === 'ai' || phase === 'all') {
           log.push(`anthropic-key: ${env.ANTHROPIC_KEY ? 'set' : 'missing'}`);
-          const isAfternoon = new Date().getUTCHours() >= 20;
+          const etH = parseInt(new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }), 10);
+          const isAfternoon = etH >= 12;
           await runAIPipeline(env, { includeBriefing: true, isAfternoon });
           log.push('ai-pipeline: ok');
         }

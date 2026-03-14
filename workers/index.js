@@ -1,12 +1,15 @@
 // ═══════════════════════════════════════════════════════════════════
 //  NIL MONITOR — Worker Entry Point
 //  Three cron patterns:
-//    0,30 * * * *        — Group A fetchers (high-volume news)
-//    7,37 * * * *        — Group B fetchers (lighter/supplemental)
-//    0 10,11,20,21 * * * — AI pipeline (6 AM / 4 PM ET, auto-DST)
+//    0,30 * * * *         — Group A fetchers (high-volume news)
+//    7,37 * * * *         — Group B fetchers (lighter/supplemental)
+//    0 10,11,19,20 * * *  — AI pipeline (6 AM / 3 PM ET, auto-DST)
 //
-//  AI pipeline fires at all four candidate UTC hours; the handler
-//  checks the actual US-Eastern hour and skips if it's not 6 or 16.
+//  AI pipeline fires at 4 UTC hours; the handler checks the actual
+//  US-Eastern hour and day-of-week:
+//    - Weekdays: morning (6 AM ET) + afternoon (3 PM ET)
+//    - Saturday: no briefs
+//    - Sunday: afternoon only (3 PM ET)
 //
 //  Splitting fetchers across two cron ticks halves the CPU budget
 //  per invocation, preventing Cloudflare from killing the Worker.
@@ -62,15 +65,28 @@ export default {
     const cron = event.cron || '';
     console.log(`Cron trigger fired: ${cron}`);
 
-    if (cron === '0 10,11,20,21 * * *') {
-      // AI pipeline — fires at 4 UTC hours; only runs when ET hour is 6 or 16
+    if (cron === '0 10,11,19,20 * * *') {
+      // AI pipeline — fires at 4 UTC hours; only runs when ET hour is 6 or 15
+      const now = new Date();
       const etHour = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false });
       const h = parseInt(etHour, 10);
-      if (h !== 6 && h !== 16) {
-        console.log(`AI pipeline skipped — ET hour is ${h}, not 6 or 16`);
+      if (h !== 6 && h !== 15) {
+        console.log(`AI pipeline skipped — ET hour is ${h}, not 6 or 15`);
         return;
       }
-      const isAfternoon = h === 16;
+
+      // Weekend schedule: Saturday = no briefs, Sunday = afternoon only
+      const etDay = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' })).getDay();
+      if (etDay === 6) {
+        console.log('AI pipeline skipped — Saturday, no briefs');
+        return;
+      }
+      if (etDay === 0 && h === 6) {
+        console.log('AI pipeline skipped — Sunday morning, afternoon only');
+        return;
+      }
+
+      const isAfternoon = h === 15;
       ctx.waitUntil(
         runAIPipeline(env, { includeBriefing: true, isAfternoon })
           .catch(e => console.error('ai-pipeline cron error:', e.message))
