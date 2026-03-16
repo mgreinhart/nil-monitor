@@ -1236,7 +1236,6 @@ ${rssItems}
     for (const slug of ALL_CAT_SLUGS) {
       urls += `\n  <url><loc>https://nilmonitor.com/news/${slug}</loc><changefreq>hourly</changefreq><priority>0.8</priority></url>`;
     }
-    urls += `\n  <url><loc>https://nilmonitor.com/briefing</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`;
     for (const row of briefingDates) {
       urls += `\n  <url><loc>https://nilmonitor.com/briefing/${row.date}</loc><changefreq>daily</changefreq><priority>0.6</priority></url>`;
     }
