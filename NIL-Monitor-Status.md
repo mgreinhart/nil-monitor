@@ -80,7 +80,7 @@ ID: `c205339b-2bde-4f06-ab64-bedef8db1f53`, name: `nil-monitor-db`
 
 ## What's Working
 
-### Data Fetchers (11 functions from 10 files, two-group cron split)
+### Data Fetchers (11 functions from 10 files, three-group cron split)
 
 Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use shared utilities from `fetcher-utils.js` (ET timezone, cooldowns, entity decoding, URL normalization, game-noise filtering, keyword categorization, relevance gating, Jaccard-based headline dedup cache).
 
@@ -131,9 +131,9 @@ Multi-layer dedup system:
 
 Cache pre-loaded once per cron invocation (`loadDedupCache`) to avoid per-headline DB queries. Updated in-memory as headlines are inserted so parallel fetchers see each other's inserts.
 
-### AI Pipeline (cron `0 10,11,20,21 * * *` — DST-aware, 6 AM / 4 PM ET)
+### AI Pipeline (cron `0 10,11,19,20 * * *` — DST-aware, 6 AM / 3 PM ET)
 
-Fires at all four candidate UTC hours; handler checks actual ET hour and only runs when h=6 or h=16. This ensures correct timing across EST/EDT transitions.
+Fires at all four candidate UTC hours; handler checks actual ET hour and only runs when h=6 or h=15. This ensures correct timing across EST/EDT transitions. Weekend schedule: Saturday = no briefs, Sunday = afternoon only (3 PM ET).
 
 Uses `claude-sonnet-4-5-20250929`, 4096 max tokens per response. Three active tasks:
 
@@ -582,14 +582,15 @@ Design tokens in the `T` object at top of `App.jsx`:
 From `wrangler.toml`:
 
 ```
-crons = ["0,30 * * * *", "7,37 * * * *", "0 10,11,20,21 * * *"]
+crons = ["0,30 * * * *", "10,40 * * * *", "7,37 * * * *", "0 10,11,19,20 * * *"]
 ```
 
-- `0,30 * * * *` — **Group A** fetchers (high-volume news): Google News, Bing News, NewsData, Publications, NCAA RSS
+- `0,30 * * * *` — **Group A1** fetchers: Google News (105q), NCAA RSS, NewsData
+- `10,40 * * * *` — **Group A2** fetchers: Bing News (62q), Publications (24 feeds)
 - `7,37 * * * *` — **Group B** fetchers (lighter/supplemental): CourtListener, NIL Revolution, CSLT (cases + key dates), Podcasts, CFBD
-- `0 10,11,20,21 * * *` — AI pipeline (fires at 4 UTC hours; handler checks actual ET hour, only runs when h=6 or h=16, auto-adjusting for DST)
+- `0 10,11,19,20 * * *` — AI pipeline (fires at 4 UTC hours; handler checks actual ET hour, only runs when h=6 or h=15, auto-adjusting for DST). Weekdays: AM+PM. Saturday: none. Sunday: PM only.
 
-Splitting fetchers into two staggered groups halves the CPU budget per invocation, preventing Cloudflare from killing the Worker.
+Splitting fetchers into three staggered groups keeps each invocation under Cloudflare's free-tier CPU limit. Group A was split into A1/A2 after query additions (94→105 Google, 54→62 Bing) caused CPU timeout.
 
 ---
 

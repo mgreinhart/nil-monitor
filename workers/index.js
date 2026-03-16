@@ -1,7 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════
 //  NIL MONITOR — Worker Entry Point
-//  Three cron patterns:
-//    0,30 * * * *         — Group A fetchers (high-volume news)
+//  Four cron patterns:
+//    0,30 * * * *         — Group A1 fetchers (Google News, NCAA, NewsData)
+//    10,40 * * * *        — Group A2 fetchers (Bing News, Publications)
 //    7,37 * * * *         — Group B fetchers (lighter/supplemental)
 //    0 10,11,19,20 * * *  — AI pipeline (6 AM / 3 PM ET, auto-DST)
 //
@@ -11,8 +12,8 @@
 //    - Saturday: no briefs
 //    - Sunday: afternoon only (3 PM ET)
 //
-//  Splitting fetchers across two cron ticks halves the CPU budget
-//  per invocation, preventing Cloudflare from killing the Worker.
+//  Group A was split into A1/A2 to stay under Cloudflare's free-tier
+//  CPU limit (Google 105 + Bing 62 queries was too heavy together).
 // ═══════════════════════════════════════════════════════════════════
 
 import { handleApi } from './api.js';
@@ -37,13 +38,17 @@ function safeFetch(name, fn, env) {
   });
 }
 
-// Group A: high-volume news aggregators (heaviest CPU/network)
-const GROUP_A = [
+// Group A1: heaviest aggregators (Google News 105 queries + lighter feeds)
+const GROUP_A1 = [
   ['google-news', fetchGoogleNews],
-  ['bing-news', fetchBingNews],
-  ['newsdata', fetchNewsData],
-  ['publications', fetchPublications],
   ['ncaa-rss', fetchNCAANews],
+  ['newsdata', fetchNewsData],
+];
+
+// Group A2: second-heaviest aggregators (Bing News 62 queries + publications 24 feeds)
+const GROUP_A2 = [
+  ['bing-news', fetchBingNews],
+  ['publications', fetchPublications],
 ];
 
 // Group B: lighter / supplemental sources
@@ -93,9 +98,14 @@ export default {
       );
     } else {
       // Determine which group to run based on cron pattern
-      const isGroupA = cron === '0,30 * * * *';
-      const fetchers = isGroupA ? GROUP_A : GROUP_B;
-      const label = isGroupA ? 'A' : 'B';
+      let fetchers, label;
+      if (cron === '0,30 * * * *') {
+        fetchers = GROUP_A1; label = 'A1';
+      } else if (cron === '10,40 * * * *') {
+        fetchers = GROUP_A2; label = 'A2';
+      } else {
+        fetchers = GROUP_B; label = 'B';
+      }
 
       console.log(`Running fetcher group ${label} (${fetchers.length} fetchers)`);
 
