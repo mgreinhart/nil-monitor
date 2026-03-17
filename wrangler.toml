@@ -14,4 +14,4 @@ database_id = "c205339b-2bde-4f06-ab64-bedef8db1f53"
 # AI pipeline at 10,11,19,20 UTC — worker checks actual ET hour to auto-adjust for DST
 # Morning brief: 6 AM ET (weekdays only). Afternoon brief: 3 PM ET (weekdays + Sunday).
 # Saturday: no briefs. Sunday: afternoon only.
-crons = ["0,30 * * * *", "10,40 * * * *", "7,37 * * * *", "0 10,11,19,20 * * *"]
+crons = ["0,30 * * * *", "10,40 * * * *", "7,37 * * * *", "25 10,11,19,20 * * *"]

@@ -1,10 +1,13 @@
 // ═══════════════════════════════════════════════════════════════════
 //  NIL MONITOR — Worker Entry Point
 //  Four cron patterns:
-//    0,30 * * * *         — Group A1 fetchers (Google News, NCAA, NewsData)
-//    10,40 * * * *        — Group A2 fetchers (Bing News, Publications)
-//    7,37 * * * *         — Group B fetchers (lighter/supplemental)
-//    0 10,11,19,20 * * *  — AI pipeline (6 AM / 3 PM ET, auto-DST)
+//    0,30 * * * *          — Group A1 fetchers (Google News, NCAA, NewsData)
+//    10,40 * * * *         — Group A2 fetchers (Bing News, Publications)
+//    7,37 * * * *          — Group B fetchers (lighter/supplemental)
+//    25 10,11,19,20 * * *  — AI pipeline (6 AM / 3 PM ET, auto-DST)
+//
+//  Pipeline fires at :25 past the hour (not :00) so fetcher groups
+//  A1 (:00), B (:07), and A2 (:10) finish inserting headlines first.
 //
 //  AI pipeline fires at 4 UTC hours; the handler checks the actual
 //  US-Eastern hour and day-of-week:
@@ -70,7 +73,7 @@ export default {
     const cron = event.cron || '';
     console.log(`Cron trigger fired: ${cron}`);
 
-    if (cron === '0 10,11,19,20 * * *') {
+    if (cron === '25 10,11,19,20 * * *') {
       // AI pipeline — fires at 4 UTC hours; only runs when ET hour is 6 or 15
       const now = new Date();
       const etHour = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false });

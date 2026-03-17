@@ -211,7 +211,7 @@ Return JSON:
 
 export async function tagHeadlines(env, db) {
   const { results: untagged } = await db.prepare(
-    'SELECT id, source, title, url FROM headlines WHERE category IS NULL OR severity IS NULL ORDER BY published_at DESC LIMIT 200'
+    'SELECT id, source, title, url FROM headlines WHERE category IS NULL OR severity IS NULL ORDER BY published_at DESC LIMIT 500'
   ).all();
 
   console.log(`Tagging: found ${untagged.length} untagged headlines`);
@@ -650,6 +650,9 @@ export async function runAIPipeline(env, options = {}) {
     console.log('AI Pipeline: no ANTHROPIC_KEY configured, skipping');
     return;
   }
+
+  // Clear stale errors from previous runs (module-level array persists across isolate reuse)
+  PIPELINE_ERRORS.length = 0;
 
   console.log('AI Pipeline: starting...');
   const db = env.DB;
