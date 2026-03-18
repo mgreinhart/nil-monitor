@@ -2,32 +2,48 @@
 //  API Handler — Serves D1 data as JSON
 // ═══════════════════════════════════════════════════════════════════
 
-const CORS = {
+const PUBLIC_CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-function json(data, status = 200) {
+// Admin endpoints: no CORS (same-origin only)
+const ADMIN_CORS = {
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+function json(data, status = 200, cors = PUBLIC_CORS) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json', ...CORS },
+    headers: { 'Content-Type': 'application/json', ...cors },
   });
 }
 
 /**
- * Check admin authentication via cookie or query param.
- * Returns true if authed, 'set-cookie' if key param matched (need to set cookie),
- * or false if not authed. If ADMIN_KEY is not set, always returns true (dev mode).
+ * Derive a session token from the admin key using HMAC-SHA256.
+ * Token is deterministic for a given key, so no server-side session state needed.
  */
-function checkAdminAuth(request, env) {
+async function deriveAdminToken(adminKey) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', enc.encode(adminKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode('nil-monitor-admin-session'));
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Check admin authentication via cookie.
+ * Returns true if authed, or false if not authed.
+ * If ADMIN_KEY is not set, always returns true (dev mode).
+ */
+async function checkAdminAuth(request, env) {
   if (!env.ADMIN_KEY) return true;
-  const url = new URL(request.url);
-  if (url.searchParams.get('key') === env.ADMIN_KEY) return 'set-cookie';
   const cookies = request.headers.get('Cookie') || '';
   const match = cookies.match(/admin_token=([^;]+)/);
-  if (match && match[1] === env.ADMIN_KEY) return true;
-  return false;
+  if (!match) return false;
+  const expected = await deriveAdminToken(env.ADMIN_KEY);
+  return match[1] === expected;
 }
 
 function adminLoginPage() {
@@ -246,7 +262,7 @@ async function buildAdminDashboard(env) {
   const fetcherRowsHtml = fetchers.map(f => {
     const freq = f.inSkip ? '<span style="color:#475569">sleeping</span>' : adminCooldown(f.cooldown);
     const errHtml = f.lastError
-      ? `<br><span style="color:#ef4444;font-size:11px" title="${f.lastError}">err ${adminTimestamp(f.lastErrorAt)}: ${f.lastError.slice(0, 60)}</span>`
+      ? `<br><span style="color:#ef4444;font-size:11px" title="${escHtml(f.lastError)}">err ${adminTimestamp(f.lastErrorAt)}: ${escHtml(f.lastError.slice(0, 60))}</span>`
       : '';
     return `<tr><td>${statusDot(f.status)}</td><td>${f.name}${errHtml}</td><td>${f.label}</td><td>${freq}</td></tr>`;
   }).join('');
@@ -403,7 +419,7 @@ function getEarliestUpcoming(upcomingJson) {
 
 export async function handleApi(request, env) {
   if (request.method === 'OPTIONS') {
-    return new Response(null, { headers: CORS });
+    return new Response(null, { headers: PUBLIC_CORS });
   }
 
   const url = new URL(request.url);
@@ -469,7 +485,7 @@ export async function handleApi(request, env) {
     // Headlines
     if (path === '/api/headlines') {
       const cat = url.searchParams.get('cat');
-      const limit = parseInt(url.searchParams.get('limit') || '50');
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '50') || 50, 200);
       let query = "SELECT * FROM headlines WHERE (category IS NULL OR category != 'Off-Topic') ORDER BY published_at DESC LIMIT ?";
       const params = [limit];
       if (cat && cat !== 'All') {
@@ -643,11 +659,12 @@ export async function handleApi(request, env) {
       const form = await request.formData();
       const password = form.get('password');
       if (env.ADMIN_KEY && password === env.ADMIN_KEY) {
+        const token = await deriveAdminToken(env.ADMIN_KEY);
         return new Response(null, {
           status: 302,
           headers: {
             'Location': '/api/admin',
-            'Set-Cookie': `admin_token=${env.ADMIN_KEY}; Path=/api; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`,
+            'Set-Cookie': `admin_token=${token}; Path=/api; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`,
           },
         });
       }
@@ -659,8 +676,8 @@ export async function handleApi(request, env) {
 
     // Manual trigger for scheduled tasks (dev/admin use)
     if (path === '/api/trigger') {
-      const triggerAuth = checkAdminAuth(request, env);
-      if (!triggerAuth) return json({ error: 'Unauthorized' }, 401);
+      const triggerAuth = await checkAdminAuth(request, env);
+      if (!triggerAuth) return json({ error: 'Unauthorized' }, 401, ADMIN_CORS);
       const { loadDedupCache, clearDedupCache } = await import('./fetcher-utils.js');
       const { fetchGoogleNews } = await import('./fetch-google-news.js');
       const { fetchBingNews } = await import('./fetch-bing-news.js');
@@ -794,20 +811,15 @@ export async function handleApi(request, env) {
         log.push(`error: ${e.message}`);
       }
 
-      return json({ ok: true, phase, log });
+      return json({ ok: true, phase, log }, 200, ADMIN_CORS);
     }
 
     // Admin status dashboard (HTML)
     if (path === '/api/admin') {
-      const auth = checkAdminAuth(request, env);
+      const auth = await checkAdminAuth(request, env);
       if (!auth) return adminLoginPage();
       const html = await buildAdminDashboard(env);
-      const headers = { 'Content-Type': 'text/html; charset=utf-8', ...CORS };
-      // Set cookie if authed via ?key= param
-      if (auth === 'set-cookie') {
-        headers['Set-Cookie'] = `admin_token=${env.ADMIN_KEY}; Path=/api; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`;
-      }
-      return new Response(html, { headers });
+      return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', ...ADMIN_CORS } });
     }
 
     // ── SEO Pages ─────────────────────────────────────────────────

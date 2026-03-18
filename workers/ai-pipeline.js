@@ -341,9 +341,10 @@ function cleanBriefingText(text) {
 async function generateBriefing(env, db, isAfternoon = false) {
   // Afternoon: 18h window (today's stories only). Morning: 36h window (catches late pickups).
   const recencyHours = isAfternoon ? 18 : 36;
+  const cutoff = new Date(Date.now() - recencyHours * 3600000).toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
   const { results: rawHeadlines } = await db.prepare(
-    `SELECT * FROM headlines WHERE category IS NOT NULL AND published_at >= datetime('now', '-${recencyHours} hours') ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 100`
-  ).all();
+    `SELECT * FROM headlines WHERE category IS NOT NULL AND published_at >= ? ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 100`
+  ).bind(cutoff).all();
   // Deduplicate: group similar headlines, keep highest-tier source
   const headlines = deduplicateHeadlines(rawHeadlines);
   console.log(`Briefing: ${rawHeadlines.length} raw headlines → ${headlines.length} after dedup (${recencyHours}h window)`);
