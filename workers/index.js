@@ -1,14 +1,13 @@
 // ═══════════════════════════════════════════════════════════════════
 //  NIL MONITOR — Worker Entry Point
-//  Five cron patterns (each fetcher group runs in its own invocation):
-//    0,30 * * * *          — Google News only (76 queries)
-//    5,35 * * * *          — Bing News only (50 queries)
-//    12,42 * * * *         — Publications + NCAA RSS + NewsData
+//  Four cron patterns:
+//    0,30 * * * *          — Google News only (76 queries, isolated)
+//    10,40 * * * *         — Bing News (49q) + Publications (23) + NCAA (3) + NewsData (18)
 //    7,37 * * * *          — Lighter/supplemental fetchers
 //    25 10,11,19,20 * * *  — AI pipeline (6 AM / 3 PM ET, auto-DST)
 //
-//  Google News and Bing News are isolated into their own invocations
-//  so a CPU limit hit in one never takes down the other fetchers.
+//  Google News is isolated in its own invocation — it's the heaviest
+//  fetcher and was the primary cause of CPU limit crashes.
 //
 //  Pipeline fires at :25 past the hour (not :00) so fetcher groups
 //  finish inserting headlines before tagging runs.
@@ -42,25 +41,22 @@ function safeFetch(name, fn, env) {
   });
 }
 
-// Google News — heaviest fetcher (76 queries), isolated in own invocation
-const GROUP_GOOGLE = [
+// Group A: Google News only — heaviest fetcher (76 queries), isolated
+const GROUP_A = [
   ['google-news', fetchGoogleNews],
 ];
 
-// Bing News — second heaviest (50 queries), isolated in own invocation
-const GROUP_BING = [
+// Group B: Bing News (49q) + Publications (23 feeds) + NCAA RSS (3) + NewsData (18q)
+// Lighter than old Group A1 (105+3+18=126) thanks to Bing trim (62→49) and dedup cache 7d→3d
+const GROUP_B = [
   ['bing-news', fetchBingNews],
-];
-
-// Medium-weight feeds: Publications (23 feeds) + NCAA RSS (3) + NewsData (18 queries)
-const GROUP_FEEDS = [
   ['publications', fetchPublications],
   ['ncaa-rss', fetchNCAANews],
   ['newsdata', fetchNewsData],
 ];
 
-// Lighter / supplemental sources
-const GROUP_LIGHT = [
+// Group C: Lighter / supplemental sources
+const GROUP_C = [
   ['courtlistener', fetchCourtListener],
   ['nil-revolution', fetchNILRevolution],
   ['cslt', fetchCSLT],
@@ -108,13 +104,11 @@ export default {
       // Determine which fetcher group to run based on cron pattern
       let fetchers, label;
       if (cron === '0,30 * * * *') {
-        fetchers = GROUP_GOOGLE; label = 'Google';
-      } else if (cron === '5,35 * * * *') {
-        fetchers = GROUP_BING; label = 'Bing';
-      } else if (cron === '12,42 * * * *') {
-        fetchers = GROUP_FEEDS; label = 'Feeds';
+        fetchers = GROUP_A; label = 'A (Google)';
+      } else if (cron === '10,40 * * * *') {
+        fetchers = GROUP_B; label = 'B (Bing+Feeds)';
       } else {
-        fetchers = GROUP_LIGHT; label = 'Light';
+        fetchers = GROUP_C; label = 'C (Light)';
       }
 
       console.log(`Running fetcher group ${label} (${fetchers.length} fetchers)`);

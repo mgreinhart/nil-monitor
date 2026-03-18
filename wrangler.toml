@@ -8,9 +8,8 @@ database_name = "nil-monitor-db"
 database_id = "c205339b-2bde-4f06-ab64-bedef8db1f53"
 
 [triggers]
-# Google News  (minute :00, :30) — 76 queries, isolated
-# Bing News    (minute :05, :35) — 50 queries, isolated
-# Feeds        (minute :12, :42) — Publications (23) + NCAA RSS (3) + NewsData (18)
-# Light        (minute :07, :37) — CourtListener, NIL Revolution, CSLT, Podcasts, CFBD
-# AI pipeline  (minute :25 at hours 10,11,19,20 UTC) — checks ET hour for DST
-crons = ["0,30 * * * *", "5,35 * * * *", "12,42 * * * *", "7,37 * * * *", "25 10,11,19,20 * * *"]
+# Group A  (minute :00, :30) — Google News only (76 queries, isolated)
+# Group B  (minute :10, :40) — Bing News (49q) + Publications (23) + NCAA RSS (3) + NewsData (18)
+# Group C  (minute :07, :37) — lighter/supplemental fetchers
+# Pipeline (minute :25 at hours 10,11,19,20 UTC) — checks ET hour for DST
+crons = ["0,30 * * * *", "10,40 * * * *", "7,37 * * * *", "25 10,11,19,20 * * *"]

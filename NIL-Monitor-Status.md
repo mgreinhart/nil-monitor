@@ -80,18 +80,17 @@ ID: `c205339b-2bde-4f06-ab64-bedef8db1f53`, name: `nil-monitor-db`
 
 ## What's Working
 
-### Data Fetchers (11 functions from 10 files, five-group cron split)
+### Data Fetchers (11 functions from 10 files, four-group cron split)
 
 Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use shared utilities from `fetcher-utils.js` (ET timezone, cooldowns, entity decoding, URL normalization, game-noise filtering, keyword categorization, relevance gating, Jaccard-based headline dedup cache).
 
-**Cron schedule (5 groups, each isolated in its own Worker invocation):**
+**Cron schedule (4 groups — Cloudflare free tier limit is 4 cron triggers):**
 
 | Group | Cron | Fetchers | Notes |
 |-------|------|----------|-------|
-| Google | `:00, :30` | `fetch-google-news.js` (76 queries) | Heaviest fetcher, isolated |
-| Bing | `:05, :35` | `fetch-bing-news.js` (49 queries) | Second heaviest, isolated |
-| Feeds | `:12, :42` | `fetch-publications.js` (23 feeds) + `fetch-ncaa-rss.js` (3) + `fetch-newsdata.js` (18) | Medium weight |
-| Light | `:07, :37` | CourtListener, NIL Revolution, CSLT (×2), Podcasts, CFBD | Lightweight |
+| A (Google) | `:00, :30` | `fetch-google-news.js` (76 queries) | Heaviest fetcher, isolated |
+| B (Bing+Feeds) | `:10, :40` | `fetch-bing-news.js` (49q) + `fetch-publications.js` (23) + `fetch-ncaa-rss.js` (3) + `fetch-newsdata.js` (18) | Bing trimmed 62→49, dedup cache 7d→3d |
+| C (Light) | `:07, :37` | CourtListener, NIL Revolution, CSLT (×2), Podcasts, CFBD | Lightweight |
 | AI Pipeline | `:25` at hours 10,11,19,20 UTC | `ai-pipeline.js` | Checks ET hour for DST |
 
 | Fetcher | Source | Queries/Feeds | Table | Cooldown | Auth |
