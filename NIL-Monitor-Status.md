@@ -1,6 +1,6 @@
 # NIL Monitor — Project Status
 
-> Last audited: 2026-03-18 from source files (query counts, feed counts, cron schedule, endpoint lists verified against actual code).
+> Last audited: 2026-03-18 from source files (query counts, feed counts, cron schedule, endpoint lists, security patterns verified against actual code).
 
 ## Architecture
 
@@ -19,7 +19,7 @@ Browser → nilmonitor.com (Cloudflare Pages)
 - **Frontend:** Single-file React app (`src/App.jsx`), Vite build, Cloudflare Pages
 - **Backend:** Cloudflare Worker (`workers/index.js` entry), D1 SQLite database
 - **AI Pipeline:** `workers/ai-pipeline.js`, Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`) via Anthropic API
-- **Proxy (API):** `functions/api/[[path]].js` — Pages Function forwards `/api/*` to Worker
+- **Proxy (API):** `functions/api/[[path]].js` — Pages Function forwards `/api/*` to Worker (includes POST body forwarding)
 - **Proxy (SEO):** `functions/[[catchall]].js` — Pages Function forwards `/news`, `/briefing/*`, `/feed.xml`, `/sitemap.xml` to Worker
 - **CI/CD:** `.github/workflows/deploy.yml` — push to main deploys both Worker and Pages (~2 min)
 - **Domain:** nilmonitor.com (Cloudflare Pages custom domain)
@@ -126,13 +126,13 @@ Sports Litigation Alert, On3, CBS Sports (football + basketball), ESPN (football
 
 Conference feeds (Horizon League, ACC, Big 12) are in Tier 2 because they produce mostly sports results, not business/governance content.
 
-**Relevance gate:** All headline fetchers (Google News, Bing News, NewsData, NCAA RSS, plus Tier 2 publications) run `isTitleRelevant()` — strict regex check for NIL, NCAA, college athletics, transfer portal, revenue sharing, antitrust, unionization, NLRB, employee classification, collective bargaining, program discontinuation, endowments, etc. Tier 1 publication feeds skip the relevance gate (they're business-scoped by design) but still run through the game noise filter. Exception: government sources (NLRB) in Tier 1 have a source-specific relevance gate applied because they publish across all topics.
+**Relevance gate:** All headline fetchers (Google News, Bing News, NewsData, NCAA RSS, plus Tier 2 publications) run `isTitleRelevant()` — strict regex check for NIL, NCAA, college athletics, transfer portal, revenue sharing, eligibility, lawsuits, jersey patches, above-cap, athletic fees, media rights, naming rights, premium seating, sponsorship, fundraising, ticket sales, fan rewards, conference governance/self-governance/autonomy/enforcement, AD abbreviation with university context, board of regents with athletics/oversight context, college athletics LLC/ventures/privatization, Athletes.org, executive orders on college sports — all with college/university/athletic context. Tier 1 publication feeds skip the relevance gate (they're business-scoped by design) but still run through the game noise filter. Exception: government sources (NLRB) in Tier 1 have a source-specific relevance gate applied because they publish across all topics.
 
 ### Headline Deduplication (fetcher-utils.js)
 
 Multi-layer dedup system:
 1. **Source suffix stripping** — Strips " - ESPN", " - CBS News", " | Yahoo Sports" etc. from aggregator titles before comparison
-2. **Exact title match** — In-memory cache of 7-day titles
+2. **Exact title match** — In-memory cache of 3-day titles
 3. **Normalized match** — Lowercase, non-alphanumeric stripped, suffix-stripped
 4. **Substring containment** — If one normalized title contains the other (both >30 chars)
 5. **Jaccard word similarity** — `|A∩B| / |A∪B|` on significant words (>3 chars). Threshold: ≥0.65 (standard), ≥0.45 (if shared proper noun + action context). Catches moderate rewordings of the same headline across different sources.
@@ -140,7 +140,7 @@ Multi-layer dedup system:
 
 Cache pre-loaded once per cron invocation (`loadDedupCache`) to avoid per-headline DB queries. Updated in-memory as headlines are inserted so parallel fetchers see each other's inserts.
 
-### AI Pipeline (cron `0 10,11,19,20 * * *` — DST-aware, 6 AM / 3 PM ET)
+### AI Pipeline (cron `:25` at hours 10,11,19,20 UTC — DST-aware, 6 AM / 3 PM ET)
 
 Fires at all four candidate UTC hours; handler checks actual ET hour and only runs when h=6 or h=15. This ensures correct timing across EST/EDT transitions. Weekend schedule: Saturday = no briefs, Sunday = afternoon only (3 PM ET).
 
@@ -183,7 +183,7 @@ The tagging prompt now includes explicit rules to prevent recurring mistagging:
 | 3 (default) | Everything not in Tier 1, 2, or 4 |
 | 4 (deprioritized) | AfroTech, TheDetroitBureau, Africa.com |
 
-#### Briefing Voice
+#### Briefing Voice & Prompt Quality Notes
 
 - CFO/COO perspective with financial context and peer comparisons
 - Institutional risk lens: every item must answer "Does this require action, awareness, or preparation?"
@@ -195,32 +195,35 @@ The tagging prompt now includes explicit rules to prevent recurring mistagging:
 - **Legislative Mechanics priority:** Congressional floor vote timelines, vote counts, procedural developments are high-priority
 - **Conference Autonomous Governance priority:** Conference-level rulemaking independent of NCAA is high-priority
 - **Adjacent Industry:** Sports media mergers/broadcast deals assessed for downstream college athletics implications
+- **Anti-repetition rule:** Fetches most recent previous briefing and passes its headlines into the prompt. Avoids repeating items unless there's a material update (new ruling, filing, vote, quantitative change).
+- **Source fidelity:** Every briefing item must be directly derived from provided headlines — no invented content or general-knowledge padding
+- **Calendar dates are not news:** Known upcoming deadlines are NOT briefing items unless something NEW happened (date changed, motion filed, new statement)
+- **Story selection priorities:** AD/coach contract details with revenue-sharing mechanics, CSC deal rejections/arbitration, state governor actions on NIL legislation, conference self-governance discussions are all HIGH-PRIORITY
+- **Recency awareness:** Headlines include age tags (e.g., `[3h ago]`). Fresher stories beat older ones unless the older story is significantly more important.
 
 ### API Endpoints (all at `/api/*`)
 
 | Endpoint | Returns | Notes |
 |----------|---------|-------|
-| `/api/cases` | Active cases sorted by soonest upcoming date | Grouped by case_group |
+| `/api/cases` | Active cases sorted by soonest upcoming date | `?group=` filter, `?active=0` includes inactive |
 | `/api/cases/:id` | Single case detail | Full case object |
 | `/api/cases/updates` | Latest 15 case updates | |
 | `/api/case-updates` | Latest 50 case updates | Legacy endpoint |
-| `/api/headlines?limit=N&cat=X` | Headlines, newest first | Excludes Off-Topic by default |
+| `/api/headlines?limit=N&cat=X` | Headlines, newest first | Excludes Off-Topic, limit capped at 200 |
 | `/api/deadlines` | Future deadlines, sorted ASC | |
 | `/api/house` | House Settlement key-value pairs | |
 | `/api/briefing` | Latest AI briefing | Returns `{ date, content, generated_at }` |
-| `/api/bills?state=X` | Bills | Empty until LegiScan |
 | `/api/headline-counts` | 30-day daily headline counts | |
 | `/api/last-run` | Last pipeline run timestamp | |
 | `/api/csc` | CSC activity feed (latest 20) | |
-| `/api/coverage-intel` | 14-day category breakdown, source breadth | Excludes Off-Topic |
 | `/api/podcasts` | Podcast freshness dates | spotify_id + latest_date |
 | `/api/portal-pulse` | Latest portal snapshot + mode (live/summary/preseason) | CFBD data |
 | `/api/preseason-intel` | Returning production + recruiting rankings | Direct access |
 | `/api/pe-tracker` | Private equity deals | Sorted by announced_date DESC |
 | `/api/cslt-key-dates` | CSLT curated monthly dates | |
-| `/api/admin` | HTML admin dashboard | Password protected |
-| `/api/admin-login` | POST — validates password, sets cookie | |
-| `/api/trigger?phase=...` | Manual trigger | Password protected |
+| `/api/admin` | HTML admin dashboard | Cookie auth or `?key=` (redirects to strip key) |
+| `/api/admin-login` | POST — validates password, sets HMAC cookie | |
+| `/api/trigger?phase=...` | Manual trigger | Cookie auth required |
 
 ### SEO Pages (server-rendered HTML, no React)
 
@@ -264,20 +267,23 @@ All SEO pages share a common HTML template (`seoPage()`) with:
 | `fix-tags` | Fix 6 specific mistagged Off-Topic headlines → Business / Finance |
 | `seed-pe` | Create pe_deals table + insert 10 deals |
 | `test-feeds` | Test 5 RSS feed URLs and report status |
+| `delete-stale-deadline` | Delete stale "Spring transfer portal window closes" deadlines |
 
 #### Admin Authentication
 
 - `/api/admin` and `/api/trigger` require authentication via `ADMIN_KEY` secret
-- Supports cookie-based auth (HttpOnly, Secure, SameSite=Strict, 24h expiry) and `?key=` query param
-- Login form at `/api/admin` when not authenticated
+- Cookie-based auth: HMAC-SHA256 derived session token (HttpOnly, Secure, SameSite=Strict, 24h expiry)
+- `?key=` param on `/api/admin`: validates key, sets HMAC cookie, 302 redirects to strip key from URL
+- Login form at `/api/admin` via POST to `/api/admin-login`
 - If `ADMIN_KEY` is not set, endpoints are open (dev mode)
+- Cookie value is an HMAC hash of the admin key, not the raw secret
 
 ### Frontend — Live Data Connections
 
 These sections fetch real data from the API:
 
 - **Briefing panel** — `/api/briefing`, branded "NIL MONITOR NEWS BRIEF" with collapsible sections, falls back to `MOCK.briefing`
-- **Headlines feed** — `/api/headlines?limit=100`, category filter pills, 8 per page, Off-Topic excluded, fuzzy dedup (word overlap >0.6)
+- **Headlines feed** — `/api/headlines?limit=100`, category filter pills, 8 per page, Off-Topic excluded, fuzzy dedup (word overlap >0.6), auto-refreshes every 2 minutes
 - **The Courtroom** — `/api/cases` + `/api/cslt-key-dates`, Key Dates with countdown, Recent Activity (expandable), link to full CSLT tracker
 - **Portal Pulse** — `/api/portal-pulse`, three-mode panel (live/summary/preseason) below The Courtroom. Shows portal volume, gainers/losers, or preseason intel depending on season.
 - **PE Tracker** — `/api/pe-tracker`, compact deal list (dead deals filtered), status badges
@@ -285,7 +291,7 @@ These sections fetch real data from the API:
 
 ### Frontend — Static/Local Data
 
-- **State NIL Legislation Map** — `src/nil-state-data.json` (static, from Troutman Pepper Feb 2026). Interactive choropleth via `react-simple-maps`. Enacted states in accent orange, no-law states in gray. Click opens centered overlay with status badge, detail text, and provision sections.
+- **State NIL Legislation Map** — `src/nil-state-data.json` (static, from Troutman Pepper Feb 2026). Interactive choropleth via `react-simple-maps`. Enacted states in accent orange, no-law states in gray. Click opens centered overlay with status badge, detail text, and provision sections. 51 entries (50 states + DC). 35 enacted, 16 with no law.
 - **Small state callout labels** — MD and DC use dashed connector lines from state center to offset label position. DE, NJ, CT, RI have manual positioning with custom offsets.
 
 ### Sidebar Content
@@ -301,11 +307,12 @@ These sections fetch real data from the API:
 | The Standard | `30VL73UUR59yLZfagH1Rzv` |
 | Next Play by Playfly Sports | `3fFqOS7yBgT7n0CcnHVMXk` |
 
-**X List Preview Card:**
-- 7 key accounts shown: @PeteThamel (ESPN), @RossDellenger (Yahoo), @NicoleAuerbach (Athletic), @D1ticker, @DarrenHeitner (NIL Legal), @achristovichh (FOS), @Sportico
+**X List Preview Card (defined but NOT rendered):**
+- 7 key accounts: @PeteThamel (ESPN), @RossDellenger (Yahoo), @NicoleAuerbach (Athletic), @D1ticker, @DarrenHeitner (NIL Legal), @achristovichh (FOS), @Sportico
 - Links to full list: `https://x.com/i/lists/2024695913898528822`
+- `XListEmbed` component exists in `App.jsx` but is orphaned — not called in the render tree
 
-### Resources Panel (5 categorized groups)
+### Resources Panel (5 categorized groups, in main column)
 
 | Group | Links |
 |-------|-------|
@@ -391,11 +398,14 @@ Cloudflare Web Analytics beacon added to `index.html` (just before `</body>`). R
 
 ### Panels not rendered (API exists, frontend doesn't call it)
 
-- **Coverage Intelligence** — `/api/coverage-intel` endpoint exists but panel was removed from frontend
 - **Deadlines panel** — `/api/deadlines` works, seed data loaded, no panel on Monitor page
 - **House Settlement panel** — `/api/house` works, seed data loaded, no panel on Monitor page
 - **CSC Command Center** — `/api/csc` works, items in DB, no dedicated panel on Monitor page
-- **Bills / State Tracker live data** — `/api/bills` works but returns 0 rows; States page uses static JSON
+- **Bills / State Tracker live data** — `bills` table exists but returns 0 rows; States page uses static JSON
+
+### Removed endpoints
+
+- **Coverage Intelligence** — `/api/coverage-intel` endpoint was removed from api.js. Panel was already removed from frontend.
 
 ### Data gaps
 
@@ -404,15 +414,15 @@ Cloudflare Web Analytics beacon added to `index.html` (just before `</body>`). R
 - **CourtListener** — effectively dormant. CSLT is now the primary case source. CL fetcher runs but skips all cases because CSLT `case_number` format doesn't match CL's numeric docket IDs. No mapping table exists. To re-enable: build CSLT-to-CL docket ID mapping.
 - **Deadline extraction** — Referenced in `pipeline_runs` schema but no `createDeadlines()` function exists in `ai-pipeline.js`. Only pre-loaded seed deadlines exist.
 - **Case summaries** — Referenced in schema design but not implemented in AI pipeline.
-- **CFBD_KEY** — Not set in Wrangler secrets. Portal Pulse panel won't show live data until this is configured.
 
-### Mock data still defined
+### Dead code in frontend
 
-- **`MOCK.briefing`** — fallback when API returns no briefing (stale placeholder text)
-- **`MOCK.headlines`** — fallback when API returns no headlines
+- **`MOCK.kpis`** — 5 KPI cards, defined but **never rendered** (no KPI bar exists)
 - **`MOCK.timeline`** — 10 hardcoded events, defined but **never rendered**
-- **`MOCK.kpis`** — 5 KPI cards, defined but **never rendered**
 - **`MOCK.xFeed`** — 6 fake tweets, defined but **never rendered**
+- **`XListEmbed` component** — Defined (lines 175-197) but not called in render tree
+- **`courtroomOpen` state** — Initialized to `true`, toggle mechanism removed, state variable remains
+- **`isWithinHour` function** — Actually checks within 3 hours (10800000ms), name is misleading
 
 ### Known Issues
 
@@ -421,6 +431,7 @@ Cloudflare Web Analytics beacon added to `index.html` (just before `</body>`). R
 - **FOS non-college content** — Front Office Sports is Tier 1 (no relevance gate) because it covers college sports business, but also publishes non-college sports business (Mike Tyson deals, F1, Padres). The game noise filter catches some but not all. These get tagged Off-Topic by the AI pipeline.
 - **OpenDNS blocks `*.workers.dev`** — Local dev must use nilmonitor.com, not the Workers.dev URL directly.
 - **`fix-tags` trigger phase** — Contains hardcoded IDs for one-time fix of 6 mistagged headlines. Harmless but should be removed in a future cleanup.
+- **Podcast cooldown comment stale** — `fetch-podcasts.js` header comment says "every 6 hours" but `getCooldown()` returns `120` (2 hours). Code is correct, comment is wrong.
 
 ### GDELT — Removed
 
@@ -432,72 +443,23 @@ Removed early in development — too heavy. Do not re-attempt.
 
 ---
 
-## Changes This Session (2026-03-12)
+## Changes This Session (2026-03-18)
 
-### SEO & GEO Optimization (index.html)
+### Security Hardening (api.js, ai-pipeline.js, functions/api/[[path]].js)
 
-1. **Meta tags** — Added title, description, keywords, robots, author, theme-color, canonical URL
-2. **Open Graph tags** — og:title, og:description, og:type, og:url, og:site_name, og:image
-3. **Twitter/X Card tags** — summary_large_image with title/description/image
-4. **Structured Data** — WebApplication JSON-LD schema with features, audience, pricing
-5. **RSS alternate link** — `<link rel="alternate" type="application/rss+xml">`
-6. **Noscript fallback** — Full-text description, feature list, data sources for AI crawlers
-7. **OG image** — Created `public/og-image.png` (1200×630) with NIL Monitor branding
-8. **Favicons** — Updated SVG to coral "NIL" pill, created 32×32, 16×16, ICO, apple-touch-icon (180×180)
-9. **Cloudflare Web Analytics** — Added beacon script before `</body>`
+1. **XSS fix: admin dashboard error messages** — Fetcher error messages (from external HTTP responses) are now escaped via `escHtml()` in both the `title` attribute and visible text in the admin dashboard. Previously rendered raw, which could allow stored XSS if an external API returned HTML/JS in an error response.
 
-### Server-Rendered SEO Pages (api.js)
+2. **Admin auth: HMAC-derived session token** — Admin cookie `admin_token` now stores an HMAC-SHA256 derived token instead of the raw `ADMIN_KEY` secret. Uses `crypto.subtle` to derive a deterministic token from the key. No server-side session state needed.
 
-10. **`/news`** — All headlines page with full meta/OG/structured data
-11. **8 category landing pages** — `/news/legislation`, `/news/litigation`, `/news/governance`, `/news/csc`, `/news/revenue-sharing`, `/news/portal`, `/news/business`, `/news/realignment`
-12. **`/briefing`** — Redirect to latest archived briefing
-13. **`/briefing/:date`** — Briefing archive with 24h delay, prev/next navigation
-14. **`/feed.xml`** — RSS 2.0 feed with `?category=` filtering
-15. **Dynamic `/sitemap.xml`** — Includes /, /news, 8 categories, /briefing, last 30 briefing dates, /feed.xml
-16. **Shared `seoPage()` template** — Consistent CSS, header with nav bar, footer across all pages
-17. **`functions/[[catchall]].js`** — Pages Function to proxy SEO routes to Worker
+3. **Admin auth: `?key=` redirect** — The `?key=` query param on `/api/admin` still works for login but now immediately 302-redirects to `/api/admin` (stripping the key from the URL) while setting the HMAC cookie. The raw secret no longer persists in the browser bar or history.
 
-### Static SEO Files
+4. **SQL parameterization** — `ai-pipeline.js` briefing query replaced `${recencyHours}` template literal interpolation with a computed cutoff timestamp passed via `.bind()`. Not attacker-controlled today, but eliminates a fragile pattern.
 
-18. **`public/robots.txt`** — `User-agent: * Allow: / Sitemap: https://nilmonitor.com/sitemap.xml`
+5. **CORS split** — Replaced single wildcard CORS with `PUBLIC_CORS` (wildcard, for public API endpoints) and `ADMIN_CORS` (no `Access-Control-Allow-Origin`, for admin/trigger endpoints). Admin endpoints no longer broadcast cross-origin access.
 
-### Fetcher Coverage Gap Fix (fetcher-utils.js, fetch-google-news.js, fetch-bing-news.js)
+6. **Headlines limit cap** — `/api/headlines?limit=N` now capped at 200 via `Math.min(..., 200)` with NaN fallback to 50. Prevents abusive large queries.
 
-22. **Relevance gate: conference governance** — Added `governance|self.governance|enforcement|autonomy` to both Power 4 and Group of 5 conference patterns. Headlines about SEC/Big Ten/etc. governance now pass the gate.
-23. **Relevance gate: AD abbreviation** — Added patterns matching `\bAD\b` with personnel actions + university context (college/university/athletic/ncaa/a&m). Catches "Texas A&M AD gets contract extension" style headlines.
-24. **Relevance gate: contract extension** — Added "extension" to athletic director personnel patterns.
-25. **Relevance gate: conference governance standalone** — Added `conference\s+(?:governance|self.governance|autonomy|enforcement)` pattern.
-26. **Google News queries (+5)** — Added: conference governance/self-governance/autonomy, SEC governance, AD contract extension/renewal, AD abbreviation + extension + college context, 247Sports site: query for NIL/revenue sharing/transfer portal/AD.
-27. **Bing News queries (+3)** — Added: conference governance/self-governance, SEC governance, AD contract extension/renewal.
-
-### Fetcher Coverage Gap Fix #2 — D1 Ticker Stories (2026-03-13)
-
-28. **Relevance gate: board of regents** — Added `board of regents|regents` + athletics/university/oversight/autonomy context. Catches regents governance votes affecting athletics.
-29. **Relevance gate: entity structures** — Added patterns for college athletics + LLC/ventures/privatization. Catches "Spartan Ventures" and athletics privatization stories.
-30. **Relevance gate: Athletes.org** — Added `\bathletes\.org\b` standalone pattern (always relevant).
-31. **Relevance gate: executive orders** — Added `executive order` + college/NCAA/NIL/athlete context.
-32. **Google News queries (+6, now 105)** — Added: executive orders on college sports, board of regents + athletics, NCAA/NIL damages lawsuits, college athletics LLC/venture/private entity, athlete/player surveys, NIL fund donations.
-33. **Bing News queries (+5, now 62)** — Added: executive orders, board of regents, NCAA/NIL damages, college athletics LLC/venture/privatization, NIL fund donations.
-34. **Anti-repetition rule** — Briefing generation now fetches the most recent previous briefing and passes its headlines into the prompt. Claude avoids repeating items unless there's a material update (new ruling, filing, vote, quantitative change). Replaces separate AM/PM briefing fetch logic.
-
-**Investigation findings:**
-- All 6 D1 ticker stories confirmed missing from headlines table
-- All 6 are present in Google News RSS when searched directly
-- 247Sports has no RSS feed (returns HTML page) — `site:247sports.com` Google query is the only path
-- The Athletic college sports RSS is working but limited to ~20 items — the WKU/Collins story didn't make the cut. Known limitation.
-- SBJ remains paywalled with no RSS — the Phillips/SCORE Act story reached us via ESPN and FOS coverage
-
-### Pro Sports Noise Filter + Instant Off-Topic Tagging (fetcher-utils.js)
-
-35. **Strengthened `isProSportsNoise()`** — Added PGA Tour/Championship/LPGA, NFL Network/schedule/offseason/broadcast, NBA scoring/trade deadline/broadcast, memorabilia/collector/trading card, sports TV upfront patterns. Extended NFL catch-all with schedule/season/preseason.
-36. **Fixed business signal override** — `BUSINESS_SIGNAL_RE` no longer rescues pro sports headlines from the noise filter. Only `COLLEGE_CONTEXT_RE` can override the pro sports filter. "NFL Network revenue" is now correctly blocked.
-37. **Instant Off-Topic tagging at insert time** — Added `OFFTOPIC_KEYWORD_RE` + `COLLEGE_KEYWORD_RE` to `categorizeByKeyword()`. Headlines matching pro sports patterns (NFL/NBA/NHL/MLB/PGA/UFC/etc., pro team names, golf tournaments, memorabilia, domestic violence charges) with NO college context get tagged Off-Topic immediately at insert. This prevents irrelevant FOS content from appearing in the feed for hours while waiting for AI tagging. Conservative by design — only fires after all positive category checks fail and only when there's zero college context.
-
-### AI Pipeline Tagging Fix (ai-pipeline.js)
-
-19. **Off-Topic guardrails** — 5 explicit rules preventing NIL headlines, college viewership, federal government actions, and non-sports outlet content from being mistagged as Off-Topic
-20. **Updated distinction examples** — Individual NIL deals now categorized as Business / Finance (was Off-Topic)
-21. **`fix-tags` trigger phase** — One-time fix for 6 mistagged headlines (IDs 89504, 89666, 90605, 91548, 91861, 92586) → Business / Finance. **Needs to be triggered manually via admin.**
+7. **POST body forwarding in proxy** — `functions/api/[[path]].js` now forwards `context.request.body` for non-GET/HEAD requests. The form-based admin login (`/api/admin-login` POST) was silently broken because the proxy only forwarded method + headers, not the body. Both login paths (form POST and `?key=` redirect) now work.
 
 ---
 
@@ -512,10 +474,11 @@ Removed early in development — too heavy. Do not re-attempt.
 7. **ET dates for briefings** — Briefing dates use `America/New_York` timezone, not UTC. Prevents "Latest available" mismatch when UTC is ahead of ET.
 8. **Three-layer headline dedup** — (a) At insert time: URL normalization + source suffix stripping + Jaccard similarity in `fetcher-utils.js`. (b) Before briefing generation: source-tiered dedup in `ai-pipeline.js`. (c) Before frontend display: word overlap >0.6 in `App.jsx`. Three layers catch different cases.
 9. **Three-tier publication filtering** — Niche business feeds (Tier 1) need no relevance gate since they're scoped by design. Broad sports feeds and conference RSS (Tier 2) need relevance gate to avoid game/recruiting noise. Aggregators (Tier 3: Google/Bing/NewsData) have relevance gate in their own fetcher files.
-10. **Cookie-based admin auth** — Workers are stateless (no sessions). Uses ADMIN_KEY secret directly as cookie value. Acceptable for single-user admin panel with HttpOnly+Secure+SameSite=Strict protections.
+10. **HMAC-derived admin cookie** — Workers are stateless (no sessions). Uses HMAC-SHA256 of ADMIN_KEY as cookie value. Raw secret never stored in cookies or exposed in URLs after redirect. HttpOnly+Secure+SameSite=Strict protections.
 11. **Server-rendered SEO pages via Worker** — Category pages and briefing archive served as plain HTML from the Worker (not React). Gives Google crawlable content that updates every visit. Pages Function catch-all proxies these routes.
 12. **24-hour briefing delay** — Archived briefings only served for dates 24+ hours old. Keeps the live briefing exclusive to the React dashboard, driving traffic to the actual product.
 13. **Shared `seoPage()` template** — Single function generates all SEO page HTML, ensuring consistent branding. Takes title, description, canonical, structured data, body content, footer text as parameters.
+14. **Split CORS policy** — Public API endpoints use wildcard CORS (data is intended to be public). Admin endpoints use no `Access-Control-Allow-Origin` header (same-origin only). Defense-in-depth alongside SameSite=Strict cookies.
 
 ---
 
@@ -525,10 +488,10 @@ Removed early in development — too heavy. Do not re-attempt.
 2. **Game noise filter** (`fetcher-utils.js: isGameNoise`) — Rejects game recaps, brackets, draft/combine coverage, recruiting noise, pro sports transactions, sportsbooks, power rankings, coaching carousel, player features. ~100 patterns. Business signals (NIL, NCAA governance, CSC, revenue sharing, legislation, antitrust, jersey patch, above-cap, athletic fee, apparel, facility funding, sponsorship, naming rights, premium seating, philanthropy, fan rewards) always pass through via `BUSINESS_SIGNAL_RE`.
 2b. **Pro sports noise filter** (`fetcher-utils.js: isProSportsNoise`) — Rejects NFL/NBA/MLB/NHL/MLS/FIFA/World Cup/Copa America/WBC/spring training/Olympics/experience economy/PGA Tour/NFL Network/memorabilia/collector/sports TV upfront headlines. Only `COLLEGE_CONTEXT_RE` can override (business signals alone don't rescue pro sports content). Applied after game noise filter in publications and at insert time in fetcher-utils.
 3. **URL dedup** — `headlines.url` has UNIQUE constraint. URLs normalized (strip UTM params, fragments, www, trailing slashes).
-4. **Title dedup at insert** — In-memory cache of 7-day titles. Five checks: exact match → normalized match (with source suffix stripping) → substring containment → Jaccard word similarity (≥0.65) → URL constraint.
+4. **Title dedup at insert** — In-memory cache of 3-day titles. Five checks: exact match → normalized match (with source suffix stripping) → substring containment → Jaccard word similarity (≥0.65) → URL constraint.
 4b. **Instant Off-Topic tagging** (`fetcher-utils.js: categorizeByKeyword`) — Headlines matching pro sports patterns (NFL/NBA/NHL/MLB/PGA/UFC/MLS/NWSL/NASCAR/F1, pro team names, golf tournaments, memorabilia, domestic violence charges) with NO college context are tagged Off-Topic at insert time. Prevents Tier 1 source junk from appearing untagged in the feed. Conservative: only fires after all positive category checks fail.
 5. **AI tagging** — Claude assigns category + severity. Off-Topic tagged for non-college-sports content. Off-Topic guardrails prevent mistagging of NIL headlines, college viewership, and general-outlet college athletics coverage.
-6. **Off-Topic exclusion** — API queries exclude `category = 'Off-Topic'` from headlines, coverage-intel, and stats. Untagged headlines (NULL category) are still shown to preserve the live feed feel.
+6. **Off-Topic exclusion** — API queries exclude `category = 'Off-Topic'` from headlines. Untagged headlines (NULL category) are still shown to preserve the live feed feel.
 7. **Frontend dedup** — Word overlap >0.6 against already-displayed headlines. Catches aggregator copies that passed URL dedup.
 
 ---
@@ -542,6 +505,14 @@ Removed early in development — too heavy. Do not re-attempt.
 - **Updates:** Extracts "Latest Updates" and "Previous Updates" sections → `case_updates` table
 - **Key dates:** Monthly curated dates → `cslt_key_dates` table (DELETE + INSERT per month)
 - **Frontend:** The Courtroom panel shows upcoming key dates (top 5 with countdown), recent activity, expandable case detail
+
+## CourtListener Integration
+
+- **Status:** Dormant — fetcher runs but skips all cases
+- **Fetcher:** `fetch-courtlistener.js`, runs every 2–4 hours (6 AM–10 PM ET)
+- **Problem:** CSLT cases use court-format case numbers (e.g., "4:24-cv-00793"). CourtListener needs numeric docket IDs. No mapping table exists.
+- **Auth:** `COURTLISTENER_TOKEN` is set but optional (API works without token)
+- **To re-enable:** Build CSLT-to-CL docket ID mapping so filing-level data supplements CSLT case summaries
 
 ## State Legislation Map
 
@@ -591,15 +562,15 @@ Design tokens in the `T` object at top of `App.jsx`:
 From `wrangler.toml`:
 
 ```
-crons = ["0,30 * * * *", "10,40 * * * *", "7,37 * * * *", "0 10,11,19,20 * * *"]
+crons = ["0,30 * * * *", "10,40 * * * *", "7,37 * * * *", "25 10,11,19,20 * * *"]
 ```
 
-- `0,30 * * * *` — **Group A1** fetchers: Google News (105q), NCAA RSS, NewsData
-- `10,40 * * * *` — **Group A2** fetchers: Bing News (62q), Publications (24 feeds)
-- `7,37 * * * *` — **Group B** fetchers (lighter/supplemental): CourtListener, NIL Revolution, CSLT (cases + key dates), Podcasts, CFBD
-- `0 10,11,19,20 * * *` — AI pipeline (fires at 4 UTC hours; handler checks actual ET hour, only runs when h=6 or h=15, auto-adjusting for DST). Weekdays: AM+PM. Saturday: none. Sunday: PM only.
+- `0,30 * * * *` — **Group A** fetchers: Google News (76q)
+- `10,40 * * * *` — **Group B** fetchers: Bing News (49q), Publications (23 feeds), NCAA RSS (3), NewsData (18q)
+- `7,37 * * * *` — **Group C** fetchers (lighter/supplemental): CourtListener, NIL Revolution, CSLT (cases + key dates), Podcasts, CFBD
+- `25 10,11,19,20 * * *` — AI pipeline (fires at 4 UTC hours; handler checks actual ET hour, only runs when h=6 or h=15, auto-adjusting for DST). Weekdays: AM+PM. Saturday: none. Sunday: PM only.
 
-Splitting fetchers into three staggered groups keeps each invocation under Cloudflare's free-tier CPU limit. Group A was split into A1/A2 after query additions (94→105 Google, 54→62 Bing) caused CPU timeout.
+Splitting fetchers into three staggered groups keeps each invocation under Cloudflare's free-tier CPU limit. Google News isolated in its own group because it's the heaviest fetcher (76 queries) and was the primary cause of CPU timeout crashes.
 
 ---
 
@@ -608,7 +579,7 @@ Splitting fetchers into three staggered groups keeps each invocation under Cloud
 ```
 src/
   App.jsx              — Entire frontend (single file)
-  nil-state-data.json  — Static state legislation data (50 states)
+  nil-state-data.json  — Static state legislation data (50 states + DC)
   main.jsx             — React entry point
 workers/
   index.js             — Worker entry: routes fetch→API, cron→fetchers/AI
@@ -616,8 +587,8 @@ workers/
   ai-pipeline.js       — 3 active AI tasks (tag, CSC detect, briefing)
   fetcher-utils.js     — Shared: cooldowns, dedup cache (Jaccard), noise filter, relevance gate
   rss-parser.js        — Regex-based RSS parser (no DOMParser in Workers)
-  fetch-google-news.js — Google News RSS (105 queries)
-  fetch-bing-news.js   — Bing News RSS (62 queries)
+  fetch-google-news.js — Google News RSS (76 queries)
+  fetch-bing-news.js   — Bing News RSS (49 queries)
   fetch-newsdata.js    — NewsData.io API (18 queries)
   fetch-ncaa-rss.js    — NCAA.com RSS (3 feeds)
   fetch-courtlistener.js — CourtListener RECAP (dormant)
@@ -627,7 +598,7 @@ workers/
   fetch-podcasts.js    — 6 podcast RSS feeds (freshness check)
   fetch-cfbd.js        — CFBD transfer portal + preseason intel
 functions/
-  api/[[path]].js      — Pages Function proxy (/api/* → Worker)
+  api/[[path]].js      — Pages Function proxy (/api/* → Worker, with POST body forwarding)
   [[catchall]].js      — Pages Function proxy (SEO routes → Worker)
 public/
   favicon.svg          — SVG favicon (coral NIL pill)
@@ -657,8 +628,7 @@ Priority order based on impact and readiness:
 2. **Run `fix-tags` trigger** — 6 mistagged headlines need the manual trigger to be executed via admin.
 3. **Deadline extraction AI task** — Referenced in schema but not implemented. Would auto-extract deadlines from headlines and case data.
 4. **Build Congress fetcher** — `fetch-congress.js` doesn't exist yet; needs to be built. `CONGRESS_KEY` is set and ready.
-5. **Set CFBD_KEY** — Portal Pulse panel needs this secret configured in Wrangler to show live data.
-6. **Peer Intelligence** — AD compensation, budget comparisons, conference revenue data. Requires research + new data source.
-7. **LegiScan fetcher** — Blocked on API key. Would populate the `bills` table and bring the state legislation map to life with real-time data.
-8. **CourtListener re-integration** — Build CSLT-to-CL docket ID mapping so filing-level data supplements CSLT case summaries.
-9. **Clean up dead MOCK data** — Remove `MOCK.kpis`, `MOCK.timeline`, `MOCK.xFeed` once their replacements are live.
+5. **Peer Intelligence** — AD compensation, budget comparisons, conference revenue data. Requires research + new data source.
+6. **LegiScan fetcher** — Blocked on API key. Would populate the `bills` table and bring the state legislation map to life with real-time data.
+7. **CourtListener re-integration** — Build CSLT-to-CL docket ID mapping so filing-level data supplements CSLT case summaries.
+8. **Clean up dead code** — Remove `MOCK.kpis`, `MOCK.timeline`, `MOCK.xFeed`, orphaned `XListEmbed` component, stale `courtroomOpen` toggle, misleading `isWithinHour` name.
