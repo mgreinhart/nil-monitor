@@ -73,7 +73,7 @@ ID: `c205339b-2bde-4f06-ab64-bedef8db1f53`, name: `nil-monitor-db`
 | `CONGRESS_KEY` | Set | Congress.gov fetcher (not currently imported) |
 | `COURTLISTENER_TOKEN` | Set | CourtListener (optional, works without) |
 | `ADMIN_KEY` | Set | Admin dashboard + trigger auth (required) |
-| `CFBD_KEY` | **Not set** | CFBD portal fetcher (required for Portal Pulse) |
+| `CFBD_KEY` | Set | CFBD portal fetcher (required for Portal Pulse) |
 | `LEGISCAN_KEY` | **Not set** | Pending API key approval |
 
 ---
