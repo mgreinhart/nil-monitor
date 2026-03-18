@@ -15,7 +15,11 @@ const FETCHER = 'google-news';
 // Diverse queries — each targets a distinct topic to minimize overlap.
 // Bing News covers the same space with its own index, so no need to
 // duplicate every permutation here.
+//
+// Trimmed from 105 to 76 (Mar 2026): removed duplicate/overlapping
+// queries and low-yield site: searches for law firms.
 const QUERIES = [
+  // Core NIL / governance / legal
   '"NIL" college sports',
   '"House v NCAA" OR "House settlement"',
   '"NCAA governance" OR "NCAA rule change"',
@@ -31,110 +35,81 @@ const QUERIES = [
   '"college sports" reform OR restructuring',
   '"athletic director" NIL OR "revenue sharing"',
   '"roster limit" OR "scholarship limit" NCAA',
-  '"College Sports Commission" enforcement',
-  '"NCAA revenue sharing" compliance',
-  '"college athlete" employment classification',
-  '"House v NCAA" settlement implementation',
+  // Private equity / investment
   '"private equity" college sports OR NCAA',
   '"college sports" investment OR ownership stake',
+  // Labor / employment
   '"collective bargaining" college athletes',
   '"employee status" college athletes',
+  // Eligibility / legal actions
   'NCAA eligibility lawsuit',
-  '"roster cap" college sports',
-  'college sports "media rights"',
-  'Teamworks college sports',
-  'Opendorse NIL',
-  'Learfield college athletics',
   'university sues athlete OR "breach of contract" college',
   '"NIL buyout" OR "NIL exit fee" OR "NIL contract" lawsuit',
   'NCAA eligibility injunction OR "restraining order"',
   '"college football" OR "college basketball" lawsuit OR sued',
   'NCAA trademark OR "March Madness" trademark',
+  // Business / finance
   '"athletic department" budget OR deficit OR "operating expenses"',
   '"jersey patch" OR "jersey sponsorship" college OR university',
   '"above the cap" OR "above-cap" college athlete OR NCAA',
   'Nike OR Adidas college "NIL" OR "above-cap" OR "revenue sharing"',
   '"student athletic fee" increase OR proposed university',
   '"state legislature" OR "state lawmaker" NIL OR "college athlete" OR "revenue sharing"',
+  // Media rights / broadcast
   '"TNT Sports" OR "CBS Sports" media rights',
   '"Warner Bros Discovery" sports',
   '"Paramount" sports broadcast',
   '"ESPN" media deal OR rights deal',
+  // Facilities / naming rights / partnerships
   '"naming rights" college OR university',
   '"partnership" college athletics OR "athletic department"',
   '"facility" college athletics OR "stadium construction"',
-  // College sports business & personnel
+  // Personnel
   '"athletic director" hired OR named OR fired OR resigned',
   '"conference commissioner" college OR NCAA',
   '"deputy athletic director" OR "senior associate AD" OR "associate athletic director"',
   '"general manager" college athletics OR "collegiate GM"',
+  // Industry-specific sources
+  'Teamworks college sports',
+  'Opendorse NIL',
+  'Learfield college athletics',
+  // Institutional strategy
   '"college athletics" fundraising OR "fundraising campaign"',
   '"arena" OR "stadium" college OR university vote OR bond OR approved OR construction',
   '"college sports" business OR industry',
   '"athletic department" layoffs OR restructuring OR "budget cuts"',
   'NACDA OR "National Association of Collegiate Directors of Athletics"',
-  // Institutional budget / financial strategy
   '"athletic department" "institutional support" OR "general fund" OR subsidy',
   '"college athletics" "financial plan" OR "budget crisis" OR "fundraising campaign"',
-  'university diverts OR allocates OR redirects funding athletics',
-  '"conference expansion" candidate OR positioning OR "realignment" strategy',
-  // Revenue operations / sponsorship / monetization
-  '"college athletics" sponsorship OR partnership OR "naming rights"',
-  '"athletic department" revenue OR "ticket sales" OR "premium seating"',
-  '"athletic department" reseating OR "season tickets" OR "sellout"',
-  '"college athletics" OR "athletic department" "card-linked" OR "fan rewards" OR "loyalty program"',
-  '"jersey patch" OR "uniform sponsorship" college OR university',
-  '"athletic department" fundraising OR philanthropy OR "capital campaign"',
-  '"college athletics" OR university "facility naming rights"',
-  '"college" OR "university" "suite" OR "loge box" OR "club seats" athletics',
-  // D1 ticker coverage gaps — coaching contracts, NIL ops, tech, emerging sports, governance
+  // Coaching contracts / NIL ops / tech
   '"coaching contract" extension college OR university',
   '"head coach" contract OR salary college OR university',
-  '"NIL collective" OR "collective" restructuring college OR university',
   '"in-house NIL" OR "NIL operations" college athletics',
   '"multimedia rights" college OR university OR conference',
   '"athletic department" technology OR "tech partnership" OR vendor',
-  '"Teamworks" OR "Influxer" OR "Opendorse" college athletics',
   '"ticket revenue" OR "ticket sales" college OR university athletics',
   '"women\'s wrestling" OR "emerging sport" NCAA',
-  '"new sport" OR "adding sport" college OR university athletics',
   '"university president" hired OR named OR "board of trustees" athletics',
-  '"scheduling alliance" OR "non-conference" deal OR series college',
   'NCAA tournament format OR expansion OR "player availability"',
-  '"conference tournament" venue OR naming rights OR broadcast deal',
-  // Conference governance / self-governance / autonomy
+  // Conference governance / self-governance
   '"conference governance" OR "conference self-governance" OR "conference autonomy" college',
   '"SEC governance" OR "SEC self-governance" OR "SEC autonomy"',
-  // AD contract extensions (abbreviation "AD" + context)
+  // AD contract extensions
   '"athletic director" "contract extension" OR "contract renewal"',
-  '"AD" "contract extension" college OR university athletics',
-  // 247Sports coverage (no RSS)
+  // 247Sports (no RSS)
   'site:247sports.com NIL OR "revenue sharing" OR "transfer portal" OR "athletic director"',
-  // Executive orders on college sports
+  // Executive orders / government
   '"executive order" college sports OR NCAA',
-  // Board of regents + athletics
   '"board of regents" athletics OR "college sports" OR "private equity"',
-  // NCAA/NIL damages lawsuits
+  // Damages / entity structures / advocacy
   '"NCAA damages" OR "NIL damages" lawsuit',
-  // College athletics entity structures (LLCs, ventures, privatization)
   '"college athletics" LLC OR venture OR "private entity"',
-  // Athlete surveys and advocacy
   '"athlete survey" OR "player survey" college OR NCAA',
-  // NIL fund donations / coach salary contributions
   '"NIL fund" coach OR donation OR salary',
-  // Coverage gaps — policy memos, endowments, program cuts, apparel
-  '"conference" memo OR guidance OR policy NIL OR "uniform patch" OR compliance',
+  // Program cuts / endowments / apparel
   '"endowed" OR "endowment" college OR university athletics OR "athletic department"',
   '"discontinue" OR "eliminate" OR "cut" sport college OR university athletics',
   '"apparel" deal OR extension OR provider college OR university OR conference',
-  // Legal/compliance blogs without RSS feeds
-  'site:burr.com college sports',
-  'site:cchalaw.com college sports',
-  'site:huschblackwell.com college athletics',
-  'site:sportslaw.org college OR NIL OR NCAA',
-  // Government/regulatory sources without working RSS
-  'site:justice.gov antitrust NCAA OR "college sports"',
-  'site:commerce.senate.gov NCAA OR NIL OR "college athlete"',
   // Industry sources without RSS
   'site:extrapointsmb.com',
   'site:sportslawinsider.com',

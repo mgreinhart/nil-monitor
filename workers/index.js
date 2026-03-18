@@ -1,22 +1,23 @@
 // ═══════════════════════════════════════════════════════════════════
 //  NIL MONITOR — Worker Entry Point
-//  Four cron patterns:
-//    0,30 * * * *          — Group A1 fetchers (Google News, NCAA, NewsData)
-//    10,40 * * * *         — Group A2 fetchers (Bing News, Publications)
-//    7,37 * * * *          — Group B fetchers (lighter/supplemental)
+//  Five cron patterns (each fetcher group runs in its own invocation):
+//    0,30 * * * *          — Google News only (76 queries)
+//    5,35 * * * *          — Bing News only (50 queries)
+//    12,42 * * * *         — Publications + NCAA RSS + NewsData
+//    7,37 * * * *          — Lighter/supplemental fetchers
 //    25 10,11,19,20 * * *  — AI pipeline (6 AM / 3 PM ET, auto-DST)
 //
+//  Google News and Bing News are isolated into their own invocations
+//  so a CPU limit hit in one never takes down the other fetchers.
+//
 //  Pipeline fires at :25 past the hour (not :00) so fetcher groups
-//  A1 (:00), B (:07), and A2 (:10) finish inserting headlines first.
+//  finish inserting headlines before tagging runs.
 //
 //  AI pipeline fires at 4 UTC hours; the handler checks the actual
 //  US-Eastern hour and day-of-week:
 //    - Weekdays: morning (6 AM ET) + afternoon (3 PM ET)
 //    - Saturday: no briefs
 //    - Sunday: afternoon only (3 PM ET)
-//
-//  Group A was split into A1/A2 to stay under Cloudflare's free-tier
-//  CPU limit (Google 105 + Bing 62 queries was too heavy together).
 // ═══════════════════════════════════════════════════════════════════
 
 import { handleApi } from './api.js';
@@ -41,21 +42,25 @@ function safeFetch(name, fn, env) {
   });
 }
 
-// Group A1: heaviest aggregators (Google News 105 queries + lighter feeds)
-const GROUP_A1 = [
+// Google News — heaviest fetcher (76 queries), isolated in own invocation
+const GROUP_GOOGLE = [
   ['google-news', fetchGoogleNews],
+];
+
+// Bing News — second heaviest (50 queries), isolated in own invocation
+const GROUP_BING = [
+  ['bing-news', fetchBingNews],
+];
+
+// Medium-weight feeds: Publications (23 feeds) + NCAA RSS (3) + NewsData (18 queries)
+const GROUP_FEEDS = [
+  ['publications', fetchPublications],
   ['ncaa-rss', fetchNCAANews],
   ['newsdata', fetchNewsData],
 ];
 
-// Group A2: second-heaviest aggregators (Bing News 62 queries + publications 24 feeds)
-const GROUP_A2 = [
-  ['bing-news', fetchBingNews],
-  ['publications', fetchPublications],
-];
-
-// Group B: lighter / supplemental sources
-const GROUP_B = [
+// Lighter / supplemental sources
+const GROUP_LIGHT = [
   ['courtlistener', fetchCourtListener],
   ['nil-revolution', fetchNILRevolution],
   ['cslt', fetchCSLT],
@@ -100,14 +105,16 @@ export default {
           .catch(e => console.error('ai-pipeline cron error:', e.message))
       );
     } else {
-      // Determine which group to run based on cron pattern
+      // Determine which fetcher group to run based on cron pattern
       let fetchers, label;
       if (cron === '0,30 * * * *') {
-        fetchers = GROUP_A1; label = 'A1';
-      } else if (cron === '10,40 * * * *') {
-        fetchers = GROUP_A2; label = 'A2';
+        fetchers = GROUP_GOOGLE; label = 'Google';
+      } else if (cron === '5,35 * * * *') {
+        fetchers = GROUP_BING; label = 'Bing';
+      } else if (cron === '12,42 * * * *') {
+        fetchers = GROUP_FEEDS; label = 'Feeds';
       } else {
-        fetchers = GROUP_B; label = 'B';
+        fetchers = GROUP_LIGHT; label = 'Light';
       }
 
       console.log(`Running fetcher group ${label} (${fetchers.length} fetchers)`);

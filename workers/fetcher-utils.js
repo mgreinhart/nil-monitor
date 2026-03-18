@@ -89,7 +89,7 @@ let _dedupCache = null;
 
 export async function loadDedupCache(db) {
   const { results } = await db.prepare(
-    `SELECT title FROM headlines WHERE published_at >= date('now', '-7 days')`
+    `SELECT title FROM headlines WHERE published_at >= date('now', '-3 days')`
   ).all();
 
   const exactTitles = new Set();
@@ -669,7 +669,7 @@ export async function insertHeadline(db, { source, title, url, category, publish
     entries = _dedupCache.entries;
   } else {
     const { results: recent } = await db.prepare(
-      `SELECT title FROM headlines WHERE published_at >= date('now', '-7 days')`
+      `SELECT title FROM headlines WHERE published_at >= date('now', '-3 days')`
     ).all();
     exactTitles = new Set(recent.map(r => r.title));
     entries = [];

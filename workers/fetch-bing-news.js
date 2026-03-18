@@ -12,7 +12,10 @@ import { getETHour, shouldRun, recordRun, insertHeadline, isTitleRelevant } from
 
 const FETCHER = 'bing-news';
 
+// Trimmed from 62 to 50 (Mar 2026): removed queries that duplicate
+// Google News coverage or overlap with other Bing queries.
 const QUERIES = [
+  // Core NIL / governance / legal
   '"NIL" college sports',
   '"NCAA governance"',
   '"House v NCAA" OR "House settlement"',
@@ -25,67 +28,56 @@ const QUERIES = [
   '"NIL collective" OR "NIL deal"',
   '"college athlete" union OR employment',
   '"NCAA enforcement" OR "NCAA investigation"',
-  '"College Sports Commission" enforcement',
-  '"NCAA revenue sharing" compliance',
-  '"college athlete" employment classification',
+  // Private equity / investment
   '"private equity" college sports OR NCAA',
   '"college sports" investment OR ownership',
   '"donor fatigue" college sports OR NIL collective funding',
+  // Legislation
   '"SCORE Act" OR "SAFE Act" college sports',
   'NCAA "tournament expansion"',
-  '"athletic department" deficit OR budget',
   '"Title IX" revenue sharing',
+  // Organizations
   '"Athletes.org" college',
   '"Otro Capital" OR "Elevate Sports" college athletics',
+  // Legal actions
   'university sues athlete OR "breach of contract" college',
   '"NIL buyout" OR "NIL exit fee" college',
   'NCAA eligibility injunction OR "restraining order"',
   '"college football" OR "college basketball" lawsuit OR sued',
+  // Business / finance
   '"athletic department" budget OR deficit OR "operating expenses"',
   '"jersey patch" OR "jersey sponsorship" college OR university',
   '"above the cap" OR "above-cap" college athlete OR NCAA',
-  'Nike OR Adidas college NIL OR "above-cap"',
   '"student athletic fee" increase OR proposed university',
   '"sports media rights" deal OR merger OR acquisition',
   '"broadcast rights" college OR conference',
-  // College sports business & personnel
+  // Personnel
   '"athletic director" hired OR named OR contract OR resigned',
   '"conference commissioner" resigned OR hired OR fired',
+  // Institutional strategy
   '"college athletics" fundraising OR campaign',
   '"arena" OR "stadium" college OR university construction OR renovation',
   '"college sports" business OR industry',
-  'NFLPA OR "NFL Players Association" college sports',
-  // Institutional budget / financial strategy
   '"athletic department" "institutional support" OR "general fund" OR subsidy',
-  '"college athletics" "budget crisis" OR "financial shortfall"',
   '"university president" athletics OR "athletic department"',
-  // Revenue operations / sponsorship / monetization
+  // Revenue operations / sponsorship
   '"athletic department" sponsorship revenue OR "naming rights"',
   '"college athletics" "premium seating" OR "ticket revenue" OR reseating',
-  '"athletic department" donor OR philanthropy OR "giving society"',
-  '"college athletics" "brand partnership" OR "corporate sponsor"',
-  // Conference governance / self-governance / autonomy
+  // Conference governance
   '"conference governance" OR "conference self-governance" college',
   '"SEC governance" OR "SEC self-governance" OR "SEC autonomy"',
   // AD contract extensions
   '"athletic director" "contract extension" OR "contract renewal"',
-  // Executive orders on college sports
+  // Executive orders / government
   '"executive order" college sports OR NCAA',
-  // Board of regents + athletics
   '"board of regents" athletics OR "college sports"',
-  // NCAA/NIL damages lawsuits
+  // Damages / entity structures
   '"NCAA damages" OR "NIL damages" lawsuit',
-  // College athletics entity structures
   '"college athletics" LLC OR venture OR privatization',
-  // NIL fund donations
   '"NIL fund" coach OR donation OR salary',
-  // D1 ticker coverage gaps — coaching contracts, NIL ops, emerging sports, governance
-  '"coaching contract" college OR university extension OR salary',
-  '"NIL collective" restructuring OR operations',
+  // Coverage gaps
   '"multimedia rights" college OR conference extension',
-  '"ticket revenue" college OR university athletics',
   '"emerging sport" OR "new sport" NCAA university',
-  '"board of trustees" athletics OR "athletic department"',
 ];
 
 function getCooldown() {

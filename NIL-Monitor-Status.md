@@ -1,6 +1,6 @@
 # NIL Monitor — Project Status
 
-> Last audited: 2026-03-12 from source files (query counts, feed counts, endpoint lists verified against actual code).
+> Last audited: 2026-03-18 from source files (query counts, feed counts, cron schedule, endpoint lists verified against actual code).
 
 ## Architecture
 
@@ -80,14 +80,24 @@ ID: `c205339b-2bde-4f06-ab64-bedef8db1f53`, name: `nil-monitor-db`
 
 ## What's Working
 
-### Data Fetchers (11 functions from 10 files, three-group cron split)
+### Data Fetchers (11 functions from 10 files, five-group cron split)
 
 Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use shared utilities from `fetcher-utils.js` (ET timezone, cooldowns, entity decoding, URL normalization, game-noise filtering, keyword categorization, relevance gating, Jaccard-based headline dedup cache).
 
+**Cron schedule (5 groups, each isolated in its own Worker invocation):**
+
+| Group | Cron | Fetchers | Notes |
+|-------|------|----------|-------|
+| Google | `:00, :30` | `fetch-google-news.js` (76 queries) | Heaviest fetcher, isolated |
+| Bing | `:05, :35` | `fetch-bing-news.js` (49 queries) | Second heaviest, isolated |
+| Feeds | `:12, :42` | `fetch-publications.js` (23 feeds) + `fetch-ncaa-rss.js` (3) + `fetch-newsdata.js` (18) | Medium weight |
+| Light | `:07, :37` | CourtListener, NIL Revolution, CSLT (×2), Podcasts, CFBD | Lightweight |
+| AI Pipeline | `:25` at hours 10,11,19,20 UTC | `ai-pipeline.js` | Checks ET hour for DST |
+
 | Fetcher | Source | Queries/Feeds | Table | Cooldown | Auth |
 |---------|--------|---------------|-------|----------|------|
-| `fetch-google-news.js` | Google News RSS | 105 queries | headlines | 15–30 min | None |
-| `fetch-bing-news.js` | Bing News RSS | 62 queries | headlines | 15–30 min | None |
+| `fetch-google-news.js` | Google News RSS | 76 queries | headlines | 15–30 min | None |
+| `fetch-bing-news.js` | Bing News RSS | 49 queries | headlines | 15–30 min | None |
 | `fetch-newsdata.js` | NewsData.io API | 18 queries | headlines | 30–60 min | `NEWSDATA_KEY` |
 | `fetch-ncaa-rss.js` | NCAA.com RSS | 3 feeds | headlines | 15–30 min | None |
 | `fetch-courtlistener.js` | CourtListener RECAP | — | cases | 120–240 min | Optional token |
@@ -98,7 +108,7 @@ Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use sha
 | `fetch-podcasts.js` | 6 podcast RSS feeds | 6 feeds | podcast_episodes | 120 min | None |
 | `fetch-cfbd.js` | CollegeFootballData.com API | portal + recruiting | portal_snapshot, preseason_intel | 360–1440 min | `CFBD_KEY` |
 
-All fetchers active 6 AM–10 PM ET, skip overnight. In-memory dedup cache pre-loaded before fetchers run, cleared after.
+All fetchers active 6 AM–10 PM ET, skip overnight. In-memory dedup cache (3-day window) pre-loaded before fetchers run, cleared after.
 
 **CFBD fetcher cooldown rules (football-only, no basketball):**
 - Football portal window (Jan 2–24): 6h — portal snapshot only
