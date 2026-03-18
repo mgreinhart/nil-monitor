@@ -9,6 +9,7 @@ export async function onRequest(context) {
     headers: context.request.headers,
     body: context.request.method !== 'GET' && context.request.method !== 'HEAD'
       ? context.request.body : undefined,
+    redirect: 'manual',
   });
   const newResp = new Response(resp.body, resp);
   newResp.headers.set("Access-Control-Allow-Origin", "*");
