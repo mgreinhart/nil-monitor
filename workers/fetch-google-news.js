@@ -113,6 +113,14 @@ const QUERIES = [
   // Industry sources without RSS
   'site:extrapointsmb.com',
   'site:sportslawinsider.com',
+  // Federal legislation process (SCORE Act, floor votes, Congress)
+  '"SCORE Act" college sports',
+  '"college sports" legislation Congress',
+  '"college athletics" "federal legislation" OR "floor vote" OR "markup"',
+  // NCAA governance bodies (DI Council, DI Board, committees)
+  '"NCAA governance" OR "DI Council" OR "DI Board"',
+  'NCAA "transfer portal" circumvention OR tampering penalties',
+  '"DI Cabinet" OR "DI Membership Committee" OR "NCAA subdivision"',
 ];
 
 function getCooldown() {

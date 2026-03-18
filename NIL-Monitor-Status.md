@@ -88,20 +88,20 @@ Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use sha
 
 | Group | Cron | Fetchers | Notes |
 |-------|------|----------|-------|
-| A (Google) | `:00, :30` | `fetch-google-news.js` (76 queries) | Heaviest fetcher, isolated |
-| B (Bing+Feeds) | `:10, :40` | `fetch-bing-news.js` (49q) + `fetch-publications.js` (23) + `fetch-ncaa-rss.js` (3) + `fetch-newsdata.js` (18) | Bing trimmed 62→49, dedup cache 7d→3d |
+| A (Google) | `:00, :30` | `fetch-google-news.js` (82 queries) | Heaviest fetcher, isolated |
+| B (Bing+Feeds) | `:10, :40` | `fetch-bing-news.js` (53q) + `fetch-publications.js` (24) + `fetch-ncaa-rss.js` (3) + `fetch-newsdata.js` (18) | Added federal legislation + NCAA governance queries |
 | C (Light) | `:07, :37` | CourtListener, NIL Revolution, CSLT (×2), Podcasts, CFBD | Lightweight |
 | AI Pipeline | `:25` at hours 10,11,19,20 UTC | `ai-pipeline.js` | Checks ET hour for DST |
 
 | Fetcher | Source | Queries/Feeds | Table | Cooldown | Auth |
 |---------|--------|---------------|-------|----------|------|
-| `fetch-google-news.js` | Google News RSS | 76 queries | headlines | 15–30 min | None |
-| `fetch-bing-news.js` | Bing News RSS | 49 queries | headlines | 15–30 min | None |
+| `fetch-google-news.js` | Google News RSS | 82 queries | headlines | 15–30 min | None |
+| `fetch-bing-news.js` | Bing News RSS | 53 queries | headlines | 15–30 min | None |
 | `fetch-newsdata.js` | NewsData.io API | 18 queries | headlines | 30–60 min | `NEWSDATA_KEY` |
 | `fetch-ncaa-rss.js` | NCAA.com RSS | 3 feeds | headlines | 15–30 min | None |
 | `fetch-courtlistener.js` | CourtListener RECAP | — | cases | 120–240 min | Optional token |
 | `fetch-nil-revolution.js` | Troutman Pepper blog RSS | 1 feed | headlines | 120 min | None |
-| `fetch-publications.js` | 23 publication/conference/gov RSS feeds | 11 Tier 1 + 12 Tier 2 | headlines | 30 min | None |
+| `fetch-publications.js` | 24 publication/conference/gov RSS feeds | 12 Tier 1 + 12 Tier 2 | headlines | 30 min | None |
 | `fetch-cslt.js` (cases) | College Sports Litigation Tracker (scrape) | 1 page | cases, case_updates | 360 min | None |
 | `fetch-cslt.js` (key dates) | CSLT homepage | 1 page | cslt_key_dates | 360 min | None |
 | `fetch-podcasts.js` | 6 podcast RSS feeds | 6 feeds | podcast_episodes | 120 min | None |
@@ -118,15 +118,15 @@ All fetchers active 6 AM–10 PM ET, skip overnight. In-memory dedup cache (3-da
 
 #### Publication Feeds — Three-Tier Filtering Model
 
-**Tier 1 (11 feeds) — No relevance gate, noise filter only:**
-Business of College Sports, AthleticDirectorU, Sportico, Front Office Sports, The Athletic (college sports), CollegeAD, LexBlog College Sports, Opendorse (NCAA + NIL, 2 feeds), NLRB (press releases + weekly summaries, 2 feeds — source-specific relevance gate applied despite Tier 1 placement because NLRB publishes across all labor topics)
+**Tier 1 (12 feeds) — No relevance gate, noise filter only:**
+Business of College Sports, AthleticDirectorU, Sportico, Front Office Sports, The Athletic (college sports), CollegeAD, LexBlog College Sports, Opendorse (NCAA + NIL, 2 feeds), NLRB (press releases + weekly summaries, 2 feeds), NCAA.org (institutional RSS — governance, policy, emerging sports). Government/institutional feeds (NLRB, NCAA.org) have source-specific relevance gate applied despite Tier 1 placement because they publish across all topics.
 
 **Tier 2 (12 feeds) — Relevance gate + noise filter:**
 Sports Litigation Alert, On3, CBS Sports (football + basketball), ESPN (football + basketball), Yahoo Sports, The Athletic (football), Norton Rose Fulbright (global sports law — relevance gate filters non-college), Horizon League, ACC, Big 12
 
 Conference feeds (Horizon League, ACC, Big 12) are in Tier 2 because they produce mostly sports results, not business/governance content.
 
-**Relevance gate:** All headline fetchers (Google News, Bing News, NewsData, NCAA RSS, plus Tier 2 publications) run `isTitleRelevant()` — strict regex check for NIL, NCAA, college athletics, transfer portal, revenue sharing, eligibility, lawsuits, jersey patches, above-cap, athletic fees, media rights, naming rights, premium seating, sponsorship, fundraising, ticket sales, fan rewards, conference governance/self-governance/autonomy/enforcement, AD abbreviation with university context, board of regents with athletics/oversight context, college athletics LLC/ventures/privatization, Athletes.org, executive orders on college sports — all with college/university/athletic context. Tier 1 publication feeds skip the relevance gate (they're business-scoped by design) but still run through the game noise filter. Exception: government sources (NLRB) in Tier 1 have a source-specific relevance gate applied because they publish across all topics.
+**Relevance gate:** All headline fetchers (Google News, Bing News, NewsData, NCAA RSS, plus Tier 2 publications) run `isTitleRelevant()` — strict regex check for NIL, NCAA, college athletics, transfer portal, revenue sharing, eligibility, lawsuits, jersey patches, above-cap, athletic fees, media rights, naming rights, premium seating, sponsorship, fundraising, ticket sales, fan rewards, conference governance/self-governance/autonomy/enforcement, AD abbreviation with university context, board of regents with athletics/oversight context, college athletics LLC/ventures/privatization, Athletes.org, executive orders on college sports, SCORE Act, SAFE Act, floor vote/markup/committee vote with college context, NCAA governance bodies (DI Council, DI Board, DI Cabinet, DI Membership Committee, Division I Council/Board/Cabinet/Committee), autonomy subdivision/conference, circumvention penalties — all with college/university/athletic context where required. Tier 1 publication feeds skip the relevance gate (they're business-scoped by design) but still run through the game noise filter. Exception: government/institutional sources (NLRB, NCAA.org) in Tier 1 have a source-specific relevance gate applied because they publish across all topics.
 
 ### Headline Deduplication (fetcher-utils.js)
 
@@ -461,6 +461,24 @@ Removed early in development — too heavy. Do not re-attempt.
 
 7. **POST body forwarding in proxy** — `functions/api/[[path]].js` now forwards `context.request.body` for non-GET/HEAD requests. The form-based admin login (`/api/admin-login` POST) was silently broken because the proxy only forwarded method + headers, not the body. Both login paths (form POST and `?key=` redirect) now work.
 
+8. **Proxy redirect passthrough** — Added `redirect: 'manual'` to the Pages Function proxy so 302 responses (admin login Set-Cookie redirects) pass through to the browser instead of being followed internally by `fetch()`.
+
+### Coverage Gap Fix: Federal Legislation + NCAA Governance (fetch-google-news.js, fetch-bing-news.js, fetch-publications.js, fetcher-utils.js)
+
+Three recurring D1 ticker stories were confirmed missing: SCORE Act revisions (Politico), DI Membership Committee autonomy subdivision (NCAA.org), DI Cabinet portal circumvention penalties (NCAA.org). Root causes: no SCORE Act query in Google News, no NCAA governance body queries in either fetcher, NCAA.org RSS not in feed list, relevance gate missing SCORE Act and DI governance body terms.
+
+9. **Google News queries (+6, now 82)** — Added: `"SCORE Act" college sports`, `"college sports" legislation Congress`, `"college athletics" "federal legislation" OR "floor vote" OR "markup"`, `"NCAA governance" OR "DI Council" OR "DI Board"`, `NCAA "transfer portal" circumvention OR tampering penalties`, `"DI Cabinet" OR "DI Membership Committee" OR "NCAA subdivision"`.
+
+10. **Bing News queries (+4, now 53)** — Added: `"SCORE Act" revision OR markup OR "floor vote"`, `"college sports" Congress "floor vote" OR hearing OR committee`, `"DI Council" OR "DI Board" OR "DI Cabinet" NCAA`, `"DI Membership Committee" OR "autonomy subdivision" NCAA`.
+
+11. **NCAA.org RSS feed** — Added `https://www.ncaa.org/rss` to `fetch-publications.js` as Tier 1 with relevance gate (same treatment as NLRB). This is the institutional feed from NCAA.org that carries DI Council decisions, DI Board actions, committee votes, and governance announcements. Distinct from ncaa.COM feeds (which are pure sports/event content).
+
+12. **Relevance gate expansion** — Added: `\bscore\s+act\b`, `\bsafe\s+act\b` with college context, `floor\s+vote|markup|committee\s+vote` with college/NCAA context, `\bdi\s+(council|board|cabinet|membership\s+committee)\b`, `\bdivision\s+i\s+(council|board|cabinet|committee)\b`, `autonomy\s+(subdivision|conference)` with NCAA context, `circumvention\s+penalt`. Previously failing headlines now pass: "House GOP leaders working to revise SCORE Act ahead of mid-April floor vote" and "DI Membership Committee discusses creation of autonomy subdivision."
+
+13. **Keyword categorizer expansion** — `categorizeByKeyword()` now instant-tags: SCORE Act / SAFE Act / floor vote → Legislation. DI Council / DI Board / DI Cabinet / Membership Committee / autonomy subdivision → NCAA Governance.
+
+14. **Politico not added** — Investigated Politico RSS (politicopicks.xml, congress.xml). Zero college sports items in current feed. Their SCORE Act coverage reaches us via Google News queries instead. Low yield, high noise — not worth the feed slot.
+
 ---
 
 ## Architecture Decisions
@@ -484,7 +502,7 @@ Removed early in development — too heavy. Do not re-attempt.
 
 ## Headline Filtering Rules (full pipeline)
 
-1. **Relevance gate** (`fetcher-utils.js: isTitleRelevant`) — Strict regex match for NIL, NCAA, college athletics, transfer portal, revenue sharing, eligibility, lawsuits, jersey patches, above-cap, athletic fees, media rights, naming rights, premium seating, sponsorship, fundraising, ticket sales, fan rewards, conference governance/self-governance/autonomy/enforcement, AD abbreviation with university context, board of regents with athletics/oversight context, college athletics LLC/ventures/privatization, Athletes.org, executive orders on college sports — all with college/university/athletic context. Applied by Tier 2 publications, all aggregator fetchers, NCAA RSS. Tier 1 publications skip this gate.
+1. **Relevance gate** (`fetcher-utils.js: isTitleRelevant`) — Strict regex match for NIL, NCAA, college athletics, transfer portal, revenue sharing, eligibility, lawsuits, jersey patches, above-cap, athletic fees, media rights, naming rights, premium seating, sponsorship, fundraising, ticket sales, fan rewards, conference governance/self-governance/autonomy/enforcement, AD abbreviation with university context, board of regents with athletics/oversight context, college athletics LLC/ventures/privatization, Athletes.org, executive orders on college sports, SCORE Act, SAFE Act, floor vote/markup/committee vote with college context, DI Council/Board/Cabinet/Membership Committee, Division I Council/Board/Cabinet/Committee, autonomy subdivision/conference with NCAA context, circumvention penalties — all with college/university/athletic context where required. Applied by Tier 2 publications, all aggregator fetchers, NCAA RSS, and gov/institutional Tier 1 feeds (NLRB, NCAA.org). Other Tier 1 publications skip this gate.
 2. **Game noise filter** (`fetcher-utils.js: isGameNoise`) — Rejects game recaps, brackets, draft/combine coverage, recruiting noise, pro sports transactions, sportsbooks, power rankings, coaching carousel, player features. ~100 patterns. Business signals (NIL, NCAA governance, CSC, revenue sharing, legislation, antitrust, jersey patch, above-cap, athletic fee, apparel, facility funding, sponsorship, naming rights, premium seating, philanthropy, fan rewards) always pass through via `BUSINESS_SIGNAL_RE`.
 2b. **Pro sports noise filter** (`fetcher-utils.js: isProSportsNoise`) — Rejects NFL/NBA/MLB/NHL/MLS/FIFA/World Cup/Copa America/WBC/spring training/Olympics/experience economy/PGA Tour/NFL Network/memorabilia/collector/sports TV upfront headlines. Only `COLLEGE_CONTEXT_RE` can override (business signals alone don't rescue pro sports content). Applied after game noise filter in publications and at insert time in fetcher-utils.
 3. **URL dedup** — `headlines.url` has UNIQUE constraint. URLs normalized (strip UTM params, fragments, www, trailing slashes).
@@ -565,8 +583,8 @@ From `wrangler.toml`:
 crons = ["0,30 * * * *", "10,40 * * * *", "7,37 * * * *", "25 10,11,19,20 * * *"]
 ```
 
-- `0,30 * * * *` — **Group A** fetchers: Google News (76q)
-- `10,40 * * * *` — **Group B** fetchers: Bing News (49q), Publications (23 feeds), NCAA RSS (3), NewsData (18q)
+- `0,30 * * * *` — **Group A** fetchers: Google News (82q)
+- `10,40 * * * *` — **Group B** fetchers: Bing News (53q), Publications (24 feeds), NCAA RSS (3), NewsData (18q)
 - `7,37 * * * *` — **Group C** fetchers (lighter/supplemental): CourtListener, NIL Revolution, CSLT (cases + key dates), Podcasts, CFBD
 - `25 10,11,19,20 * * *` — AI pipeline (fires at 4 UTC hours; handler checks actual ET hour, only runs when h=6 or h=15, auto-adjusting for DST). Weekdays: AM+PM. Saturday: none. Sunday: PM only.
 
@@ -587,13 +605,13 @@ workers/
   ai-pipeline.js       — 3 active AI tasks (tag, CSC detect, briefing)
   fetcher-utils.js     — Shared: cooldowns, dedup cache (Jaccard), noise filter, relevance gate
   rss-parser.js        — Regex-based RSS parser (no DOMParser in Workers)
-  fetch-google-news.js — Google News RSS (76 queries)
-  fetch-bing-news.js   — Bing News RSS (49 queries)
+  fetch-google-news.js — Google News RSS (82 queries)
+  fetch-bing-news.js   — Bing News RSS (53 queries)
   fetch-newsdata.js    — NewsData.io API (18 queries)
   fetch-ncaa-rss.js    — NCAA.com RSS (3 feeds)
   fetch-courtlistener.js — CourtListener RECAP (dormant)
   fetch-nil-revolution.js — Troutman Pepper blog RSS
-  fetch-publications.js — 23 RSS feeds (11 Tier 1 + 12 Tier 2)
+  fetch-publications.js — 24 RSS feeds (12 Tier 1 + 12 Tier 2)
   fetch-cslt.js        — College Sports Litigation Tracker scraper (cases + key dates)
   fetch-podcasts.js    — 6 podcast RSS feeds (freshness check)
   fetch-cfbd.js        — CFBD transfer portal + preseason intel

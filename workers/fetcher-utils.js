@@ -514,8 +514,8 @@ export function categorizeByKeyword(title) {
 
   // Order matters: more specific patterns first
   if (/\bcsc\b|college sports commission|tip line/.test(t)) return 'CSC / Enforcement';
-  if (/\bncaa\s+governance\b|ncaa\s+board|d-i council|\brule change\b|\bbylaw\b|\bwaiver\b/.test(t)) return 'NCAA Governance';
-  if (/\bbill\b|legislation|committee hearing|senate|house bill|\blaw\b|statute|governor sign/.test(t)) return 'Legislation';
+  if (/\bncaa\s+governance\b|ncaa\s+board|d-i council|\bdi\s+(?:council|board|cabinet)\b|\bdivision\s+i\s+(?:council|board|cabinet)\b|\brule change\b|\bbylaw\b|\bwaiver\b|\bmembership\s+committee\b|\bautonomy\s+subdivision\b/.test(t)) return 'NCAA Governance';
+  if (/\bscore\s+act\b|\bsafe\s+act\b|\bbill\b|legislation|committee hearing|senate|house bill|\blaw\b|statute|governor sign|\bfloor\s+vote\b/.test(t)) return 'Legislation';
   if (/lawsuit|court|settlement|ruling|\bjudge\b|\bfiled\b|\bv\.\s|plaintiff|defendant/.test(t)) return 'Litigation';
   if (/revenue.sharing|salary cap|compensation cap|\bnil deal\b|\bcollective\b/.test(t)) return 'Revenue Sharing';
   if (/transfer portal|\broster\s+limit\b|scholarship limit|eligibility\s+(?:rule|waiver|transfer)|\bportal\s+(?:window|rule|policy)\b/.test(t)) return 'Roster / Portal';
@@ -632,6 +632,16 @@ const TITLE_RELEVANCE_RE = new RegExp([
   // Endowments
   'endow(?:ed|ment).*(?:college|university|athletic)',
   '(?:college|university|athletic).*endow(?:ed|ment)',
+  // Federal legislation — named bills and process
+  '\\bscore\\s+act\\b', '\\bsafe\\s+act\\b.*(?:college|athlete|ncaa)',
+  '(?:college|ncaa|athlete|nil).*(?:floor\\s+vote|markup|committee\\s+vote)',
+  '(?:floor\\s+vote|markup|committee\\s+vote).*(?:college|ncaa|athlete|nil)',
+  // NCAA governance bodies — DI Council, DI Board, DI Cabinet, committees
+  '\\bdi\\s+(?:council|board|cabinet|membership\\s+committee)\\b',
+  '\\bdivision\\s+i\\s+(?:council|board|cabinet|committee)\\b',
+  '\\bncaa\\b.*(?:subdivision|autonomy\\s+(?:subdivision|conference))',
+  '(?:subdivision|autonomy\\s+(?:subdivision|conference)).*\\bncaa\\b',
+  '\\bcircumvention\\s+penalt',
 ].join('|'), 'i');
 
 export function isTitleRelevant(title) {

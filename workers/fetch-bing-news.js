@@ -78,6 +78,12 @@ const QUERIES = [
   // Coverage gaps
   '"multimedia rights" college OR conference extension',
   '"emerging sport" OR "new sport" NCAA university',
+  // Federal legislation process
+  '"SCORE Act" revision OR markup OR "floor vote"',
+  '"college sports" Congress "floor vote" OR hearing OR committee',
+  // NCAA governance bodies
+  '"DI Council" OR "DI Board" OR "DI Cabinet" NCAA',
+  '"DI Membership Committee" OR "autonomy subdivision" NCAA',
 ];
 
 function getCooldown() {
