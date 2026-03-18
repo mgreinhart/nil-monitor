@@ -407,6 +407,9 @@ If the answer is no, don't include it.
 RECENCY:
 Each headline includes an age tag like [3h ago] or [18h ago]. Strongly prefer fresher stories. A story from 2 hours ago should generally beat a similar story from 20 hours ago unless the older story is significantly more important. For afternoon briefings especially, lead with what happened TODAY -- not yesterday's news.
 
+STALENESS CHECK:
+Before including any item in the briefing, verify the headline describes a recent event. Aggregators (MSN, Bing, Yahoo) sometimes recirculate articles that are weeks or months old. If a headline references a ruling, decision, filing, or action that appears to have occurred well before the current briefing cycle, exclude it. Red flags: past tense with no recent time reference, events already widely reported in prior briefing cycles, or headlines that describe a development from a specific past date (e.g., "January ruling" appearing in a March briefing). When in doubt, prefer a fresher story over a potentially stale one.
+
 STRICT RULE -- CALENDAR DATES ARE NOT NEWS:
 Do NOT include known upcoming deadlines as briefing items unless something NEW happened related to them (date changed, motion filed, new party made a statement, new context emerged).
 

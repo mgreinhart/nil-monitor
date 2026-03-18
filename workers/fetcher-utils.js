@@ -660,6 +660,14 @@ export async function insertHeadline(db, { source, title, url, category, publish
   const cleanTitle = decodeEntities(title);
   if (!cleanTitle || !url) return false;
 
+  // Staleness guard: reject articles with pubDates older than 7 days.
+  // Aggregators (MSN, Bing) recirculate old articles with fresh fetch timestamps,
+  // which can fool the briefing into treating months-old stories as breaking news.
+  if (published) {
+    const pubDate = new Date(published);
+    if (!isNaN(pubDate.getTime()) && Date.now() - pubDate.getTime() > 7 * 86400000) return false;
+  }
+
   // Filter chain: game noise → pro sports noise → spam → blocked domains
   if (isGameNoise(cleanTitle)) return false;
   if (isProSportsNoise(cleanTitle)) return false;
