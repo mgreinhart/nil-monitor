@@ -7,6 +7,8 @@ export async function onRequest(context) {
   const resp = await fetch(target, {
     method: context.request.method,
     headers: context.request.headers,
+    body: context.request.method !== 'GET' && context.request.method !== 'HEAD'
+      ? context.request.body : undefined,
   });
   const newResp = new Response(resp.body, resp);
   newResp.headers.set("Access-Control-Allow-Origin", "*");

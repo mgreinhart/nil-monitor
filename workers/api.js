@@ -816,6 +816,17 @@ export async function handleApi(request, env) {
 
     // Admin status dashboard (HTML)
     if (path === '/api/admin') {
+      // ?key= login: validate, set cookie, redirect to strip key from URL
+      if (env.ADMIN_KEY && url.searchParams.get('key') === env.ADMIN_KEY) {
+        const token = await deriveAdminToken(env.ADMIN_KEY);
+        return new Response(null, {
+          status: 302,
+          headers: {
+            'Location': '/api/admin',
+            'Set-Cookie': `admin_token=${token}; Path=/api; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`,
+          },
+        });
+      }
       const auth = await checkAdminAuth(request, env);
       if (!auth) return adminLoginPage();
       const html = await buildAdminDashboard(env);
