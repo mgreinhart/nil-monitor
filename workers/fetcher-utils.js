@@ -223,9 +223,11 @@ const PRO_SPORTS_NOISE_RE = new RegExp([
   '\\bnfl\\b.*(?:free agen|tv|disabilit|contract|trade|roster|staff|franchise tag|combine|draft|schedule|season|preseason|regular season)',
   '\\bnfl free agent\\b', '\\bfranchise tag\\b.*(?:nfl|\\b(?:cowboys?|eagles?|chiefs?|packers?)\\b)',
   '\\bnflpa\\b',
-  // NBA teams and NBA-specific
+  // NBA teams, players, and NBA-specific
   '\\b(?:nets|knicks|lakers|celtics|warriors|heat|bucks|nuggets|76ers|suns|clippers|cavaliers|hawks|raptors|grizzlies|pelicans|spurs|mavericks|rockets|timberwolves|blazers|magic|thunder|pistons|wizards|hornets|pacers)\\b',
   '\\bnba\\b.*(?:trade|contract|free agen|roster|draft|playoff|all.star)',
+  // Pro athlete names that are unambiguously non-college
+  '\\b(?:lebron|steph curry|kevin durant|giannis|mahomes|travis kelce|shohei ohtani)\\b(?!.*(?:college|ncaa|nil|university))',
   // NHL teams and NHL-specific
   '\\b(?:bruins|blackhawks|maple leafs|canadiens|penguins|red wings|flyers|oilers|avalanche|lightning|hurricanes|islanders|blue jackets|predators|kraken|wild|flames|canucks|ducks|coyotes|sharks|blues|capitals|devils|sabres)\\b',
   '\\bnhl\\b(?!.*(?:college|ncaa|nil|university))',
@@ -336,6 +338,9 @@ const GAME_NOISE_RE = new RegExp([
   'selection committee(?!.*(?:reform|governance|restructur))',
   'punch(?:ed|es|ing)?\\s+(?:ticket|bid).*(?:big dance|march madness|ncaa tournament)',
   'punch(?:ed|es|ing)?\\s+(?:ticket|bid)\\s+to\\b',
+  'cinderella\\s+(?:run|story|team|bid)',
+  'survives?\\s+(?:first|second|third)\\s+(?:test|round|game)',
+  '(?:upset|upsets|stunner|stunned|shocking)\\s+(?:win|victory|loss|defeat)',
   // Game coverage
   'game recap', 'game preview', 'game day', 'gameday', 'tipoff', 'tip-off',
   'kickoff', 'kick-off', 'halftime', 'overtime', 'final score',
