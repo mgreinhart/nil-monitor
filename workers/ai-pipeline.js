@@ -339,15 +339,29 @@ function cleanBriefingText(text) {
 
 // ── Task 3: Daily Briefing ───────────────────────────────────────
 async function generateBriefing(env, db, isAfternoon = false) {
-  // Afternoon: 18h window (today's stories only). Morning: 36h window (catches late pickups).
-  const recencyHours = isAfternoon ? 18 : 36;
-  const cutoff = new Date(Date.now() - recencyHours * 3600000).toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
-  const { results: rawHeadlines } = await db.prepare(
+  // Tight primary window: AM=18h, PM=12h. If too few headlines, expand to fallback window.
+  const primaryHours = isAfternoon ? 12 : 18;
+  const fallbackHours = isAfternoon ? 18 : 24;
+  const primaryCutoff = new Date(Date.now() - primaryHours * 3600000).toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
+  const fallbackCutoff = new Date(Date.now() - fallbackHours * 3600000).toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
+
+  let { results: rawHeadlines } = await db.prepare(
     `SELECT * FROM headlines WHERE category IS NOT NULL AND published_at >= ? ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 100`
-  ).bind(cutoff).all();
+  ).bind(primaryCutoff).all();
+
+  let usedFallback = false;
+  if (rawHeadlines.length < 10) {
+    const { results: fallbackHeadlines } = await db.prepare(
+      `SELECT * FROM headlines WHERE category IS NOT NULL AND published_at >= ? ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 100`
+    ).bind(fallbackCutoff).all();
+    rawHeadlines = fallbackHeadlines;
+    usedFallback = true;
+  }
+
   // Deduplicate: group similar headlines, keep highest-tier source
   const headlines = deduplicateHeadlines(rawHeadlines);
-  console.log(`Briefing: ${rawHeadlines.length} raw headlines → ${headlines.length} after dedup (${recencyHours}h window)`);
+  const windowLabel = usedFallback ? `${fallbackHours}h fallback` : `${primaryHours}h`;
+  console.log(`Briefing: ${rawHeadlines.length} raw headlines → ${headlines.length} after dedup (${windowLabel} window)`);
 
   const todayETForDeadlines = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   const in14Days = (() => { const d = new Date(Date.now() + 14 * 86400000); return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); })();
@@ -414,7 +428,12 @@ RECENCY:
 Each headline includes an age tag like [3h ago] or [18h ago]. Strongly prefer fresher stories. A story from 2 hours ago should generally beat a similar story from 20 hours ago unless the older story is significantly more important. For afternoon briefings especially, lead with what happened TODAY -- not yesterday's news.
 
 STALENESS CHECK:
-Before including any item in the briefing, verify the headline describes a recent event. Aggregators (MSN, Bing, Yahoo) sometimes recirculate articles that are weeks or months old. If a headline references a ruling, decision, filing, or action that appears to have occurred well before the current briefing cycle, exclude it. Red flags: past tense with no recent time reference, events already widely reported in prior briefing cycles, or headlines that describe a development from a specific past date (e.g., "January ruling" appearing in a March briefing). When in doubt, prefer a fresher story over a potentially stale one.
+Before including any item, verify it describes a RECENT event — something that happened or was announced within the last 24 hours. Aggregators (MSN, Bing, Yahoo) regularly recirculate weeks-old articles with fresh timestamps. Red flags:
+- Source is "MSN", "Bing News", or "Yahoo" and the headline describes an event already covered in a prior briefing cycle
+- Past tense with no recent time reference ("judge ruled", "NCAA denied") without specifying WHEN
+- Events you recognize from prior briefings appearing under a different outlet
+- A headline that could describe a development from any point in the last month
+When in doubt, EXCLUDE the item and choose a fresher story. A briefing with 3 genuinely new items is better than 4 items where one is stale.
 
 STRICT RULE -- CALENDAR DATES ARE NOT NEWS:
 Do NOT include known upcoming deadlines as briefing items unless something NEW happened related to them (date changed, motion filed, new party made a statement, new context emerged).
@@ -529,10 +548,14 @@ A briefing that surfaces 4 genuinely new items is always better than one that re
 
   const periodLabel = isAfternoon ? 'afternoon update' : 'morning briefing';
 
+  const fallbackWarning = usedFallback
+    ? `\nNOTE: The headline pool was expanded to ${fallbackHours} hours because fewer than 10 headlines were available in the primary ${primaryHours}-hour window. Some headlines may be older — only include items with genuine new developments. Strongly prefer the freshest stories.\n`
+    : '';
+
   const userContent = `Generate the ${periodLabel} for ${today}. You must return EXACTLY 4 sections.
 
 Lead with today's most important developments. If today's headlines don't fill all 4 sections, use remaining sections for upcoming deadlines or developments to watch this week.
-${antiRepetitionBlock}
+${antiRepetitionBlock}${fallbackWarning}
 TODAY'S HEADLINES (tagged by severity):
 ${headlineList || 'No headlines yet today.'}
 
