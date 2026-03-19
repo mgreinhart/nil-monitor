@@ -393,6 +393,12 @@ Congressional floor vote timelines, vote count analysis, and specific legislativ
 CONFERENCE AUTONOMOUS GOVERNANCE PRIORITY:
 Conference-level autonomous governance actions are ALWAYS high-priority items. When conference presidents or commissioners announce meetings, frameworks, or rulemaking independent of the NCAA -- especially if framed as a response to federal inaction -- this represents a potential structural change to how the AD's institution is governed. These stories should be prioritized over individual litigation updates or recurring deadline reminders that have appeared in previous briefings. A story about SEC presidents meeting to establish conference-level rules is more important than a routine case update.
 
+REVENUE-SHARING CAP MECHANICS PRIORITY:
+Any headline about modifying, exceeding, creating exceptions to, or restructuring the $20.5M revenue-sharing cap is a MUST-INCLUDE item. These stories directly change the financial framework every AD operates under. Examples: cap exceptions for player retention, Bird rights proposals, cap adjustments, conference-level cap modifications, above-cap spending mechanisms. If a cap mechanics story exists in the headlines, it takes priority over any repeated story and over routine enforcement or litigation updates.
+
+NEW DEAL STRUCTURE PRIORITY:
+First-of-their-kind arrangements are HIGH-PRIORITY. Examples: first campus-based branded content studio, first conference-wide data commercialization deal, first university-backed LLC for athletics revenue, first private equity minority stake in an athletic department. These signal structural templates other institutions will evaluate and potentially replicate.
+
 STORY SELECTION PRIORITIES (in addition to above):
 - AD/coach CONTRACT DETAILS that include revenue-sharing mechanics, CSC references, or competitive benchmarking clauses are HIGH-PRIORITY -- they are templates for how institutions operationalize the new era, not just personnel news.
 - CSC DEAL REJECTIONS, arbitration filings, or institutional pushback against CSC rulings are HIGH-PRIORITY -- they signal enforcement friction that affects every school's compliance posture.
