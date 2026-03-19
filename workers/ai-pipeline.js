@@ -459,23 +459,54 @@ Return ONLY valid JSON, no other text.`;
 
   const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  // ── Anti-repetition: fetch most recent briefing regardless of AM/PM/date ──
+  // ── Anti-repetition: fetch last TWO briefings to detect consecutive repeats ──
   let antiRepetitionBlock = '';
   try {
-    const prevBriefing = await db.prepare(
-      "SELECT content FROM briefings ORDER BY date DESC, generated_at DESC LIMIT 1"
-    ).first();
-    if (prevBriefing?.content) {
-      const prevSections = JSON.parse(prevBriefing.content);
-      const prevHeadlines = prevSections
-        .filter(s => s && typeof s.headline === 'string' && s.headline.trim().length > 0)
-        .map(s => `• ${s.short_title || ''}: ${s.headline}`.trim());
-      if (prevHeadlines.length > 0) {
-        antiRepetitionBlock = `
-ANTI-REPETITION RULE: Here are the items from the most recent briefing that was published:
-${prevHeadlines.join('\n')}
+    const { results: recentBriefings } = await db.prepare(
+      "SELECT content FROM briefings ORDER BY date DESC, generated_at DESC LIMIT 2"
+    ).all();
 
-Do NOT repeat any of these items unless there is a MATERIAL UPDATE -- meaning a new court ruling, a new vote, a new filing, a new statement from a named official, or a quantitative change (dollar amount, vote count, date change). Simply having more outlets cover the same story is NOT a material update. If one of these stories has a genuine new development, lead with what's new, not a recap of the original story.
+    const extractTopics = (content) => {
+      try {
+        return JSON.parse(content)
+          .filter(s => s && typeof s.headline === 'string' && s.headline.trim().length > 0)
+          .map(s => `• ${s.short_title || ''}: ${s.headline}`.trim());
+      } catch { return []; }
+    };
+
+    const prevHeadlines = recentBriefings[0]?.content ? extractTopics(recentBriefings[0].content) : [];
+    const prev2Headlines = recentBriefings[1]?.content ? extractTopics(recentBriefings[1].content) : [];
+
+    if (prevHeadlines.length > 0) {
+      // Detect topics that appeared in BOTH of the last two briefings
+      const prev2Lower = prev2Headlines.map(h => h.toLowerCase());
+      const repeatedTopics = prevHeadlines.filter(h => {
+        const words = h.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+        return prev2Lower.some(p2 => {
+          const overlap = words.filter(w => p2.includes(w)).length;
+          return words.length > 0 && overlap / words.length >= 0.4;
+        });
+      });
+
+      const repeatedBlock = repeatedTopics.length > 0
+        ? `\nBLOCKED TOPICS (appeared in BOTH of the last two briefings -- do NOT include under any circumstances unless a genuinely new development has occurred: new court ruling, new vote, new dollar figure, new named party, new legal filing):\n${repeatedTopics.join('\n')}\nThe third consecutive appearance of any topic is ALWAYS wrong. These stories are stale to the reader.\n`
+        : '';
+
+      antiRepetitionBlock = `
+ANTI-REPETITION RULE: Here are the items from the most recent briefing:
+${prevHeadlines.join('\n')}
+${repeatedBlock}
+Do NOT repeat any of the above items unless there is a MATERIAL UPDATE. A material update means:
+- A named official making a NEW statement (not restating a known position)
+- New numbers, new legal filings, or a new institutional action
+- A new court ruling, vote, or formal decision
+- A quantitative change (dollar amount, vote count, date change)
+
+These are NOT material updates:
+- A different outlet covering the SAME facts
+- Reframing or re-angling the same underlying story
+- Commentary or opinion on a previously reported event
+- A story being "widely discussed" or "gaining attention"
 
 If all the top stories were already covered and nothing materially new has happened, prioritize:
 - Stories from the last 18 hours that were NOT in the previous briefing, even if they are lower severity
@@ -485,10 +516,9 @@ If all the top stories were already covered and nothing materially new has happe
 
 A briefing that surfaces 4 genuinely new items is always better than one that recaps 3 known items plus 1 new one.
 `;
-      }
     }
   } catch (e) {
-    console.log('Briefing: could not fetch previous briefing for anti-repetition:', e.message);
+    console.log('Briefing: could not fetch previous briefings for anti-repetition:', e.message);
   }
 
   const periodLabel = isAfternoon ? 'afternoon update' : 'morning briefing';
