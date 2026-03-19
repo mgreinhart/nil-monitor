@@ -280,6 +280,8 @@ const PRO_SPORTS_NOISE_RE = new RegExp([
   '\\bupfront\\s+season\\b(?!.*(?:college|ncaa|nil|university))',
   // Sports TV business headlines without college context
   '\\bsports\\s+tv\\b(?!.*(?:college|ncaa|nil|university|conference|march madness))',
+  // Pro jersey retirements without college context
+  '\\bjersey\\s+retire(?:ment|d)\\b(?!.*(?:college|ncaa|university))',
 ].join('|'), 'i');
 
 /**
@@ -637,10 +639,14 @@ const TITLE_RELEVANCE_RE = new RegExp([
   // Endowments
   'endow(?:ed|ment).*(?:college|university|athletic)',
   '(?:college|university|athletic).*endow(?:ed|ment)',
-  // Federal legislation — named bills and process
+  // Federal legislation — named bills, process, hearings
   '\\bscore\\s+act\\b', '\\bsafe\\s+act\\b.*(?:college|athlete|ncaa)',
   '(?:college|ncaa|athlete|nil).*(?:floor\\s+vote|markup|committee\\s+vote)',
   '(?:floor\\s+vote|markup|committee\\s+vote).*(?:college|ncaa|athlete|nil)',
+  '(?:senate|congress)\\s+hearing.*(?:college|ncaa|athlete|nil|sport)',
+  '(?:college|ncaa|athlete|nil|sport).*(?:senate|congress)\\s+hearing',
+  '\\bhelp\\s+committee\\b.*(?:college|ncaa|athlete|sport)',
+  '\\bcommerce\\s+committee\\b.*(?:college|ncaa|athlete|sport)',
   // NCAA governance bodies — DI Council, DI Board, DI Cabinet, committees
   '\\bdi\\s+(?:council|board|cabinet|membership\\s+committee)\\b',
   '\\bdivision\\s+i\\s+(?:council|board|cabinet|committee)\\b',

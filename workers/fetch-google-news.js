@@ -125,6 +125,10 @@ const QUERIES = [
   'site:sportsbusinessjournal.com college OR NCAA OR NIL',
   // Revenue sharing cap mechanics
   '"revenue sharing" cap exception OR exceed OR retention college',
+  // Senate hearings on college sports
+  '"Senate hearing" "college sports" OR "college athletics" OR NCAA',
+  // SCORE Act specific angles (Lane Kiffin Rule, amendments)
+  '"SCORE Act" revision OR amendment OR "Lane Kiffin" OR provision',
 ];
 
 function getCooldown() {

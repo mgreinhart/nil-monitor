@@ -88,6 +88,9 @@ const QUERIES = [
   '"Sports Business Journal" college OR NCAA OR NIL',
   // Revenue sharing cap mechanics
   '"revenue sharing" cap exception OR exceed OR "Bird rights"',
+  // Senate hearings / SCORE Act details
+  '"Senate hearing" college sports OR NCAA',
+  '"SCORE Act" amendment OR provision OR "Lane Kiffin"',
 ];
 
 function getCooldown() {
