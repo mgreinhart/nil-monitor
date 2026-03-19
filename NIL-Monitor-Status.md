@@ -88,20 +88,20 @@ Each fetcher self-governs its cooldown via the `fetcher_runs` table. All use sha
 
 | Group | Cron | Fetchers | Notes |
 |-------|------|----------|-------|
-| A (Google) | `:00, :30` | `fetch-google-news.js` (82 queries) | Heaviest fetcher, isolated |
-| B (Bing+Feeds) | `:10, :40` | `fetch-bing-news.js` (53q) + `fetch-publications.js` (24) + `fetch-ncaa-rss.js` (3) + `fetch-newsdata.js` (18) | Added federal legislation + NCAA governance queries |
+| A (Google) | `:00, :30` | `fetch-google-news.js` (84 queries) | Heaviest fetcher, isolated |
+| B (Bing+Feeds) | `:10, :40` | `fetch-bing-news.js` (55q) + `fetch-publications.js` (23) + `fetch-ncaa-rss.js` (3) + `fetch-newsdata.js` (18) | Added federal legislation + NCAA governance queries |
 | C (Light) | `:07, :37` | CourtListener, NIL Revolution, CSLT (×2), Podcasts, CFBD | Lightweight |
 | AI Pipeline | `:25` at hours 10,11,19,20 UTC | `ai-pipeline.js` | Checks ET hour for DST |
 
 | Fetcher | Source | Queries/Feeds | Table | Cooldown | Auth |
 |---------|--------|---------------|-------|----------|------|
 | `fetch-google-news.js` | Google News RSS | 82 queries | headlines | 15–30 min | None |
-| `fetch-bing-news.js` | Bing News RSS | 53 queries | headlines | 15–30 min | None |
+| `fetch-bing-news.js` | Bing News RSS | 55 queries | headlines | 15–30 min | None |
 | `fetch-newsdata.js` | NewsData.io API | 18 queries | headlines | 30–60 min | `NEWSDATA_KEY` |
 | `fetch-ncaa-rss.js` | NCAA.com RSS | 3 feeds | headlines | 15–30 min | None |
 | `fetch-courtlistener.js` | CourtListener RECAP | — | cases | 120–240 min | Optional token |
 | `fetch-nil-revolution.js` | Troutman Pepper blog RSS | 1 feed | headlines | 120 min | None |
-| `fetch-publications.js` | 24 publication/conference/gov RSS feeds | 12 Tier 1 + 12 Tier 2 | headlines | 30 min | None |
+| `fetch-publications.js` | 23 publication/conference/gov RSS feeds | 11 Tier 1 + 12 Tier 2 | headlines | 30 min | None |
 | `fetch-cslt.js` (cases) | College Sports Litigation Tracker (scrape) | 1 page | cases, case_updates | 360 min | None |
 | `fetch-cslt.js` (key dates) | CSLT homepage | 1 page | cslt_key_dates | 360 min | None |
 | `fetch-podcasts.js` | 6 podcast RSS feeds | 6 feeds | podcast_episodes | 120 min | None |
@@ -118,8 +118,8 @@ All fetchers active 6 AM–10 PM ET, skip overnight. In-memory dedup cache (3-da
 
 #### Publication Feeds — Three-Tier Filtering Model
 
-**Tier 1 (12 feeds) — No relevance gate, noise filter only:**
-Business of College Sports, AthleticDirectorU, Sportico, Front Office Sports, The Athletic (college sports), CollegeAD, LexBlog College Sports, Opendorse (NCAA + NIL, 2 feeds), NLRB (press releases + weekly summaries, 2 feeds), NCAA.org (institutional RSS — governance, policy, emerging sports). Government/institutional feeds (NLRB, NCAA.org) have source-specific relevance gate applied despite Tier 1 placement because they publish across all topics.
+**Tier 1 (11 feeds) — No relevance gate, noise filter only:**
+Business of College Sports, AthleticDirectorU, Sportico, Front Office Sports, The Athletic (college sports), LexBlog College Sports, Opendorse (NCAA + NIL, 2 feeds), NLRB (press releases + weekly summaries, 2 feeds), NCAA.org (institutional RSS — governance, policy, emerging sports). Government/institutional feeds (NLRB, NCAA.org) have source-specific relevance gate applied despite Tier 1 placement because they publish across all topics. CollegeAD feed removed — RSS returns 2020-era content only.
 
 **Tier 2 (12 feeds) — Relevance gate + noise filter:**
 Sports Litigation Alert, On3, CBS Sports (football + basketball), ESPN (football + basketball), Yahoo Sports, The Athletic (football), Norton Rose Fulbright (global sports law — relevance gate filters non-college), Horizon League, ACC, Big 12
@@ -479,6 +479,20 @@ Three recurring D1 ticker stories were confirmed missing: SCORE Act revisions (P
 
 14. **Politico not added** — Investigated Politico RSS (politicopicks.xml, congress.xml). Zero college sports items in current feed. Their SCORE Act coverage reaches us via Google News queries instead. Low yield, high noise — not worth the feed slot.
 
+### Coverage Gap Fix: SBJ / Bird Rights / Revenue Sharing Cap (2026-03-18/19)
+
+Big Ten "Bird rights" revenue-sharing cap story (SBJ exclusive, picked up by CollegeAD/D1 ticker) was missing. Investigation found: SBJ has no working RSS feed (all endpoints return 301). SBJ articles ARE indexed by Google News. CollegeAD RSS is dead (2020-era content). Two of six test headlines failed relevance gate.
+
+15. **Google News queries (+2, now 84)** — Added: `site:sportsbusinessjournal.com college OR NCAA OR NIL` (catches all SBJ college sports articles indexed by Google), `"revenue sharing" cap exception OR exceed OR retention college`.
+
+16. **Bing News queries (+2, now 55)** — Added: `"Sports Business Journal" college OR NCAA OR NIL`, `"revenue sharing" cap exception OR exceed OR "Bird rights"`.
+
+17. **CollegeAD feed removed** — RSS at `collegead.com/feed/` returns only 2020-2021 content. Zero CollegeAD headlines in last 7 days. Feed is dead. Publications now 23 feeds (11 Tier 1 + 12 Tier 2).
+
+18. **Relevance gate: revenue sharing cap mechanics** — Added: `cap exception` with college/conference context, `Bird rights` with college/revenue/retention context, `$20.5M` standalone, `exceed/above/over` + `revenue sharing/compensation cap`, `revenue sharing/compensation cap` + `exceed/exception/retain/retention`.
+
+19. **SBJ structural gap documented** — SBJ is paywalled with no RSS. Coverage path is via `site:sportsbusinessjournal.com` Google News query. SBJ articles that Google indexes will now be captured. Secondary coverage from ESPN, CBS Sports, etc. also caught by topic queries.
+
 ---
 
 ## Architecture Decisions
@@ -584,7 +598,7 @@ crons = ["0,30 * * * *", "10,40 * * * *", "7,37 * * * *", "25 10,11,19,20 * * *"
 ```
 
 - `0,30 * * * *` — **Group A** fetchers: Google News (82q)
-- `10,40 * * * *` — **Group B** fetchers: Bing News (53q), Publications (24 feeds), NCAA RSS (3), NewsData (18q)
+- `10,40 * * * *` — **Group B** fetchers: Bing News (55q), Publications (23 feeds), NCAA RSS (3), NewsData (18q)
 - `7,37 * * * *` — **Group C** fetchers (lighter/supplemental): CourtListener, NIL Revolution, CSLT (cases + key dates), Podcasts, CFBD
 - `25 10,11,19,20 * * *` — AI pipeline (fires at 4 UTC hours; handler checks actual ET hour, only runs when h=6 or h=15, auto-adjusting for DST). Weekdays: AM+PM. Saturday: none. Sunday: PM only.
 
@@ -605,13 +619,13 @@ workers/
   ai-pipeline.js       — 3 active AI tasks (tag, CSC detect, briefing)
   fetcher-utils.js     — Shared: cooldowns, dedup cache (Jaccard), noise filter, relevance gate
   rss-parser.js        — Regex-based RSS parser (no DOMParser in Workers)
-  fetch-google-news.js — Google News RSS (82 queries)
-  fetch-bing-news.js   — Bing News RSS (53 queries)
+  fetch-google-news.js — Google News RSS (84 queries)
+  fetch-bing-news.js   — Bing News RSS (55 queries)
   fetch-newsdata.js    — NewsData.io API (18 queries)
   fetch-ncaa-rss.js    — NCAA.com RSS (3 feeds)
   fetch-courtlistener.js — CourtListener RECAP (dormant)
   fetch-nil-revolution.js — Troutman Pepper blog RSS
-  fetch-publications.js — 24 RSS feeds (12 Tier 1 + 12 Tier 2)
+  fetch-publications.js — 24 RSS feeds (11 Tier 1 + 12 Tier 2)
   fetch-cslt.js        — College Sports Litigation Tracker scraper (cases + key dates)
   fetch-podcasts.js    — 6 podcast RSS feeds (freshness check)
   fetch-cfbd.js        — CFBD transfer portal + preseason intel

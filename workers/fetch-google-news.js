@@ -121,6 +121,10 @@ const QUERIES = [
   '"NCAA governance" OR "DI Council" OR "DI Board"',
   'NCAA "transfer portal" circumvention OR tampering penalties',
   '"DI Cabinet" OR "DI Membership Committee" OR "NCAA subdivision"',
+  // Paywalled sources that appear in Google News index
+  'site:sportsbusinessjournal.com college OR NCAA OR NIL',
+  // Revenue sharing cap mechanics
+  '"revenue sharing" cap exception OR exceed OR retention college',
 ];
 
 function getCooldown() {

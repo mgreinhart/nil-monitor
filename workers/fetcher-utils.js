@@ -642,6 +642,14 @@ const TITLE_RELEVANCE_RE = new RegExp([
   '\\bncaa\\b.*(?:subdivision|autonomy\\s+(?:subdivision|conference))',
   '(?:subdivision|autonomy\\s+(?:subdivision|conference)).*\\bncaa\\b',
   '\\bcircumvention\\s+penalt',
+  // Revenue sharing cap mechanics
+  '\\bcap\\s+exception\\b.*(?:college|ncaa|athlete|revenue|conference|big\\s+ten|sec|power)',
+  '(?:college|ncaa|athlete|revenue|conference|big\\s+ten|sec|power).*\\bcap\\s+exception\\b',
+  '\\bbird\\s+rights\\b.*(?:college|ncaa|athlete|revenue|retention)',
+  '(?:college|ncaa|athlete|revenue|retention).*\\bbird\\s+rights\\b',
+  '\\$20\\.?5\\s*m',
+  '(?:exceed|above|over).*(?:revenue.sharing|compensation)\\s*cap',
+  '(?:revenue.sharing|compensation)\\s*cap.*(?:exceed|exception|retain|retention)',
 ].join('|'), 'i');
 
 export function isTitleRelevant(title) {

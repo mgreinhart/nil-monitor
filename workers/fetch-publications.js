@@ -25,7 +25,7 @@ const TIER1_FEEDS = [
   { url: 'https://www.sportico.com/feed/', source: 'Sportico' },
   { url: 'https://frontofficesports.com/feed/', source: 'Front Office Sports' },
   { url: 'https://www.nytimes.com/athletic/rss/college-sports/', source: 'The Athletic' },
-  { url: 'https://collegead.com/feed/', source: 'CollegeAD' },
+  // CollegeAD feed removed — RSS returns 2020-era content only, site stopped publishing to it
   { url: 'https://www.lexblog.com/site/collegiate-professional-sports-law-blog/feed/', source: 'LexBlog College Sports' },
   { url: 'https://biz.opendorse.com/blog/category/ncaa/feed/', source: 'Opendorse' },
   { url: 'https://biz.opendorse.com/blog/category/nil/feed/', source: 'Opendorse' },

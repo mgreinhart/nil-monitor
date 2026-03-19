@@ -84,6 +84,10 @@ const QUERIES = [
   // NCAA governance bodies
   '"DI Council" OR "DI Board" OR "DI Cabinet" NCAA',
   '"DI Membership Committee" OR "autonomy subdivision" NCAA',
+  // Paywalled sources
+  '"Sports Business Journal" college OR NCAA OR NIL',
+  // Revenue sharing cap mechanics
+  '"revenue sharing" cap exception OR exceed OR "Bird rights"',
 ];
 
 function getCooldown() {
