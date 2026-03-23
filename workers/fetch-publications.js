@@ -13,9 +13,9 @@ import { getETHour, shouldRun, recordRun, insertHeadline, isGameNoise, isProSpor
 
 const FETCHER = 'publications';
 
-// Government feeds are in Tier 1 but publish across ALL topics.
+// Broad-scope Tier 1 feeds that publish across ALL topics (not just college sports).
 // Apply relevance gate to these sources even though they're Tier 1.
-const GOV_SOURCES = new Set(['NLRB', 'NCAA.org']);
+const BROAD_SOURCES = new Set(['NLRB', 'NCAA.org', 'Sportico', 'Front Office Sports']);
 
 // Tier 1 — Business/regulatory scoped. No relevance gate needed.
 // These outlets focus on college sports business, law, or governance by design.
@@ -102,7 +102,7 @@ export async function fetchPublications(env, { force = false } = {}) {
         // Tier 1 (niche business feeds): game noise + pro sports noise filter
         // Tier 2 (broad sports feeds): relevance gate + game noise + pro sports noise filter
         // Government feeds (Tier 1 but general topics): relevance gate required
-        if (GOV_SOURCES.has(feed.source) && !isTitleRelevant(item.title)) {
+        if (BROAD_SOURCES.has(feed.source) && !isTitleRelevant(item.title)) {
           totalSkipped++;
           continue;
         }

@@ -418,6 +418,23 @@ Any headline about modifying, exceeding, creating exceptions to, or restructurin
 NEW DEAL STRUCTURE PRIORITY:
 First-of-their-kind arrangements are HIGH-PRIORITY. Examples: first campus-based branded content studio, first conference-wide data commercialization deal, first university-backed LLC for athletics revenue, first private equity minority stake in an athletic department. These signal structural templates other institutions will evaluate and potentially replicate.
 
+MUST-INCLUDE WHEN AVAILABLE:
+- University president or chancellor statements about athletics restructuring, business model changes, or financial strategy (e.g., Kentucky president outlining $110M loan and commercial entertainment districts) -- these signal institutional direction
+- AD-level financial strategy disclosures: deficit justification, ROI calculations, budget benchmarking (e.g., LSU AD defending $8M WBB deficit with brand equity math) -- these are operational templates for peer ADs
+- Academic legal scholarship proposing structural frameworks for college athletics -- these preview future litigation arguments and regulatory approaches
+- NCAA licensing, trademark, or IP enforcement actions during championship events -- these affect every school's media and marketing operations
+- New premium licensing tiers or revenue programs created by the NCAA or conferences
+
+STORY QUALITY TEST:
+Before including any item, ask: does this story require institutional action, awareness of a financial impact, or preparation for a regulatory change? If the answer is no -- if it's a minor dispute that resolved itself, a game result with editorial framing, or a niche incident with no systemic implications -- skip it regardless of how recent it is. An AD reading this briefing at 6 AM should finish every item thinking "I need to do something about this" or "I need to tell someone about this." If neither applies, the story does not belong.
+
+LOW-PRIORITY — do not include unless nothing better exists:
+- Individual athlete trademark disputes that resolved without litigation
+- Game results or tournament performance framed as business commentary (a team winning or losing is not a regulatory development)
+- Fan or media reactions to existing policies
+- Minor personnel moves below the AD level
+- Individual NIL deal announcements unless they represent a first-of-its-kind structure
+
 STORY SELECTION PRIORITIES (in addition to above):
 - AD/coach CONTRACT DETAILS that include revenue-sharing mechanics, CSC references, or competitive benchmarking clauses are HIGH-PRIORITY -- they are templates for how institutions operationalize the new era, not just personnel news.
 - CSC DEAL REJECTIONS, arbitration filings, or institutional pushback against CSC rulings are HIGH-PRIORITY -- they signal enforcement friction that affects every school's compliance posture.

@@ -118,8 +118,8 @@ All fetchers active 6 AM–10 PM ET, skip overnight. In-memory dedup cache (3-da
 
 #### Publication Feeds — Three-Tier Filtering Model
 
-**Tier 1 (11 feeds) — No relevance gate, noise filter only:**
-Business of College Sports, AthleticDirectorU, Sportico, Front Office Sports, The Athletic (college sports), LexBlog College Sports, Opendorse (NCAA + NIL, 2 feeds), NLRB (press releases + weekly summaries, 2 feeds), NCAA.org (institutional RSS — governance, policy, emerging sports). Government/institutional feeds (NLRB, NCAA.org) have source-specific relevance gate applied despite Tier 1 placement because they publish across all topics. CollegeAD feed removed — RSS returns 2020-era content only.
+**Tier 1 (11 feeds) — Noise filter only (some with relevance gate):**
+Business of College Sports, AthleticDirectorU, The Athletic (college sports), LexBlog College Sports, Opendorse (NCAA + NIL, 2 feeds) — these are college-scoped by design, no relevance gate needed. Sportico, Front Office Sports, NLRB (press releases + weekly summaries, 2 feeds), NCAA.org (institutional RSS) — these publish across all sports/topics, so a source-specific relevance gate is applied despite Tier 1 placement to filter out non-college content (VC announcements, pro sports business, general labor, etc.). CollegeAD feed removed — RSS returns 2020-era content only.
 
 **Tier 2 (12 feeds) — Relevance gate + noise filter:**
 Sports Litigation Alert, On3, CBS Sports (football + basketball), ESPN (football + basketball), Yahoo Sports, The Athletic (football), Norton Rose Fulbright (global sports law — relevance gate filters non-college), Horizon League, ACC, Big 12
