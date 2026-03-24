@@ -100,11 +100,11 @@ const NIL_PODCASTS = [
   { name: "Next Play by Playfly Sports", id: "3fFqOS7yBgT7n0CcnHVMXk" },
 ];
 // ── Shared Components ──────────────────────────────────────────────
-const Mono = ({ children, style }) => <span style={{ fontFamily: T.mono, ...style }}>{children}</span>;
+const Mono = ({ children, style }) => <span style={{ fontFamily: T.sans, ...style }}>{children}</span>;
 
 const Badge = ({ children, color = T.accent }) => (
   <span style={{
-    fontFamily: T.mono, fontSize: 11, fontWeight: 700, letterSpacing: ".3px",
+    fontFamily: T.sans, fontSize: 11, fontWeight: 700, letterSpacing: ".3px",
     padding: "4px 8px", borderRadius: 4,
     background: color + "15", color, whiteSpace: "nowrap", textTransform: "uppercase", lineHeight: 1.4,
   }}>{children}</span>
@@ -112,7 +112,7 @@ const Badge = ({ children, color = T.accent }) => (
 
 const Pill = ({ active, children, onClick }) => (
   <button onClick={onClick} className="pill" style={{
-    fontFamily: T.mono, fontSize: 11, fontWeight: 600, padding: "8px 12px", borderRadius: 4,
+    fontFamily: T.sans, fontSize: 11, fontWeight: 600, padding: "8px 12px", borderRadius: 4,
     border: `1px solid ${active ? T.accent : "#9ca3af"}`,
     background: active ? T.accent : "transparent",
     color: active ? "#fff" : "#3d4a5c", cursor: "pointer", whiteSpace: "nowrap", letterSpacing: ".3px",
@@ -418,7 +418,7 @@ const StateLegislationMap = () => {
                   dx={dx || 0}
                   onClick={() => setSelected(stateData || null)}
                   style={{
-                    fontFamily: T.mono, fontSize: customSize || 10, fontWeight: 700,
+                    fontFamily: T.sans, fontSize: customSize || 10, fontWeight: 700,
                     fill,
                     cursor: "pointer", pointerEvents: "all",
                   }}
@@ -453,7 +453,7 @@ const StateLegislationMap = () => {
               <circle cx={-14} cy={0} r={4} fill={T.accent} />
               <text
                 x={0} y={1} textAnchor="start" dominantBaseline="middle"
-                style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 700, fill: selected?.name === "District of Columbia" ? "#fff" : "#3d4a5c" }}
+                style={{ fontFamily: T.sans, fontSize: 10, fontWeight: 700, fill: selected?.name === "District of Columbia" ? "#fff" : "#3d4a5c" }}
               >DC</text>
             </g>
           </Marker>
@@ -495,7 +495,7 @@ const StateLegislationMap = () => {
                       {selected.status === "enacted" ? "ENACTED" : "NO LAW"}
                     </Mono>
                   </div>
-                  <button onClick={() => setSelected(null)} style={{ fontFamily: T.mono, fontSize: 18, color: T.textDim, background: "transparent", border: "none", cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>&times;</button>
+                  <button onClick={() => setSelected(null)} style={{ fontFamily: T.sans, fontSize: 18, color: T.textDim, background: "transparent", border: "none", cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>&times;</button>
                 </div>
                 {/* Dates */}
                 {selected.statusDetail && selected.statusDetail !== "None." && (
@@ -979,7 +979,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                 }}
               >
                 <div style={{ display: "flex", alignItems: isMobile ? "center" : "center", gap: 10, flexWrap: isMobile ? "wrap" : "nowrap", justifyContent: "center" }}>
-                  <span style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: "#fff", background: T.accent, padding: "5px 10px", borderRadius: 4, letterSpacing: ".5px", flexShrink: 0, lineHeight: 1, display: "inline-flex", alignItems: "center" }}>NIL</span>
+                  <span style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 700, color: "#fff", background: T.accent, padding: "5px 10px", borderRadius: 4, letterSpacing: ".5px", flexShrink: 0, lineHeight: 1, display: "inline-flex", alignItems: "center" }}>NIL</span>
                   <Mono style={{ fontSize: isMobile ? 16 : 21, fontWeight: 400, letterSpacing: "1.5px", color: T.text, lineHeight: 1 }}>
                     MONITOR
                     {briefingGeneratedAt && <>{" \u00B7 "}{headerMonth} {headerDay}{" \u00B7 "}{headerPeriod}</>}
@@ -999,7 +999,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                     <div style={{ paddingLeft: 6, marginTop: -2 }}>
                       {briefingSource.map((s, i) => (
                         <div key={i} style={{ fontFamily: T.sans, fontSize: 22, fontWeight: 600, lineHeight: 1.4, color: T.text, padding: "2px 0" }}>
-                          <span style={{ fontFamily: T.mono, fontSize: 20, color: T.accent, marginRight: 8 }}>{"\u00BB"}</span>
+                          <span style={{ fontFamily: T.sans, fontSize: 20, color: T.accent, marginRight: 8 }}>{"\u00BB"}</span>
                           {s.short_title || s.headline}
                         </div>
                       ))}
@@ -1084,14 +1084,14 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
             >
               {!isMobile && <Mono style={{ flex: "0 0 96px", fontSize: 12, fontWeight: 600, color: T.textDim, textTransform: "uppercase", letterSpacing: ".3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.src}</Mono>}
               <div style={{ flex: 1, fontFamily: T.sans, fontSize: 15, fontWeight: h.sev === "critical" ? 600 : 500, color: T.text, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", ...(isMobile ? { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", whiteSpace: "normal" } : { whiteSpace: "nowrap" }) }}>{h.title}</div>
-              {h.isNew && <span style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, color: "#fff", background: T.green, padding: "2px 6px", borderRadius: 3, letterSpacing: ".5px", flexShrink: 0, textTransform: "uppercase", lineHeight: 1.3 }}>NEW</span>}
+              {h.isNew && <span style={{ fontFamily: T.sans, fontSize: 9, fontWeight: 700, color: "#fff", background: T.green, padding: "2px 6px", borderRadius: 3, letterSpacing: ".5px", flexShrink: 0, textTransform: "uppercase", lineHeight: 1.3 }}>NEW</span>}
               <Mono style={{ flex: "0 0 48px", fontSize: 12, color: T.textDim, textAlign: "right" }}>{h.time}</Mono>
             </a>
           ))}
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, padding: "8px 16px", borderTop: `1px solid ${T.borderLight}` }}>
-            <button onClick={() => setHlPage(hlPageClamped - 1)} disabled={hlPageClamped === 0} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: hlPageClamped > 0 ? T.accent : T.borderLight, background: "transparent", border: "none", cursor: hlPageClamped > 0 ? "pointer" : "default", padding: "8px 16px" }}>← Prev</button>
+            <button onClick={() => setHlPage(hlPageClamped - 1)} disabled={hlPageClamped === 0} style={{ fontFamily: T.sans, fontSize: 12, fontWeight: 600, color: hlPageClamped > 0 ? T.accent : T.borderLight, background: "transparent", border: "none", cursor: hlPageClamped > 0 ? "pointer" : "default", padding: "8px 16px" }}>← Prev</button>
             <Mono style={{ fontSize: 12, color: T.textDim }}>{hlPageClamped + 1} of {hlTotalPages}</Mono>
-            <button onClick={() => setHlPage(hlPageClamped + 1)} disabled={hlPageClamped >= hlTotalPages - 1} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: hlPageClamped < hlTotalPages - 1 ? T.accent : T.borderLight, background: "transparent", border: "none", cursor: hlPageClamped < hlTotalPages - 1 ? "pointer" : "default", padding: "8px 16px" }}>Next →</button>
+            <button onClick={() => setHlPage(hlPageClamped + 1)} disabled={hlPageClamped >= hlTotalPages - 1} style={{ fontFamily: T.sans, fontSize: 12, fontWeight: 600, color: hlPageClamped < hlTotalPages - 1 ? T.accent : T.borderLight, background: "transparent", border: "none", cursor: hlPageClamped < hlTotalPages - 1 ? "pointer" : "default", padding: "8px 16px" }}>Next →</button>
           </div>
         </Panel>
 
@@ -1345,7 +1345,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
           {/* ── Full tracker link ── */}
           {totalTracked > 0 && (
             <div style={{ padding: "5px 16px", background: T.surfaceAlt, borderTop: `1px solid ${T.borderLight}` }}>
-              <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" style={{ color: T.textDim, textDecoration: "none", fontFamily: T.mono, fontSize: 11, fontWeight: 400, display: "block" }}>
+              <a href="https://www.collegesportslitigationtracker.com/tracker" target="_blank" rel="noopener noreferrer" style={{ color: T.textDim, textDecoration: "none", fontFamily: T.sans, fontSize: 11, fontWeight: 400, display: "block" }}>
                 All {totalTracked} cases on CSLT →
               </a>
             </div>
@@ -1420,11 +1420,11 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                 ]},
               ].map((group, gi) => (
                 <div key={gi}>
-                  <div style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, letterSpacing: "1px", color: "#7c8698", textTransform: "uppercase", marginBottom: 4 }}>{group.heading}</div>
+                  <div style={{ fontFamily: T.sans, fontSize: 9, fontWeight: 700, letterSpacing: "1px", color: "#7c8698", textTransform: "uppercase", marginBottom: 4 }}>{group.heading}</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     {group.links.map((r, i) => (
                       <a key={i} href={r.href} target="_blank" rel="noopener noreferrer"
-                        style={{ textDecoration: "none", fontFamily: T.mono, fontSize: 12, color: T.textDim, display: "flex", alignItems: "center", gap: 6 }}
+                        style={{ textDecoration: "none", fontFamily: T.sans, fontSize: 12, color: T.textDim, display: "flex", alignItems: "center", gap: 6 }}
                         onMouseEnter={e => { e.currentTarget.style.color = T.accent; }}
                         onMouseLeave={e => { e.currentTarget.style.color = T.textDim; }}
                       >
@@ -1463,7 +1463,7 @@ const InfoModal = ({ onClose }) => (
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
         <h2 style={{ fontFamily: T.sans, fontSize: 22, fontWeight: 700, color: T.text, margin: 0 }}>What is NIL Monitor?</h2>
         <button onClick={onClose} style={{
-          fontFamily: T.mono, fontSize: 18, color: T.textDim, background: "transparent",
+          fontFamily: T.sans, fontSize: 18, color: T.textDim, background: "transparent",
           border: "none", cursor: "pointer", padding: "0 4px", lineHeight: 1,
         }}>&times;</button>
       </div>
@@ -1571,8 +1571,8 @@ export default function NILMonitor() {
       }}>
         {/* Left: brand + live + date */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: isMobile ? 12 : 20 }}>
-          <span style={{ fontFamily: T.mono, fontSize: 17, fontWeight: 700, color: "#fff", background: T.accent, padding: "5px 10px", borderRadius: 5, letterSpacing: ".5px" }}>NIL</span>
-          <span style={{ fontFamily: T.mono, fontSize: isMobile ? 14 : 17, fontWeight: 400, color: "#fff", letterSpacing: "1.5px" }}>MONITOR</span>
+          <span style={{ fontFamily: T.sans, fontSize: 17, fontWeight: 700, color: "#fff", background: T.accent, padding: "5px 10px", borderRadius: 5, letterSpacing: ".5px" }}>NIL</span>
+          <span style={{ fontFamily: T.sans, fontSize: isMobile ? 14 : 17, fontWeight: 400, color: "#fff", letterSpacing: "1.5px" }}>MONITOR</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: isMobile ? 0 : 20 }}>
           <span style={{ width: 10, height: 10, borderRadius: "50%", background: T.green, display: "inline-block", animation: "pulse-live 2s ease-in-out infinite" }} />
