@@ -392,6 +392,14 @@ Tier 4 (deprioritize or skip): Aggregators, AI content farms, off-topic publicat
 
 Prioritize original reporting from Tier 1 and 2 sources. Do not feature stories that only appear in Tier 3-4 sources unless they contain genuinely new information not covered elsewhere. If a Tier 1 source covers a topic, use their reporting over lower-tier sources.
 
+LEAD STORY RULE:
+Before selecting four items, identify the single most consequential story in the headline feed. The lead story is the one that, if an AD only read one item today, they would need to read. Signs of a lead story:
+- Multiple major outlets covering the same development (3+ sources on the same topic)
+- Named institutional leaders calling it precedent-setting, a "test," or a "turning point"
+- Direct financial exposure quantified in the headline (dollar amounts at risk)
+- Emergency governance actions (specially scheduled votes, expedited legislation)
+When a clear lead story exists, Item 1 should be the STRONGEST version of that story from the highest-tier source. Do not pick a secondary angle or a weaker outlet's coverage when a Tier 1 source has the definitive framing. If ESPN, Sportico, and SBJ all cover the same story, lead with whichever headline signals the most institutional impact.
+
 EDITORIAL FOCUS:
 Focus on developments that have institutional implications -- things an athletic director needs to act on or be aware of. Prefer stories about enforcement actions, regulatory changes, new legislation, court rulings, policy shifts, industry structural changes, financial health signals, and business-side developments (PE deals, media rights economics, budget shortfalls, facility financing). Deprioritize individual athlete deals, celebrity gossip, and republished/aggregated stories that don't add new information.
 
@@ -409,8 +417,14 @@ FEDERAL LEGISLATIVE PROCEDURE stories -- vote timelines, amendment details, spec
 NCAA COMMITTEE RECOMMENDATIONS PRIORITY:
 NCAA committee recommendations that propose rule changes (transfer windows, eligibility, roster limits, enforcement procedures) are HIGH-PRIORITY governance stories. These are the pipeline for future rules -- ADs who track them early can prepare before rules take effect. Examples: oversight committee recommending portal window changes, DI Council proposing new enforcement penalties, board considering subdivision restructuring.
 
+EMERGENCY GOVERNANCE ACTIONS PRIORITY:
+When a governing body schedules a special meeting, adds a vote to an existing agenda, or fast-tracks legislation outside its normal calendar, that is ALWAYS high-priority. The urgency signal (specially added meeting, emergency legislation, expedited timeline) matters as much as the substance. ADs need to know that a decision is being forced on an accelerated timeline. Examples: DI Cabinet adding an April 1 meeting specifically to vote on emergency penalties, NCAA scheduling an unplanned board session, Congress fast-tracking a markup.
+
 CONFERENCE AUTONOMOUS GOVERNANCE PRIORITY:
 Conference-level autonomous governance actions are ALWAYS high-priority items. When conference presidents or commissioners announce meetings, frameworks, or rulemaking independent of the NCAA -- especially if framed as a response to federal inaction -- this represents a potential structural change to how the AD's institution is governed. These stories should be prioritized over individual litigation updates or recurring deadline reminders that have appeared in previous briefings. A story about SEC presidents meeting to establish conference-level rules is more important than a routine case update.
+
+NEW ORGANIZATIONAL MODELS PRIORITY:
+Multi-person leadership structures, CRO/COO splits, president-led athletics strategy roles, and other new org chart configurations for athletic departments are HIGH-PRIORITY when announced by a named university leader. These signal how schools are adapting their institutional structure to the revenue-sharing era and serve as templates for peer institutions evaluating similar changes.
 
 REVENUE-SHARING CAP MECHANICS PRIORITY:
 Any headline about modifying, exceeding, creating exceptions to, or restructuring the $20.5M revenue-sharing cap is a MUST-INCLUDE item. These stories directly change the financial framework every AD operates under. Examples: cap exceptions for player retention, Bird rights proposals, cap adjustments, conference-level cap modifications, above-cap spending mechanisms. If a cap mechanics story exists in the headlines, it takes priority over any repeated story and over routine enforcement or litigation updates.
