@@ -146,7 +146,7 @@ function getETDates() {
   return { todayET, daysAgo, offsetSql };
 }
 
-function getFetcherStatus(lastRunStr, cooldown, etHour) {
+function getFetcherStatus(lastRunStr, cooldown, etHour, getCooldownFn) {
   if (!lastRunStr) return { status: 'red', label: 'Never' };
   const d = new Date(lastRunStr.includes('T') ? lastRunStr : lastRunStr.replace(' ', 'T') + 'Z');
   const elapsed = (Date.now() - d.getTime()) / 60000;
@@ -154,6 +154,16 @@ function getFetcherStatus(lastRunStr, cooldown, etHour) {
   // Sleeping — cooldown is null means the fetcher is off by design
   if (cooldown === null) {
     return { status: 'sleep', label: adminTimestamp(lastRunStr) };
+  }
+
+  // Grace period: if the fetcher was sleeping in the prior hour and just woke up,
+  // don't flag as overdue — it hasn't had a chance to run yet.
+  if (getCooldownFn) {
+    const prevHour = (etHour + 23) % 24;
+    const wasSleeping = getCooldownFn(prevHour) === null;
+    if (wasSleeping && elapsed < cooldown + 30) {
+      return { status: 'green', label: adminTimestamp(lastRunStr) };
+    }
   }
 
   if (elapsed > cooldown * 4) return { status: 'red', label: adminTimestamp(lastRunStr) };
@@ -200,7 +210,7 @@ async function buildAdminDashboard(env) {
     const info = fetcherMap[name] || {};
     const lastRun = info.last_run || null;
     const cooldown = cfg.getCooldown(etHour);
-    const { status, label } = getFetcherStatus(lastRun, cooldown, etHour);
+    const { status, label } = getFetcherStatus(lastRun, cooldown, etHour, cfg.getCooldown);
     const inSkip = cooldown === null;
     return { name, cooldown, lastRun, status, label, inSkip, lastError: info.last_error, lastErrorAt: info.last_error_at };
   });

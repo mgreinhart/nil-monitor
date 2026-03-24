@@ -602,7 +602,7 @@ crons = ["0,30 * * * *", "10,40 * * * *", "7,37 * * * *", "25 10,11,19,20 * * *"
 - `7,37 * * * *` — **Group C** fetchers (lighter/supplemental): CourtListener, NIL Revolution, CSLT (cases + key dates), Podcasts, CFBD
 - `25 10,11,19,20 * * *` — AI pipeline (fires at 4 UTC hours; handler checks actual ET hour, only runs when h=6 or h=15, auto-adjusting for DST). Weekdays: AM+PM. Saturday: none. Sunday: PM only.
 
-Splitting fetchers into three staggered groups keeps each invocation under Cloudflare's free-tier CPU limit. Google News isolated in its own group because it's the heaviest fetcher (76 queries) and was the primary cause of CPU timeout crashes.
+Splitting fetchers into three staggered groups keeps each invocation under Cloudflare's free-tier CPU limit. Google News isolated in its own group because it's the heaviest fetcher (86 queries). Groups B and C run fetchers **sequentially** (not `Promise.all`) with a 25-second wall-time budget — if the budget is consumed, remaining fetchers are skipped gracefully and will run on the next cron cycle. This prevents CPU timeout crashes when query counts grow.
 
 ---
 

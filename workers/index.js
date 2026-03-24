@@ -1,13 +1,17 @@
 // ═══════════════════════════════════════════════════════════════════
 //  NIL MONITOR — Worker Entry Point
 //  Four cron patterns:
-//    0,30 * * * *          — Google News only (76 queries, isolated)
-//    10,40 * * * *         — Bing News (49q) + Publications (23) + NCAA (3) + NewsData (18)
+//    0,30 * * * *          — Google News (86 queries, isolated)
+//    10,40 * * * *         — Bing News (57q) + Publications (23) + NCAA (3) + NewsData (18)
 //    7,37 * * * *          — Lighter/supplemental fetchers
 //    25 10,11,19,20 * * *  — AI pipeline (6 AM / 3 PM ET, auto-DST)
 //
 //  Google News is isolated in its own invocation — it's the heaviest
 //  fetcher and was the primary cause of CPU limit crashes.
+//
+//  Groups B and C run fetchers SEQUENTIALLY (not Promise.all) with a
+//  CPU budget timer. If 80% of the 30s CPU limit is consumed, remaining
+//  fetchers are skipped and will run on the next cron cycle.
 //
 //  Pipeline fires at :25 past the hour (not :00) so fetcher groups
 //  finish inserting headlines before tagging runs.
@@ -33,6 +37,11 @@ import { fetchPodcasts } from './fetch-podcasts.js';
 import { fetchCFBD } from './fetch-cfbd.js';
 import { runAIPipeline } from './ai-pipeline.js';
 
+// CPU budget: Cloudflare free tier allows 10ms CPU per invocation (not wall time).
+// We can't measure CPU directly, but we can cap wall time as a proxy.
+// 25 seconds wall time is safe — leaves headroom for cleanup/DB writes.
+const WALL_TIME_BUDGET_MS = 25000;
+
 // Wrap a fetcher so errors are logged to D1, not just console
 function safeFetch(name, fn, env) {
   return fn(env).catch(async (e) => {
@@ -41,13 +50,44 @@ function safeFetch(name, fn, env) {
   });
 }
 
-// Group A: Google News only — heaviest fetcher (76 queries), isolated
+/**
+ * Run fetchers sequentially with a wall-time budget.
+ * Each fetcher runs one at a time to avoid CPU spikes from parallel execution.
+ * If the budget is consumed, remaining fetchers are skipped gracefully.
+ */
+async function runWithBudget(fetchers, label, env) {
+  const start = Date.now();
+  let completed = 0;
+
+  try {
+    await loadDedupCache(env.DB);
+
+    for (const [name, fn] of fetchers) {
+      const elapsed = Date.now() - start;
+      if (elapsed > WALL_TIME_BUDGET_MS) {
+        const skipped = fetchers.slice(completed).map(([n]) => n).join(', ');
+        console.log(`Group ${label}: budget exceeded at ${elapsed}ms — skipping: ${skipped}`);
+        break;
+      }
+      await safeFetch(name, fn, env);
+      completed++;
+    }
+
+    console.log(`Group ${label}: completed ${completed}/${fetchers.length} fetchers in ${Date.now() - start}ms`);
+  } catch (e) {
+    console.error(`Group ${label} top-level error:`, e.message);
+  } finally {
+    clearDedupCache();
+  }
+}
+
+// Group A: Google News only — heaviest fetcher (86 queries), isolated
 const GROUP_A = [
   ['google-news', fetchGoogleNews],
 ];
 
-// Group B: Bing News (49q) + Publications (23 feeds) + NCAA RSS (3) + NewsData (18q)
-// Lighter than old Group A1 (105+3+18=126) thanks to Bing trim (62→49) and dedup cache 7d→3d
+// Group B: Bing News (57q) + Publications (23 feeds) + NCAA RSS (3) + NewsData (18q)
+// Run sequentially to avoid CPU spikes — total ~101 network calls
 const GROUP_B = [
   ['bing-news', fetchBingNews],
   ['publications', fetchPublications],
@@ -111,18 +151,8 @@ export default {
         fetchers = GROUP_C; label = 'C (Light)';
       }
 
-      console.log(`Running fetcher group ${label} (${fetchers.length} fetchers)`);
-
-      ctx.waitUntil((async () => {
-        try {
-          await loadDedupCache(env.DB);
-          await Promise.all(fetchers.map(([name, fn]) => safeFetch(name, fn, env)));
-        } catch (e) {
-          console.error(`Group ${label} top-level error:`, e.message);
-        } finally {
-          clearDedupCache();
-        }
-      })());
+      console.log(`Running fetcher group ${label} (${fetchers.length} fetchers, sequential)`);
+      ctx.waitUntil(runWithBudget(fetchers, label, env));
     }
   },
 };
