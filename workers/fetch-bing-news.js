@@ -91,6 +91,8 @@ const QUERIES = [
   // Senate hearings / SCORE Act details
   '"Senate hearing" college sports OR NCAA',
   '"SCORE Act" amendment OR provision OR "Lane Kiffin"',
+  // White House / executive branch
+  '"White House" OR "executive order" "college sports" OR NCAA',
 ];
 
 function getCooldown() {

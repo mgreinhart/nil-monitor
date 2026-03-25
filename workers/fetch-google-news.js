@@ -129,6 +129,9 @@ const QUERIES = [
   '"Senate hearing" "college sports" OR "college athletics" OR NCAA',
   // SCORE Act specific angles (Lane Kiffin Rule, amendments)
   '"SCORE Act" revision OR amendment OR "Lane Kiffin" OR provision',
+  // White House / executive branch actions on college sports
+  '"White House" "college sports" OR "college athletics"',
+  'Trump "college sports" committee OR council OR commission OR "executive order"',
 ];
 
 function getCooldown() {

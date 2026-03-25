@@ -610,9 +610,13 @@ const TITLE_RELEVANCE_RE = new RegExp([
   '(?:\\bllc\\b|\\bventure[s]?\\b|privatiz).*(?:athlet|college|university)',
   // Athlete advocacy organizations
   '\\bathletes\\.org\\b',
-  // Executive orders on college sports
+  // Executive branch actions on college sports
   'executive\\s+order.*(?:college|ncaa|nil|athlete)',
   '(?:college|ncaa|nil|athlete).*executive\\s+order',
+  'white\\s+house.*(?:college|ncaa|nil|athlete|sport)',
+  '(?:college|ncaa|nil|athlete).*white\\s+house',
+  '(?:presidential|trump).*(?:college\\s+sport|ncaa|athlete).*(?:committee|council|commission)',
+  'college\\s+sports?\\s+council',
   // Industry association
   '\\bnacda\\b',
   // Revenue operations — sponsorship, naming rights, premium seating, fundraising

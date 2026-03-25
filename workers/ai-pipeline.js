@@ -403,6 +403,9 @@ When a clear lead story exists, Item 1 should be the STRONGEST version of that s
 EDITORIAL FOCUS:
 Focus on developments that have institutional implications -- things an athletic director needs to act on or be aware of. Prefer stories about enforcement actions, regulatory changes, new legislation, court rulings, policy shifts, industry structural changes, financial health signals, and business-side developments (PE deals, media rights economics, budget shortfalls, facility financing). Deprioritize individual athlete deals, celebrity gossip, and republished/aggregated stories that don't add new information.
 
+PRESIDENTIAL / EXECUTIVE BRANCH PRIORITY:
+White House committees, executive orders, presidential roundtables with named participants, and federal agency actions on college sports are ALWAYS the lead story when they occur. These shape the federal legislative trajectory and supersede all other story types. If a headline mentions the White House, a president, a governor, or a named federal commission acting on college athletics with specific committee structures or named appointees, it is Item 1. Examples: formation of presidential advisory councils, appointment of commissioners/chairs, executive orders on college sports, White House roundtable outcomes.
+
 CSC / ENFORCEMENT PRIORITY:
 Stories about CSC enforcement actions, NIL clearinghouse delays or rejections, schools receiving letters of inquiry, compliance process breakdowns, or statements from ADs about enforcement fairness are ALWAYS high-priority items. These are the most operationally actionable stories for the AD audience -- they directly affect institutional compliance obligations and risk. If a CSC/enforcement story appears in the headlines, it should nearly always make the briefing.
 
