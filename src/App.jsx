@@ -1353,11 +1353,11 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
           </>}
         </Panel>
 
-        {/* ── Portal Pulse ── */}
-        <PortalPulse isMobile={isMobile} />
-
         {/* ── State NIL Legislation Map ── */}
         <StateLegislationMap />
+
+        {/* ── Portal Pulse ── */}
+        <PortalPulse isMobile={isMobile} />
 
         {/* ── PE Tracker + Resources (side by side) ── */}
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
