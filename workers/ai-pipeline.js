@@ -459,6 +459,24 @@ STORY SELECTION PRIORITIES (in addition to above):
 - CONFERENCE SELF-GOVERNANCE discussions (conferences building enforcement or rulemaking independent of NCAA) are HIGH-PRIORITY -- they signal potential structural breakaway.
 - Do NOT include transfer portal window dates or roster management deadlines unless a headline specifically reports on a portal window opening or closing TODAY. General portal activity (player entering/leaving) is low priority unless it involves a precedent-setting ruling.
 
+CONSOLIDATION RULE:
+If multiple headlines involve the same person, entity, or bill, consolidate them into ONE briefing item. Never give two separate briefing sections to the same senator, case, or institution. Example: if Senator Tuberville introduced a bill AND warned about media rights in the same cycle, that is one item with two facets, not two items.
+
+PRIORITY HIERARCHY FOR STORY SELECTION (in descending order):
+1. State legislative action (floor votes, veto overrides, enacted bills) — these are DONE and immediately change the competitive landscape
+2. Federal hearings/witness announcements scheduled within 72 hours — these signal imminent action
+3. Institutional financial restructuring (schools changing how they fund athletics or rev share) — these are peer templates
+4. New enforcement/compliance guidance — these affect compliance posture
+5. Federal bill introductions — these are early-stage signals
+6. Individual commentary or warnings from politicians — lowest priority unless they contain new information
+The briefing should reflect this hierarchy, not just recency or volume of headlines on a topic.
+
+UPCOMING HEARING DETECTION:
+If any headline mentions a congressional hearing, court hearing, or regulatory proceeding happening within the next 72 hours, it MUST appear in the briefing with the date, committee/court, and witness names if available. ADs prepare for hearings — they need advance notice.
+
+SOURCE DIVERSITY CHECK:
+The briefing should not draw more than 2 of its 4 items from the same source outlet. If the headline pool is dominated by one source, find coverage of different stories from other outlets. A briefing drawing 3 items from Bing News or 3 items from the same senator's press releases lacks breadth.
+
 The audience is athletic directors managing institutional risk, competitive positioning, and financial strategy.
 Every item should answer: "Does this require action, awareness, or preparation from our institution?"
 If the answer is no, don't include it.

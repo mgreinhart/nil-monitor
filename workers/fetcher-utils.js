@@ -441,6 +441,11 @@ const GAME_NOISE_RE = new RegExp([
   // Game predictions/picks/odds (tighter patterns)
   'prediction.*picks?.*odds', 'picks?.*odds.*today',
   'predictions?.*today.s.*game',
+  // Individual player transfer portal entries (not portal policy/rules/windows)
+  // Catches: "[Name] enters transfer portal", "[Name] plans to enter", "[Name] makes portal decision"
+  // Does NOT catch: portal window open/close, portal rule changes, aggregate roundups, best available
+  '(?:enters?|entered|entering|plans?\\s+(?:to\\s+)?enter|plans?\\s+for\\s+(?:the\\s+)?(?:transfer\\s+)?portal|set\\s+to\\s+enter|makes?\\s+.*(?:transfer\\s+portal|portal)\\s+decision|headed\\s+(?:to|for)\\s+(?:the\\s+)?(?:transfer\\s+)?portal)(?!.*(?:window|rule|policy|record|aggregate|surge|wave))',
+  '(?:guard|forward|center|quarterback|receiver|lineman|pitcher|outfielder|setter|libero|midfielder|goalkeeper|freshman|sophomore|junior|senior|corner|safety|linebacker|tight end|running back|kicker|punter|defenseman|goalie|attacker|faceoff|coach)\\s+\\w+\\s+(?:enters?|headed|plans?)',
   // Individual player transfer portal scouting (not portal policy)
   'transfer portal scouting report', 'portal (?:target|commitment|tracker|rankings?)',
   'best fits? for (?:transfer portal|portal)',
