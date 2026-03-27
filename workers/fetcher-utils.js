@@ -433,7 +433,7 @@ const GAME_NOISE_RE = new RegExp([
   'gold medal(?!.*(?:college|ncaa|nil|university))',
   'team usa(?!.*(?:college|ncaa|nil|university))',
   // Districts / high school
-  'districts? preview', 'high school',
+  'districts? preview',
   // Podcast / radio show content
   '\\bshow\\b.*live from', 'live from (?:lovely|beautiful|downtown)',
   // Odds / best bets roundups
@@ -455,10 +455,9 @@ const GAME_NOISE_RE = new RegExp([
   'pursuing eligibility case',
   'granted.*(?:year|season).*eligibility',
   'done pursuing.*eligibility',
-  // Individual NIL deal announcements (single athlete, no policy angle)
-  'signs? (?:nil|NIL) deal with',
-  'lands? (?:nil|NIL) deal',
-  '(?:olympian|quarterback|guard|forward|receiver|lineman).*signs?.*(?:nil|NIL).*deal',
+  // Individual NIL deal announcements — handled by PREFLIGHT_NOISE_RE (runs before business signal)
+  // Kept here only for completeness; preflight catches the main patterns
+  '(?:olympian|quarterback|guard|forward|receiver|lineman|pitcher|setter|libero).*(?:announces?|inks?|signs?|lands?|secures?).*(?:nil|NIL)',
   // NFLPA / pro league union stories (unless college context present)
   '\\bnflpa\\b(?!.*(?:college|ncaa|nil|university|conference commissioner|athletic director))',
   // Team-specific portal grading/haul reviews (not broad overviews)
@@ -482,8 +481,13 @@ const BUSINESS_SIGNAL_RE = /\bnil\b|name.image.likeness|ncaa\s*(?:governance|rul
  * Returns true if the title is game/tournament noise (not business/regulatory).
  * Headlines with business signals always pass through.
  */
+// Individual NIL deal / high school personnel — checked BEFORE business signal escape
+const PREFLIGHT_NOISE_RE = /(?:announces?|inks?|signs?|lands?|secures?|agrees?\s+to)\s+(?:new\s+)?(?:nil|NIL)\s+(?:deal|partnership|endorsement|contract|agreement)(?!.*(?:policy|enforce|dispute|restructur|clearinghouse|arbitrat|reject|system|wreck|reshape))|(?:nil|NIL)\s+(?:deal|partnership)\s+(?:with|ahead|before|for)\s+(?!.*(?:policy|enforce|dispute|system))|\bhigh\s+school\b.*(?:names?|hires?|appoints?|announces?|fires?)\s+.*(?:coach|director|principal)|(?:names?|hires?|appoints?|fires?)\s+.*\bhigh\s+school\b.*(?:coach|director)/i;
+
 export function isGameNoise(title) {
   if (!title) return false;
+  // Check preflight noise BEFORE business signal — these patterns override the NIL/AD keyword rescue
+  if (PREFLIGHT_NOISE_RE.test(title)) return true;
   if (BUSINESS_SIGNAL_RE.test(title)) return false;
   return GAME_NOISE_RE.test(title);
 }
