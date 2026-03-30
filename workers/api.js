@@ -193,7 +193,7 @@ async function buildAdminDashboard(env) {
     env.DB.prepare('SELECT COUNT(*) as cnt, MAX(month) as latest_month FROM cslt_key_dates').first(),
     env.DB.prepare('SELECT * FROM pipeline_runs ORDER BY id DESC LIMIT 1').first(),
     env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE category IS NULL OR severity IS NULL").first(),
-    env.DB.prepare("SELECT id, source, title, category, severity, published_at, hidden, hide_reason FROM headlines ORDER BY published_at DESC LIMIT 80").all().catch(() => ({ results: [] })),
+    env.DB.prepare("SELECT id, source, title, url, category, severity, published_at, hidden, hide_reason FROM headlines ORDER BY published_at DESC LIMIT 80").all().catch(() => ({ results: [] })),
     env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE hidden = 1 AND fetched_at >= ?").bind(daysAgo(7)).first().catch(() => ({ cnt: 0 })),
   ]);
 
@@ -406,7 +406,7 @@ ${(curationHeadlines?.results || []).map(h => {
   const btn = isHidden
     ? `<button class="btn" style="padding:1px 6px;font-size:10px;color:#10b981;border-color:#10b981" onclick="unhideHL(${h.id},this)">Unhide</button>`
     : `<td style="position:relative"><button class="btn" style="padding:1px 6px;font-size:10px" onclick="showHideMenu(event,${h.id},this)">Hide</button></td>`;
-  return `<tr id="hl-${h.id}" ${rowStyle}><td>${src}</td><td style="max-width:500px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(h.title || '')}${isHidden ? ' <span style="color:#f59e0b;font-size:10px">[' + escHtml(h.hide_reason || '') + ']</span>' : ''}</td><td>${age}</td><td>${tag}</td>${isHidden ? `<td>${btn}</td>` : btn}</tr>`;
+  return `<tr id="hl-${h.id}" ${rowStyle}><td>${src}</td><td style="max-width:500px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.url ? `<a href="${escHtml(h.url)}" target="_blank" rel="noopener" style="color:#e2e8f0;text-decoration:none;border-bottom:1px dotted #475569">${escHtml(h.title || '')}</a>` : escHtml(h.title || '')}${isHidden ? ' <span style="color:#f59e0b;font-size:10px">[' + escHtml(h.hide_reason || '') + ']</span>' : ''}</td><td>${age}</td><td>${tag}</td>${isHidden ? `<td>${btn}</td>` : btn}</tr>`;
 }).join('')}
 </table>
 </div>
