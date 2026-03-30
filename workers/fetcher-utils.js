@@ -484,10 +484,37 @@ const BUSINESS_SIGNAL_RE = /\bnil\b|name.image.likeness|ncaa\s*(?:governance|rul
 // Individual NIL deal / high school personnel — checked BEFORE business signal escape
 const PREFLIGHT_NOISE_RE = /(?:announces?|inks?|signs?|lands?|secures?|agrees?\s+to)\s+(?:new\s+)?(?:nil|NIL)\s+(?:deal|partnership|endorsement|contract|agreement)(?!.*(?:policy|enforce|dispute|restructur|clearinghouse|arbitrat|reject|system|wreck|reshape))|(?:nil|NIL)\s+(?:deal|partnership)\s+(?:with|ahead|before|for)\s+(?!.*(?:policy|enforce|dispute|system))|\bhigh\s+school\b.*(?:names?|hires?|appoints?|announces?|fires?)\s+.*(?:coach|director|principal)|(?:names?|hires?|appoints?|fires?)\s+.*\bhigh\s+school\b.*(?:coach|director)/i;
 
+// ── Portal Shopping List / Strategy Noise Filter ───────────────────
+// Catches team-specific transfer portal speculation (shopping lists, strategy takes,
+// coach loses player to portal). Does NOT catch portal policy, rule changes,
+// window open/close, aggregate trends, or portal as a systemic topic.
+const PORTAL_NOISE_SAFE_RE = /policy|rule|legislation|lawmakers|NCAA\s+rule|open[s ]|close[s ]|changing|reshape|window|regulation|reform|aggregate|wave|landscape/i;
+const PORTAL_NOISE_RE = new RegExp([
+  // Team-specific portal shopping lists: "3 biggest transfer portal needs for BYU"
+  // Also catches without leading number: "Transfer Portal Needs for the BYU Basketball Program"
+  '(?:\\d+\\s+(?:biggest|best|top|key)?\\s*)?(?:transfer portal|portal)\\s+(?:needs|targets|additions|picks|priorities)',
+  // Team portal strategy speculation: "How should Louisville approach transfer portal"
+  // Also catches "as transfer portal approaches" and "expect from X as portal"
+  '(?:approach|expect from|looking for in|build in)\\s+(?:the\\s+)?(?:NCAA\\s+)?(?:transfer portal|portal)',
+  '(?:as|as the)\\s+(?:NCAA\\s+)?(?:transfer portal|portal)\\s+(?:approaches|opens|nears)',
+  // Coach/team loses player to portal: "Kim Mulkey loses elite guard to transfer portal"
+  '(?:loses?|lost)\\s+.*?(?:to|in)\\s+(?:the\\s+)?(?:transfer portal|portal)',
+  // "[Number] [team players] who could leave/enter portal" — allow multi-word team names
+  '\\d+\\s+.{1,40}?\\s+(?:who could|expected to|set to|likely to)\\s+(?:leave|enter|hit|test)\\s+(?:in\\s+)?(?:the\\s+)?(?:transfer portal|portal)',
+].join('|'), 'i');
+
+export function isPortalNoise(title) {
+  if (!title) return false;
+  if (PORTAL_NOISE_SAFE_RE.test(title)) return false;
+  return PORTAL_NOISE_RE.test(title);
+}
+
 export function isGameNoise(title) {
   if (!title) return false;
   // Check preflight noise BEFORE business signal — these patterns override the NIL/AD keyword rescue
   if (PREFLIGHT_NOISE_RE.test(title)) return true;
+  // Portal shopping list / strategy noise — also checked before business signal
+  if (isPortalNoise(title)) return true;
   if (BUSINESS_SIGNAL_RE.test(title)) return false;
   return GAME_NOISE_RE.test(title);
 }

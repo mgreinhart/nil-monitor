@@ -474,6 +474,13 @@ PRIORITY HIERARCHY FOR STORY SELECTION (in descending order):
 6. Individual commentary or warnings from politicians — lowest priority unless they contain new information
 The briefing should reflect this hierarchy, not just recency or volume of headlines on a topic.
 
+EXCLUSION RULE — PERSONNEL HIRES:
+Individual personnel hires, coaching hires, contract extensions, and AD appointments should NOT appear as briefing items unless they involve:
+- A Power 4 AD or conference commissioner hire/departure
+- A role that represents a genuinely new institutional structure (e.g., first-ever CEO title replacing AD, first GM hire in a conference)
+- A personnel move with direct regulatory or enforcement implications (e.g., new CSC enforcement director)
+A Senior Associate AD hire at a single school is not a briefing item. A pattern of 5+ schools creating the same new role in one cycle might be. One data point is not a pattern. Do not frame a single hire as a "systemic trend."
+
 HEARING DETECTION:
 If any headline mentions a congressional hearing, court hearing, or regulatory proceeding happening TODAY or within the next 72 hours, it MUST appear in the briefing with the date, committee/court, and witness names if available. Same-day hearings and proceedings are the HIGHEST priority — if it is happening right now or happened earlier today, it beats any hearing scheduled days out. ADs need to know what is unfolding today before what is coming later this week.
 
