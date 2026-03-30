@@ -58,7 +58,9 @@ CREATE TABLE headlines (
   sub_category TEXT,            -- AI-assigned: CSC sub-tag (Guidance, Investigation, etc.)
   severity TEXT,                -- AI-assigned: routine, important, critical
   published_at TEXT,
-  fetched_at TEXT DEFAULT (datetime('now'))
+  fetched_at TEXT DEFAULT (datetime('now')),
+  hidden INTEGER DEFAULT 0,
+  hide_reason TEXT
 );
 
 -- Deadlines (AI-extracted + pre-loaded)

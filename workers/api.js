@@ -179,7 +179,7 @@ async function buildAdminDashboard(env) {
   const [
     fetcherRows, headlineTotal, headlinesToday, headlinesWeek, headlines24h,
     activeCases, casesWithDates, latestBriefing, csltStats, latestPipeline,
-    untaggedHeadlines,
+    untaggedHeadlines, curationHeadlines, hiddenWeekCount,
   ] = await Promise.all([
     env.DB.prepare('SELECT fetcher_name, last_run, last_error, last_error_at FROM fetcher_runs').all()
       .catch(() => env.DB.prepare('SELECT fetcher_name, last_run FROM fetcher_runs').all()),
@@ -193,6 +193,8 @@ async function buildAdminDashboard(env) {
     env.DB.prepare('SELECT COUNT(*) as cnt, MAX(month) as latest_month FROM cslt_key_dates').first(),
     env.DB.prepare('SELECT * FROM pipeline_runs ORDER BY id DESC LIMIT 1').first(),
     env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE category IS NULL OR severity IS NULL").first(),
+    env.DB.prepare("SELECT id, source, title, category, severity, published_at, hidden, hide_reason FROM headlines ORDER BY published_at DESC LIMIT 80").all().catch(() => ({ results: [] })),
+    env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE hidden = 1 AND fetched_at >= ?").bind(daysAgo(7)).first().catch(() => ({ cnt: 0 })),
   ]);
 
   // ── Fetcher status ──
@@ -380,11 +382,97 @@ ${latestPipeline ? `<div class="grid">
 <div id="trigger-result"></div>
 </div>
 
+<div class="section">
+<h2>Headline Curation</h2>
+<div style="font-size:11px;color:#94a3b8;margin-bottom:8px">
+  <span>${hiddenWeekCount?.cnt || 0} headlines hidden this week</span>
+  <button class="btn" style="padding:2px 8px;margin-left:8px;font-size:10px" onclick="toggleHidden()">Show hidden</button>
+</div>
+<table id="curation-table">
+<tr><th style="width:100px">Source</th><th>Title</th><th style="width:40px">Age</th><th style="width:80px">Tag</th><th style="width:50px"></th></tr>
+${(curationHeadlines?.results || []).map(h => {
+  const age = h.published_at ? (() => {
+    const d = new Date(h.published_at.includes('T') ? h.published_at : h.published_at.replace(' ', 'T') + 'Z');
+    const mins = Math.round((now - d) / 60000);
+    if (mins < 60) return mins + 'm';
+    const hrs = Math.round(mins / 60);
+    if (hrs < 24) return hrs + 'h';
+    return Math.round(hrs / 24) + 'd';
+  })() : '?';
+  const src = escHtml((h.source || '').length > 15 ? h.source.slice(0, 14) + '…' : h.source || '');
+  const tag = h.category ? `<span style="color:#3b82f6">${escHtml(h.category)}</span>` : '<span style="color:#475569">untagged</span>';
+  const isHidden = h.hidden === 1;
+  const rowStyle = isHidden ? 'style="opacity:.35" data-hidden="1"' : 'data-hidden="0"';
+  const btn = isHidden
+    ? `<button class="btn" style="padding:1px 6px;font-size:10px;color:#10b981;border-color:#10b981" onclick="unhideHL(${h.id},this)">Unhide</button>`
+    : `<td style="position:relative"><button class="btn" style="padding:1px 6px;font-size:10px" onclick="showHideMenu(event,${h.id},this)">Hide</button></td>`;
+  return `<tr id="hl-${h.id}" ${rowStyle}><td>${src}</td><td style="max-width:500px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(h.title || '')}${isHidden ? ' <span style="color:#f59e0b;font-size:10px">[' + escHtml(h.hide_reason || '') + ']</span>' : ''}</td><td>${age}</td><td>${tag}</td>${isHidden ? `<td>${btn}</td>` : btn}</tr>`;
+}).join('')}
+</table>
+</div>
+
 <footer>
   Page generated: ${adminTimestamp(now.toISOString())} ET &middot; Auto-refreshes every 60s &middot; nil-monitor-db (D1)
 </footer>
 
 <script>
+// Hide hidden rows by default
+document.querySelectorAll('#curation-table tr[data-hidden="1"]').forEach(r => r.style.display = 'none');
+let showingHidden = false;
+function toggleHidden() {
+  showingHidden = !showingHidden;
+  document.querySelectorAll('#curation-table tr[data-hidden="1"]').forEach(r => {
+    r.style.display = showingHidden ? '' : 'none';
+  });
+}
+
+function showHideMenu(e, id, btn) {
+  e.stopPropagation();
+  // Remove any existing menu
+  const old = document.getElementById('hide-menu');
+  if (old) old.remove();
+  const reasons = ['portal noise','individual NIL deal','high school','game recap','recruiting/commitment','off-topic','other'];
+  const menu = document.createElement('div');
+  menu.id = 'hide-menu';
+  menu.style.cssText = 'position:fixed;background:#1e293b;border:1px solid #334155;border-radius:4px;padding:4px 0;z-index:99;font-size:11px;min-width:160px';
+  const rect = btn.getBoundingClientRect();
+  menu.style.top = rect.bottom + 2 + 'px';
+  menu.style.left = rect.left + 'px';
+  reasons.forEach(r => {
+    const item = document.createElement('div');
+    item.textContent = r;
+    item.style.cssText = 'padding:4px 12px;cursor:pointer;color:#e2e8f0';
+    item.onmouseenter = () => item.style.background = '#334155';
+    item.onmouseleave = () => item.style.background = '';
+    item.onclick = () => hideHL(id, r, btn);
+    menu.appendChild(item);
+  });
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', () => { const m = document.getElementById('hide-menu'); if (m) m.remove(); }, { once: true }), 0);
+}
+
+async function hideHL(id, reason, btn) {
+  const menu = document.getElementById('hide-menu');
+  if (menu) menu.remove();
+  try {
+    const r = await fetch('/api/admin/hide-headline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, reason }) });
+    if (r.ok) {
+      const row = document.getElementById('hl-' + id);
+      if (row) row.style.display = 'none';
+    }
+  } catch (e) { console.error(e); }
+}
+
+async function unhideHL(id, btn) {
+  try {
+    const r = await fetch('/api/admin/unhide-headline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+    if (r.ok) {
+      const row = document.getElementById('hl-' + id);
+      if (row) row.style.display = 'none';
+    }
+  } catch (e) { console.error(e); }
+}
+
 async function trigger(phase) {
   const btns = document.querySelectorAll('.btn');
   btns.forEach(b => b.disabled = true);
@@ -496,10 +584,10 @@ export async function handleApi(request, env) {
     if (path === '/api/headlines') {
       const cat = url.searchParams.get('cat');
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '50') || 50, 200);
-      let query = "SELECT * FROM headlines WHERE (category IS NULL OR category != 'Off-Topic') ORDER BY published_at DESC LIMIT ?";
+      let query = "SELECT * FROM headlines WHERE (category IS NULL OR category != 'Off-Topic') AND (hidden IS NULL OR hidden != 1) ORDER BY published_at DESC LIMIT ?";
       const params = [limit];
       if (cat && cat !== 'All') {
-        query = "SELECT * FROM headlines WHERE category = ? ORDER BY published_at DESC LIMIT ?";
+        query = "SELECT * FROM headlines WHERE category = ? AND (hidden IS NULL OR hidden != 1) ORDER BY published_at DESC LIMIT ?";
         params.unshift(cat);
       }
       const { results } = await env.DB.prepare(query).bind(...params).all();
@@ -556,7 +644,7 @@ export async function handleApi(request, env) {
       const { results } = await env.DB.prepare(
         `SELECT date(published_at, ?) as day, COUNT(*) as count
          FROM headlines
-         WHERE published_at >= ?
+         WHERE published_at >= ? AND (hidden IS NULL OR hidden != 1)
          GROUP BY date(published_at, ?)
          ORDER BY day ASC`
       ).bind(offsetSql, daysAgo(30), offsetSql).all();
@@ -824,6 +912,30 @@ export async function handleApi(request, env) {
       return json({ ok: true, phase, log }, 200, ADMIN_CORS);
     }
 
+    // Admin: hide headline (curation)
+    if (path === '/api/admin/hide-headline' && request.method === 'POST') {
+      const auth = await checkAdminAuth(request, env);
+      if (!auth) return json({ error: 'Unauthorized' }, 401, ADMIN_CORS);
+      const body = await request.json();
+      const { id, reason } = body;
+      if (!id) return json({ error: 'Missing id' }, 400, ADMIN_CORS);
+      await env.DB.prepare('UPDATE headlines SET hidden = 1, hide_reason = ? WHERE id = ?')
+        .bind(reason || 'other', id).run();
+      return json({ ok: true }, 200, ADMIN_CORS);
+    }
+
+    // Admin: unhide headline (curation)
+    if (path === '/api/admin/unhide-headline' && request.method === 'POST') {
+      const auth = await checkAdminAuth(request, env);
+      if (!auth) return json({ error: 'Unauthorized' }, 401, ADMIN_CORS);
+      const body = await request.json();
+      const { id } = body;
+      if (!id) return json({ error: 'Missing id' }, 400, ADMIN_CORS);
+      await env.DB.prepare('UPDATE headlines SET hidden = 0, hide_reason = NULL WHERE id = ?')
+        .bind(id).run();
+      return json({ ok: true }, 200, ADMIN_CORS);
+    }
+
     // Admin status dashboard (HTML)
     if (path === '/api/admin') {
       // ?key= login: validate, set cookie, redirect to strip key from URL
@@ -1019,7 +1131,7 @@ async function handleSeoPages(path, url, env) {
   // ── /news (all headlines) ──
   if (path === '/news') {
     const { results } = await env.DB.prepare(
-      "SELECT title, url, source, category, published_at FROM headlines WHERE (category IS NULL OR category != 'Off-Topic') ORDER BY published_at DESC LIMIT 50"
+      "SELECT title, url, source, category, published_at FROM headlines WHERE (category IS NULL OR category != 'Off-Topic') AND (hidden IS NULL OR hidden != 1) ORDER BY published_at DESC LIMIT 50"
     ).all();
     return htmlResponse(seoPage({
       title: 'NIL News — College Athletics NIL Headlines Today | NIL Monitor',
@@ -1051,7 +1163,7 @@ async function handleSeoPages(path, url, env) {
     const slug = catMatch[1];
     const cat = CATEGORY_PAGES[slug];
     const { results } = await env.DB.prepare(
-      "SELECT title, url, source, category, published_at FROM headlines WHERE category = ? ORDER BY published_at DESC LIMIT 50"
+      "SELECT title, url, source, category, published_at FROM headlines WHERE category = ? AND (hidden IS NULL OR hidden != 1) ORDER BY published_at DESC LIMIT 50"
     ).bind(cat.dbCat).all();
     const rssHref = `/feed.xml?category=${encodeURIComponent(cat.dbCat)}`;
     return htmlResponse(seoPage({
@@ -1219,10 +1331,10 @@ ${genTimeStr ? `  <p class="generated">Generated ${escHtml(genTimeStr)} ET</p>` 
     const catFilter = url.searchParams.get('category');
     let query, params;
     if (catFilter) {
-      query = "SELECT title, url, source, category, published_at FROM headlines WHERE category = ? ORDER BY published_at DESC LIMIT 50";
+      query = "SELECT title, url, source, category, published_at FROM headlines WHERE category = ? AND (hidden IS NULL OR hidden != 1) ORDER BY published_at DESC LIMIT 50";
       params = [catFilter];
     } else {
-      query = "SELECT title, url, source, category, published_at FROM headlines WHERE (category IS NULL OR category != 'Off-Topic') ORDER BY published_at DESC LIMIT 50";
+      query = "SELECT title, url, source, category, published_at FROM headlines WHERE (category IS NULL OR category != 'Off-Topic') AND (hidden IS NULL OR hidden != 1) ORDER BY published_at DESC LIMIT 50";
       params = [];
     }
     const { results } = await env.DB.prepare(query).bind(...params).all();
