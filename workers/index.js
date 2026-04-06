@@ -76,6 +76,7 @@ async function runWithBudget(fetchers, label, env) {
     console.log(`Group ${label}: completed ${completed}/${fetchers.length} fetchers in ${Date.now() - start}ms`);
   } catch (e) {
     console.error(`Group ${label} top-level error:`, e.message);
+    try { await recordError(env.DB, `group-${label.split(' ')[0]}-init`, e); } catch (_) { /* best effort */ }
   } finally {
     clearDedupCache();
   }

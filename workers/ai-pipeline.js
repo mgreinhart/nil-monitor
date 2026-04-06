@@ -211,7 +211,7 @@ Return JSON:
 
 export async function tagHeadlines(env, db) {
   const { results: untagged } = await db.prepare(
-    'SELECT id, source, title, url FROM headlines WHERE category IS NULL OR severity IS NULL ORDER BY published_at DESC LIMIT 500'
+    'SELECT id, source, title, url FROM headlines WHERE (category IS NULL OR severity IS NULL) AND (hidden IS NULL OR hidden != 1) ORDER BY published_at DESC LIMIT 500'
   ).all();
 
   console.log(`Tagging: found ${untagged.length} untagged headlines`);
@@ -346,13 +346,13 @@ async function generateBriefing(env, db, isAfternoon = false) {
   const fallbackCutoff = new Date(Date.now() - fallbackHours * 3600000).toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
 
   let { results: rawHeadlines } = await db.prepare(
-    `SELECT * FROM headlines WHERE category IS NOT NULL AND published_at >= ? ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 100`
+    `SELECT * FROM headlines WHERE category IS NOT NULL AND (hidden IS NULL OR hidden != 1) AND published_at >= ? ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 100`
   ).bind(primaryCutoff).all();
 
   let usedFallback = false;
   if (rawHeadlines.length < 10) {
     const { results: fallbackHeadlines } = await db.prepare(
-      `SELECT * FROM headlines WHERE category IS NOT NULL AND published_at >= ? ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 100`
+      `SELECT * FROM headlines WHERE category IS NOT NULL AND (hidden IS NULL OR hidden != 1) AND published_at >= ? ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 100`
     ).bind(fallbackCutoff).all();
     rawHeadlines = fallbackHeadlines;
     usedFallback = true;
@@ -793,6 +793,20 @@ export async function runAIPipeline(env, options = {}) {
   let briefingWritten = 0;
   let fatalError = null;
 
+  // Insert a "started" row immediately so killed workers still leave a trail.
+  // We update this row at the end with final status; if the worker is killed
+  // mid-run, the row stays as "started" — visible in admin as a missing/hung run.
+  let runId = null;
+  try {
+    const inserted = await db.prepare(
+      `INSERT INTO pipeline_runs (items_processed, headlines_tagged, deadlines_created, csc_items_created, briefing_generated, status)
+       VALUES (0, 0, 0, 0, 0, 'started')`
+    ).run();
+    runId = inserted.meta?.last_row_id || null;
+  } catch (e) {
+    console.error('AI Pipeline: failed to insert started row:', e.message);
+  }
+
   try {
     // 1. Get last run time
     const lastRun = await getLastRunTime(db);
@@ -833,12 +847,21 @@ export async function runAIPipeline(env, options = {}) {
     PIPELINE_ERRORS.push(`fatal: ${err.message}`);
   }
 
-  // 6. Record pipeline run — ALWAYS write, even on failure (so missing runs are visible)
+  // 6. Update the started row with final results / error.
+  // If runId is null (insert failed earlier), fall back to a fresh INSERT.
+  const finalStatus = fatalError ? 'failed' : 'completed';
+  const errMsg = fatalError ? (fatalError.message || String(fatalError)).slice(0, 500) : null;
   try {
-    await db.prepare(
-      `INSERT INTO pipeline_runs (items_processed, headlines_tagged, deadlines_created, csc_items_created, briefing_generated)
-       VALUES (?, ?, ?, ?, ?)`
-    ).bind(totalNew, headlinesTagged, 0, cscWritten, briefingWritten).run();
+    if (runId) {
+      await db.prepare(
+        `UPDATE pipeline_runs SET items_processed = ?, headlines_tagged = ?, csc_items_created = ?, briefing_generated = ?, status = ?, error_message = ? WHERE id = ?`
+      ).bind(totalNew, headlinesTagged, cscWritten, briefingWritten, finalStatus, errMsg, runId).run();
+    } else {
+      await db.prepare(
+        `INSERT INTO pipeline_runs (items_processed, headlines_tagged, deadlines_created, csc_items_created, briefing_generated, status, error_message)
+         VALUES (?, ?, 0, ?, ?, ?, ?)`
+      ).bind(totalNew, headlinesTagged, cscWritten, briefingWritten, finalStatus, errMsg).run();
+    }
   } catch (recordErr) {
     console.error('AI Pipeline: failed to record run:', recordErr.message);
   }

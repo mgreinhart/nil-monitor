@@ -179,7 +179,7 @@ async function buildAdminDashboard(env) {
   const [
     fetcherRows, headlineTotal, headlinesToday, headlinesWeek, headlines24h,
     activeCases, casesWithDates, latestBriefing, csltStats, latestPipeline,
-    untaggedHeadlines, curationHeadlines, hiddenWeekCount,
+    untaggedHeadlines, curationHeadlines, hiddenWeekCount, recentErrors, recentPipelineRuns,
   ] = await Promise.all([
     env.DB.prepare('SELECT fetcher_name, last_run, last_error, last_error_at FROM fetcher_runs').all()
       .catch(() => env.DB.prepare('SELECT fetcher_name, last_run FROM fetcher_runs').all()),
@@ -195,6 +195,8 @@ async function buildAdminDashboard(env) {
     env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE category IS NULL OR severity IS NULL").first(),
     env.DB.prepare("SELECT id, source, title, url, category, severity, published_at, hidden, hide_reason FROM headlines ORDER BY published_at DESC LIMIT 80").all().catch(() => ({ results: [] })),
     env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE hidden = 1 AND fetched_at >= ?").bind(daysAgo(7)).first().catch(() => ({ cnt: 0 })),
+    env.DB.prepare("SELECT fetcher_name, error_message, occurred_at FROM fetcher_errors WHERE occurred_at >= datetime('now', '-24 hours') ORDER BY id DESC LIMIT 20").all().catch(() => ({ results: [] })),
+    env.DB.prepare("SELECT id, ran_at, status, error_message, briefing_generated, headlines_tagged FROM pipeline_runs ORDER BY id DESC LIMIT 6").all().catch(() => ({ results: [] })),
   ]);
 
   // ── Fetcher status ──
@@ -243,6 +245,15 @@ async function buildAdminDashboard(env) {
 
   if ((headlines24h?.cnt || 0) === 0) {
     issues.push({ level: 'red', text: '0 headlines fetched in the last 24 hours' });
+  }
+
+  // Flag pipeline runs that started but never completed (worker killed mid-flight)
+  for (const r of (recentPipelineRuns?.results || [])) {
+    if (r.status === 'started') {
+      issues.push({ level: 'red', text: `Pipeline run #${r.id} (${adminTimestamp(r.ran_at)}) is stuck in "started" — worker likely killed mid-run` });
+    } else if (r.status === 'failed') {
+      issues.push({ level: 'red', text: `Pipeline run #${r.id} (${adminTimestamp(r.ran_at)}) failed: ${(r.error_message || '').slice(0, 120)}` });
+    }
   }
 
   if (etHour >= 7 && (!latestBriefing || latestBriefing.date !== todayStr)) {
@@ -334,6 +345,25 @@ ${issuesHtml}
 ${fetcherRowsHtml}
 </table>
 </div>
+
+${(recentErrors?.results || []).length > 0 ? `<div class="section">
+<h2>Recent Errors (24h)</h2>
+<table>
+<tr><th style="width:140px">Fetcher</th><th style="width:130px">When</th><th>Error</th></tr>
+${recentErrors.results.map(e => `<tr><td style="color:#ef4444">${escHtml(e.fetcher_name)}</td><td>${adminTimestamp(e.occurred_at)}</td><td style="font-size:11px;color:#94a3b8">${escHtml((e.error_message || '').slice(0, 200))}</td></tr>`).join('')}
+</table>
+</div>` : ''}
+
+${(recentPipelineRuns?.results || []).length > 0 ? `<div class="section">
+<h2>Recent Pipeline Runs</h2>
+<table>
+<tr><th style="width:50px">ID</th><th style="width:130px">Ran At</th><th style="width:80px">Status</th><th style="width:60px">Brief</th><th>Error</th></tr>
+${recentPipelineRuns.results.map(r => {
+  const statusColor = r.status === 'completed' ? '#10b981' : r.status === 'failed' ? '#ef4444' : r.status === 'started' ? '#f59e0b' : '#94a3b8';
+  return `<tr><td>${r.id}</td><td>${adminTimestamp(r.ran_at)}</td><td style="color:${statusColor}">${escHtml(r.status || 'legacy')}</td><td>${r.briefing_generated ? '✓' : '—'}</td><td style="font-size:11px;color:#94a3b8">${escHtml((r.error_message || '').slice(0, 150))}</td></tr>`;
+}).join('')}
+</table>
+</div>` : ''}
 
 <div class="section">
 <h2>Content Pulse</h2>

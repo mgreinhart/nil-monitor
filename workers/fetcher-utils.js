@@ -156,12 +156,22 @@ export async function recordRun(db, fetcherName) {
  * Record that a fetcher errored.
  */
 export async function recordError(db, fetcherName, error) {
-  const msg = error?.message || String(error);
+  const msg = (error?.message || String(error)).slice(0, 500);
+  // Update last-error on the per-fetcher row (clobbers prior error)
   await db.prepare(
     `INSERT INTO fetcher_runs (fetcher_name, last_error, last_error_at)
      VALUES (?, ?, datetime('now'))
      ON CONFLICT(fetcher_name) DO UPDATE SET last_error = ?, last_error_at = datetime('now')`
   ).bind(fetcherName, msg, msg).run();
+  // Append to ring-buffer of recent errors (capped at 100)
+  try {
+    await db.prepare(
+      `INSERT INTO fetcher_errors (fetcher_name, error_message) VALUES (?, ?)`
+    ).bind(fetcherName, msg).run();
+    await db.prepare(
+      `DELETE FROM fetcher_errors WHERE id NOT IN (SELECT id FROM fetcher_errors ORDER BY id DESC LIMIT 100)`
+    ).run();
+  } catch (_) { /* table may not exist on first deploy */ }
 }
 
 // ── HTML Entity Decoding ────────────────────────────────────────────

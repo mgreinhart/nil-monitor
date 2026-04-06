@@ -109,8 +109,19 @@ CREATE TABLE IF NOT EXISTS pipeline_runs (
   headlines_tagged INTEGER DEFAULT 0,
   deadlines_created INTEGER DEFAULT 0,
   csc_items_created INTEGER DEFAULT 0,
-  briefing_generated INTEGER DEFAULT 0
+  briefing_generated INTEGER DEFAULT 0,
+  status TEXT DEFAULT 'completed',  -- 'started' | 'completed' | 'failed'
+  error_message TEXT
 );
+
+-- Fetcher errors (ring buffer, capped at 100 rows)
+CREATE TABLE IF NOT EXISTS fetcher_errors (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  fetcher_name TEXT NOT NULL,
+  error_message TEXT NOT NULL,
+  occurred_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_fetcher_errors_occurred ON fetcher_errors(occurred_at DESC);
 
 -- GDELT news volume (daily article counts for chart)
 CREATE TABLE IF NOT EXISTS gdelt_volume (
