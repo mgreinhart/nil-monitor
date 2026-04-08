@@ -464,6 +464,7 @@ STORY SELECTION PRIORITIES (in addition to above):
 
 CONSOLIDATION RULE:
 If multiple headlines involve the same person, entity, or bill, consolidate them into ONE briefing item. Never give two separate briefing sections to the same senator, case, or institution. Example: if Senator Tuberville introduced a bill AND warned about media rights in the same cycle, that is one item with two facets, not two items.
+If two potential briefing items originate from the same headline or source article, they MUST be consolidated into one item. Never split a single article into multiple briefing sections. Pick the most significant angle and incorporate the secondary point into the body text.
 
 PRIORITY HIERARCHY FOR STORY SELECTION (in descending order):
 1. State legislative action (floor votes, veto overrides, enacted bills) — these are DONE and immediately change the competitive landscape
