@@ -119,7 +119,7 @@ export async function fetchPublications(env, { force = false } = {}) {
           continue;
         }
 
-        const published = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString();
+        const published = item.pubDate ? new Date(item.pubDate).toISOString() : null;
 
         const inserted = await insertHeadline(env.DB, {
           source: feed.source, title: item.title, url: item.link, published,

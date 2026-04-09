@@ -179,7 +179,7 @@ export async function fetchGoogleNews(env, { force = false } = {}) {
         if (!isTitleRelevant(item.title)) continue;
 
         const source = item.sourceName || 'Google News';
-        const published = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString();
+        const published = item.pubDate ? new Date(item.pubDate).toISOString() : null;
 
         const inserted = await insertHeadline(env.DB, {
           source, title: item.title, url: item.link, published,

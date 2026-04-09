@@ -346,13 +346,13 @@ async function generateBriefing(env, db, isAfternoon = false) {
   const fallbackCutoff = new Date(Date.now() - fallbackHours * 3600000).toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
 
   let { results: rawHeadlines } = await db.prepare(
-    `SELECT * FROM headlines WHERE category IS NOT NULL AND (hidden IS NULL OR hidden != 1) AND published_at >= ? ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 100`
+    `SELECT * FROM headlines WHERE category IS NOT NULL AND (hidden IS NULL OR hidden != 1) AND COALESCE(published_at, fetched_at) >= ? ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, COALESCE(published_at, fetched_at) DESC LIMIT 100`
   ).bind(primaryCutoff).all();
 
   let usedFallback = false;
   if (rawHeadlines.length < 10) {
     const { results: fallbackHeadlines } = await db.prepare(
-      `SELECT * FROM headlines WHERE category IS NOT NULL AND (hidden IS NULL OR hidden != 1) AND published_at >= ? ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, published_at DESC LIMIT 100`
+      `SELECT * FROM headlines WHERE category IS NOT NULL AND (hidden IS NULL OR hidden != 1) AND COALESCE(published_at, fetched_at) >= ? ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, COALESCE(published_at, fetched_at) DESC LIMIT 100`
     ).bind(fallbackCutoff).all();
     rawHeadlines = fallbackHeadlines;
     usedFallback = true;

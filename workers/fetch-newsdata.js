@@ -99,7 +99,7 @@ export async function fetchNewsData(env) {
         const source = article.source_name || article.source_id || 'NewsData.io';
         const published = article.pubDate
           ? new Date(article.pubDate).toISOString()
-          : new Date().toISOString();
+          : null;
 
         const inserted = await insertHeadline(env.DB, {
           source, title: article.title, url: article.link, published,

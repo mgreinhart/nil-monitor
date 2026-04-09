@@ -144,7 +144,7 @@ export async function fetchBingNews(env, { force = false } = {}) {
         // Bing wraps links in a redirect — extract the actual URL
         const url = extractBingUrl(item.link) || item.link;
         const source = item.sourceName || 'Bing News';
-        const published = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString();
+        const published = item.pubDate ? new Date(item.pubDate).toISOString() : null;
 
         const inserted = await insertHeadline(env.DB, {
           source, title: item.title, url, published,
