@@ -589,6 +589,9 @@ Return ONLY valid JSON, no other text.`;
 ANTI-REPETITION RULE: Here are the items from the most recent briefing:
 ${prevHeadlines.join('\n')}
 ${repeatedBlock}
+BRIEFING RECENCY DEDUP:
+Do not lead with or prominently feature a story that covers the same underlying development as the previous briefing unless there is a NEW discrete event -- a new filing, ruling, hearing, vote, official statement, or quantifiable development that did not exist in the prior cycle. A different outlet covering the same news is not a new development. If a story appeared in the previous briefing with no new court action, legislative vote, or official announcement since then, it should not appear again until something materially changes.
+
 Do NOT repeat any of the above items unless there is a MATERIAL UPDATE. A material update means:
 - A named official making a NEW statement (not restating a known position)
 - New numbers, new legal filings, or a new institutional action

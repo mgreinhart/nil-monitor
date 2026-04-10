@@ -492,7 +492,23 @@ const BUSINESS_SIGNAL_RE = /\bnil\b|name.image.likeness|ncaa\s*(?:governance|rul
  * Headlines with business signals always pass through.
  */
 // Individual NIL deal / high school personnel — checked BEFORE business signal escape
-const PREFLIGHT_NOISE_RE = /(?:announces?|inks?|signs?|lands?|secures?|agrees?\s+to)\s+(?:new\s+)?(?:nil|NIL)\s+(?:deal|partnership|endorsement|contract|agreement)(?!.*(?:policy|enforce|dispute|restructur|clearinghouse|arbitrat|reject|system|wreck|reshape))|(?:nil|NIL)\s+(?:deal|partnership)\s+(?:with|ahead|before|for)\s+(?!.*(?:policy|enforce|dispute|system))|\bhigh\s+school\b.*(?:names?|hires?|appoints?|announces?|fires?)\s+.*(?:coach|director|principal)|(?:names?|hires?|appoints?|fires?)\s+.*\bhigh\s+school\b.*(?:coach|director)/i;
+const PREFLIGHT_NOISE_RE = new RegExp([
+  // Individual NIL deal announcements (direct verb patterns)
+  '(?:announces?|inks?|signs?|lands?|secures?|agrees?\\s+to)\\s+(?:new\\s+)?(?:nil|NIL)\\s+(?:deal|partnership|endorsement|contract|agreement)(?!.*(?:policy|enforce|dispute|restructur|clearinghouse|arbitrat|reject|system|wreck|reshape))',
+  '(?:nil|NIL)\\s+(?:deal|partnership)\\s+(?:with|ahead|before|for)\\s+(?!.*(?:policy|enforce|dispute|system))',
+  // Reactive framing of NIL deal signings (player reaction headlines)
+  '(?:shows?\\s+excitement|reacts?|celebrates?|opens?\\s+up|speaks?\\s+out|breaks?\\s+silence)\\s+(?:after|following|on)\\s+(?:signing|inking|landing|securing|agreeing)(?!.*(?:policy|enforce|dispute|restructur|clearinghouse|arbitrat|reject|system|wreck|reshape))',
+  // High school personnel — explicit "high school" mention
+  '\\bhigh\\s+school\\b.*(?:names?|hires?|appoints?|announces?|fires?)\\s+.*(?:coach|director|principal)',
+  '(?:names?|hires?|appoints?|fires?)\\s+.*\\bhigh\\s+school\\b.*(?:coach|director)',
+  // Texas ISD (Independent School District) personnel
+  '\\bISD\\b.*(?:names?|hires?|appoints?|announces?|fires?)\\s+.*(?:coach|director|principal|superintendent)',
+  '(?:names?|hires?|appoints?|announces?|fires?)\\s+.*\\bISD\\b.*(?:coach|director)',
+  // High school athletic classifications (1A-6A) in personnel/award contexts
+  // Protects "Division 1A", "Group of 5 1A", etc. via negative lookbehind
+  '(?<!division\\s)(?<!group\\s+of\\s+\\d\\s)\\b[1-6]A\\b\\s+(?:athletic director|coach|player|athlete)\\s+of\\s+(?:the\\s+)?year',
+  '(?<!division\\s)(?<!group\\s+of\\s+\\d\\s)\\b[1-6]A\\b\\s+(?:all.state|all.district|all.region|all.area)',
+].join('|'), 'i');
 
 // ── Portal Shopping List / Strategy Noise Filter ───────────────────
 // Catches team-specific transfer portal speculation (shopping lists, strategy takes,
