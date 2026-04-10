@@ -60,7 +60,12 @@ async function runWithBudget(fetchers, label, env) {
   let completed = 0;
 
   try {
-    await loadDedupCache(env.DB);
+    try {
+      await loadDedupCache(env.DB);
+    } catch (e) {
+      console.error(`Group ${label}: dedup cache failed (${e.message}), running fetchers without cache`);
+      try { await recordError(env.DB, `group-${label.split(' ')[0]}-dedup`, e); } catch (_) {}
+    }
 
     for (const [name, fn] of fetchers) {
       const elapsed = Date.now() - start;
@@ -153,7 +158,10 @@ export default {
       }
 
       console.log(`Running fetcher group ${label} (${fetchers.length} fetchers, sequential)`);
-      ctx.waitUntil(runWithBudget(fetchers, label, env));
+      ctx.waitUntil(
+        runWithBudget(fetchers, label, env)
+          .catch(e => console.error(`Group ${label} unhandled error:`, e.message))
+      );
     }
   },
 };
