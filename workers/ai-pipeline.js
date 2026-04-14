@@ -215,7 +215,7 @@ export async function tagHeadlines(env, db) {
   ).all();
 
   console.log(`Tagging: found ${untagged.length} untagged headlines`);
-  if (untagged.length === 0) return 0;
+  if (untagged.length === 0) return { tagged: 0, awaiting: 0 };
 
   let totalTagged = 0;
   // Process in batches to keep prompt + response within token limits
@@ -236,7 +236,7 @@ export async function tagHeadlines(env, db) {
   }
 
   console.log(`Tagging complete: ${totalTagged}/${untagged.length} headlines tagged`);
-  return totalTagged;
+  return { tagged: totalTagged, awaiting: untagged.length };
 }
 
 // ── Task 2: CSC Activity Detection ───────────────────────────────
@@ -792,10 +792,26 @@ export async function runAIPipeline(env, options = {}) {
   const db = env.DB;
 
   let headlinesTagged = 0;
+  let headlinesAwaiting = 0;
   let totalNew = 0;
   let cscWritten = 0;
   let briefingWritten = 0;
   let fatalError = null;
+
+  // Cleanup stale "started" rows from prior crashed/killed runs before starting our own.
+  // Any run >30 min old still in 'started' is almost certainly a killed Worker.
+  try {
+    const stale = await db.prepare(
+      `UPDATE pipeline_runs
+       SET status = 'failed',
+           error_message = 'timed out (still in started >30min — likely Worker CPU limit)'
+       WHERE status = 'started' AND ran_at < datetime('now', '-30 minutes')`
+    ).run();
+    const changed = stale.meta?.changes || 0;
+    if (changed > 0) console.log(`AI Pipeline: marked ${changed} stale started run(s) as failed`);
+  } catch (e) {
+    console.error('AI Pipeline: stale-run cleanup failed:', e.message);
+  }
 
   // Insert a "started" row immediately so killed workers still leave a trail.
   // We update this row at the end with final status; if the worker is killed
@@ -817,8 +833,10 @@ export async function runAIPipeline(env, options = {}) {
     console.log(`AI Pipeline: processing data since ${lastRun}`);
 
     // 2. Tag untagged headlines — always runs regardless of new data
-    headlinesTagged = await tagHeadlines(env, db);
-    console.log(`AI Pipeline: tagged ${headlinesTagged} headlines`);
+    const tagResult = await tagHeadlines(env, db);
+    headlinesTagged = tagResult.tagged;
+    headlinesAwaiting = tagResult.awaiting;
+    console.log(`AI Pipeline: tagged ${headlinesTagged}/${headlinesAwaiting} headlines`);
 
     // 3. Fetch new data since last run (for CSC detection + briefing)
     const headlines = await getNewHeadlines(db, lastRun);
@@ -848,13 +866,27 @@ export async function runAIPipeline(env, options = {}) {
   } catch (err) {
     fatalError = err;
     console.error('AI Pipeline: fatal error:', err.message);
-    PIPELINE_ERRORS.push(`fatal: ${err.message}`);
   }
 
   // 6. Update the started row with final results / error.
+  // A run is 'failed' if any of:
+  //   - a fatal error was thrown
+  //   - pipeline errors were accumulated (tagging/briefing/CSC API failures)
+  //   - headlines were awaiting tagging but none got tagged (all API calls failed silently)
+  //   - a briefing was expected but none was written
+  const problems = [];
+  if (fatalError) problems.push(`fatal: ${(fatalError.message || String(fatalError))}`);
+  if (PIPELINE_ERRORS.length > 0) problems.push(...PIPELINE_ERRORS);
+  if (headlinesAwaiting > 0 && headlinesTagged === 0) {
+    problems.push(`tagging produced 0 tags despite ${headlinesAwaiting} headlines awaiting — Claude API calls all failed`);
+  }
+  if (includeBriefing && briefingWritten === 0) {
+    problems.push('briefing generation produced no sections');
+  }
+
+  const finalStatus = problems.length > 0 ? 'failed' : 'completed';
+  const errMsg = problems.length > 0 ? problems.join('; ').slice(0, 500) : null;
   // If runId is null (insert failed earlier), fall back to a fresh INSERT.
-  const finalStatus = fatalError ? 'failed' : 'completed';
-  const errMsg = fatalError ? (fatalError.message || String(fatalError)).slice(0, 500) : null;
   try {
     if (runId) {
       await db.prepare(
@@ -870,10 +902,10 @@ export async function runAIPipeline(env, options = {}) {
     console.error('AI Pipeline: failed to record run:', recordErr.message);
   }
 
-  console.log('AI Pipeline: complete');
-  if (PIPELINE_ERRORS.length > 0) {
-    const errors = [...PIPELINE_ERRORS];
-    PIPELINE_ERRORS.length = 0;
-    throw new Error(`Pipeline completed with errors: ${errors.join('; ')}`);
+  console.log(`AI Pipeline: complete (status=${finalStatus})`);
+  // Always clear so subsequent runs in the same isolate start clean.
+  PIPELINE_ERRORS.length = 0;
+  if (finalStatus === 'failed') {
+    throw new Error(`Pipeline failed: ${errMsg}`);
   }
 }
