@@ -363,51 +363,35 @@ async function generateBriefing(env, db, isAfternoon = false) {
   const windowLabel = usedFallback ? `${fallbackHours}h fallback` : `${primaryHours}h`;
   console.log(`Briefing: ${rawHeadlines.length} raw headlines → ${headlines.length} after dedup (${windowLabel} window)`);
 
-  // Hard filter against recently featured topics: an aggregator headline whose
-  // title heavily overlaps with a section featured in the last 4 briefings is
-  // almost always a recirculation of an old story. Drop it from the pool so
-  // Claude never sees it — prose instructions alone have not been enough.
-  try {
-    const { results: recentFeatured } = await db.prepare(
-      "SELECT content FROM briefings ORDER BY date DESC, generated_at DESC LIMIT 4"
-    ).all();
-
-    const featuredWordSets = [];
-    for (const b of recentFeatured) {
-      try {
-        const sections = JSON.parse(b.content);
-        for (const s of sections) {
-          const text = `${s.short_title || ''} ${s.headline || ''}`.toLowerCase();
-          const words = new Set(text.split(/[^a-z0-9]+/).filter(w => w.length > 4));
-          if (words.size > 0) featuredWordSets.push(words);
-        }
-      } catch { /* skip malformed */ }
-    }
-
-    const AGGREGATOR_RE = /msn|bing|yahoo|aol|google news|newsbreak|smartnews|flipboard/i;
-    const dropped = [];
-    headlines = headlines.filter(h => {
-      if (!AGGREGATOR_RE.test(h.source || '')) return true;
-      const hWords = new Set(
-        (h.title || '').toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 4)
-      );
-      if (hWords.size === 0) return true;
-      for (const fw of featuredWordSets) {
-        const overlap = [...hWords].filter(w => fw.has(w)).length;
-        const ratio = overlap / hWords.size;
-        if (ratio >= 0.55) {
-          dropped.push(`[${h.source}] ${h.title.slice(0, 80)} (overlap ${(ratio * 100).toFixed(0)}%)`);
-          return false;
-        }
-      }
-      return true;
-    });
-    if (dropped.length > 0) {
-      console.log(`Briefing: dropped ${dropped.length} aggregator recirculations of previously-featured topics:\n  ${dropped.join('\n  ')}`);
-    }
-  } catch (e) {
-    console.log('Briefing: aggregator-recirc filter failed (non-fatal):', e.message);
+  // Drop aggregator-only stories. After the dedup step above, any aggregator
+  // headline still in the pool means no Tier 1/2/3 outlet covered the same
+  // story (otherwise the real outlet would have dominated by tier). Aggregator
+  // timestamps are unreliable — MSN/Bing/Yahoo routinely recirculate
+  // month-old articles with fresh published_at. If no original-reporting
+  // outlet has picked it up, we can't verify the story is actually recent,
+  // so it doesn't belong in the briefing.
+  const AGGREGATOR_RE = /^(msn|bing|bing news|yahoo|yahoo news|aol|google news|newsbreak|smartnews|flipboard)$/i;
+  const isAggregator = s => AGGREGATOR_RE.test((s || '').trim());
+  const beforeAggDrop = headlines.length;
+  const droppedAggregators = headlines.filter(h => isAggregator(h.source));
+  headlines = headlines.filter(h => !isAggregator(h.source));
+  if (droppedAggregators.length > 0) {
+    console.log(`Briefing: dropped ${droppedAggregators.length} aggregator-only stories (unverifiable freshness):\n  ${droppedAggregators.slice(0, 10).map(h => `[${h.source}] ${h.title.slice(0, 90)}`).join('\n  ')}`);
   }
+
+  // If aggregator drop left the pool too thin, widen to 36h and re-dedup.
+  if (headlines.length < 10) {
+    const secondaryCutoff = new Date(Date.now() - 36 * 3600000).toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
+    const { results: widenedRaw } = await db.prepare(
+      `SELECT * FROM headlines WHERE category IS NOT NULL AND (hidden IS NULL OR hidden != 1) AND COALESCE(published_at, fetched_at) >= ? ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'important' THEN 2 ELSE 3 END, COALESCE(published_at, fetched_at) DESC LIMIT 150`
+    ).bind(secondaryCutoff).all();
+    const widened = deduplicateHeadlines(widenedRaw).filter(h => !isAggregator(h.source));
+    console.log(`Briefing: pool was thin (${headlines.length}) after aggregator drop — widened to 36h, now ${widened.length} headlines`);
+    headlines = widened;
+    usedFallback = true;
+  }
+
+  console.log(`Briefing: ${beforeAggDrop} post-dedup → ${headlines.length} after aggregator filter`);
 
   const todayETForDeadlines = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   const in14Days = (() => { const d = new Date(Date.now() + 14 * 86400000); return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); })();
