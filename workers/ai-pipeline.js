@@ -359,9 +359,55 @@ async function generateBriefing(env, db, isAfternoon = false) {
   }
 
   // Deduplicate: group similar headlines, keep highest-tier source
-  const headlines = deduplicateHeadlines(rawHeadlines);
+  let headlines = deduplicateHeadlines(rawHeadlines);
   const windowLabel = usedFallback ? `${fallbackHours}h fallback` : `${primaryHours}h`;
   console.log(`Briefing: ${rawHeadlines.length} raw headlines → ${headlines.length} after dedup (${windowLabel} window)`);
+
+  // Hard filter against recently featured topics: an aggregator headline whose
+  // title heavily overlaps with a section featured in the last 4 briefings is
+  // almost always a recirculation of an old story. Drop it from the pool so
+  // Claude never sees it — prose instructions alone have not been enough.
+  try {
+    const { results: recentFeatured } = await db.prepare(
+      "SELECT content FROM briefings ORDER BY date DESC, generated_at DESC LIMIT 4"
+    ).all();
+
+    const featuredWordSets = [];
+    for (const b of recentFeatured) {
+      try {
+        const sections = JSON.parse(b.content);
+        for (const s of sections) {
+          const text = `${s.short_title || ''} ${s.headline || ''}`.toLowerCase();
+          const words = new Set(text.split(/[^a-z0-9]+/).filter(w => w.length > 4));
+          if (words.size > 0) featuredWordSets.push(words);
+        }
+      } catch { /* skip malformed */ }
+    }
+
+    const AGGREGATOR_RE = /msn|bing|yahoo|aol|google news|newsbreak|smartnews|flipboard/i;
+    const dropped = [];
+    headlines = headlines.filter(h => {
+      if (!AGGREGATOR_RE.test(h.source || '')) return true;
+      const hWords = new Set(
+        (h.title || '').toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 4)
+      );
+      if (hWords.size === 0) return true;
+      for (const fw of featuredWordSets) {
+        const overlap = [...hWords].filter(w => fw.has(w)).length;
+        const ratio = overlap / hWords.size;
+        if (ratio >= 0.55) {
+          dropped.push(`[${h.source}] ${h.title.slice(0, 80)} (overlap ${(ratio * 100).toFixed(0)}%)`);
+          return false;
+        }
+      }
+      return true;
+    });
+    if (dropped.length > 0) {
+      console.log(`Briefing: dropped ${dropped.length} aggregator recirculations of previously-featured topics:\n  ${dropped.join('\n  ')}`);
+    }
+  } catch (e) {
+    console.log('Briefing: aggregator-recirc filter failed (non-fatal):', e.message);
+  }
 
   const todayETForDeadlines = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   const in14Days = (() => { const d = new Date(Date.now() + 14 * 86400000); return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); })();
@@ -552,11 +598,12 @@ Return ONLY valid JSON, no other text.`;
 
   const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  // ── Anti-repetition: fetch last TWO briefings to detect consecutive repeats ──
+  // ── Anti-repetition: look at the last FOUR briefings. A story that's been
+  // featured two-plus cycles in a row is almost certainly stale by now. ──
   let antiRepetitionBlock = '';
   try {
     const { results: recentBriefings } = await db.prepare(
-      "SELECT content FROM briefings ORDER BY date DESC, generated_at DESC LIMIT 2"
+      "SELECT content FROM briefings ORDER BY date DESC, generated_at DESC LIMIT 4"
     ).all();
 
     const extractTopics = (content) => {
@@ -567,22 +614,25 @@ Return ONLY valid JSON, no other text.`;
       } catch { return []; }
     };
 
-    const prevHeadlines = recentBriefings[0]?.content ? extractTopics(recentBriefings[0].content) : [];
-    const prev2Headlines = recentBriefings[1]?.content ? extractTopics(recentBriefings[1].content) : [];
+    const priorBriefings = recentBriefings.map(b => extractTopics(b?.content || '[]'));
+    const prevHeadlines = priorBriefings[0] || [];
 
     if (prevHeadlines.length > 0) {
-      // Detect topics that appeared in BOTH of the last two briefings
-      const prev2Lower = prev2Headlines.map(h => h.toLowerCase());
+      // A topic is "blocked" if it appeared in the most recent briefing AND in
+      // at least one of the three before it (i.e. featured 2+ times in the
+      // last 4 cycles). Word overlap threshold 0.4 as before.
+      const olderCyclesLower = priorBriefings.slice(1).flat().map(h => h.toLowerCase());
       const repeatedTopics = prevHeadlines.filter(h => {
         const words = h.toLowerCase().split(/\s+/).filter(w => w.length > 4);
-        return prev2Lower.some(p2 => {
-          const overlap = words.filter(w => p2.includes(w)).length;
-          return words.length > 0 && overlap / words.length >= 0.4;
+        if (words.length === 0) return false;
+        return olderCyclesLower.some(older => {
+          const overlap = words.filter(w => older.includes(w)).length;
+          return overlap / words.length >= 0.4;
         });
       });
 
       const repeatedBlock = repeatedTopics.length > 0
-        ? `\nBLOCKED TOPICS (appeared in BOTH of the last two briefings -- do NOT include under any circumstances unless a genuinely new development has occurred: new court ruling, new vote, new dollar figure, new named party, new legal filing):\n${repeatedTopics.join('\n')}\nThe third consecutive appearance of any topic is ALWAYS wrong. These stories are stale to the reader.\n`
+        ? `\nBLOCKED TOPICS (featured 2+ times in the last 4 briefings -- do NOT include under any circumstances unless a genuinely new discrete event has occurred since the most recent briefing: new court ruling, new vote, new dollar figure, new named party, new legal filing):\n${repeatedTopics.join('\n')}\nRepeating a story that has already been featured twice is ALWAYS wrong. The reader has seen this. Find something newer.\n`
         : '';
 
       antiRepetitionBlock = `
