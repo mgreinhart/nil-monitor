@@ -1083,7 +1083,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
               {!isMobile && <Mono style={{ flex: "0 0 96px", fontSize: 12, fontWeight: 600, color: T.textDim, textTransform: "uppercase", letterSpacing: ".3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.src}</Mono>}
-              <div style={{ flex: 1, fontFamily: T.sans, fontSize: 15, fontWeight: h.sev === "critical" ? 600 : 500, color: T.text, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", ...(isMobile ? { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", whiteSpace: "normal" } : { whiteSpace: "nowrap" }) }}>{h.title}</div>
+              <div style={{ flex: 1, fontFamily: T.sans, fontSize: 15, fontWeight: 500, color: T.text, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", ...(isMobile ? { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", whiteSpace: "normal" } : { whiteSpace: "nowrap" }) }}>{h.title}</div>
               {h.isNew && <span style={{ fontFamily: T.sans, fontSize: 9, fontWeight: 700, color: "#fff", background: T.green, padding: "2px 6px", borderRadius: 3, letterSpacing: ".5px", flexShrink: 0, textTransform: "uppercase", lineHeight: 1.3 }}>NEW</span>}
               <Mono style={{ flex: "0 0 48px", fontSize: 12, color: T.textDim, textAlign: "right" }}>{h.time}</Mono>
             </a>
