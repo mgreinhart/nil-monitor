@@ -121,14 +121,29 @@ export default {
     console.log(`Cron trigger fired: ${cron}`);
 
     if (cron === '25 10,11,19,20 * * *') {
-      // AI pipeline — fires at 4 UTC hours; only runs when ET hour is 6 or 15
+      // AI pipeline — fires at 4 UTC hours. Each briefing period has TWO
+      // slots an hour apart: primary runs unconditionally; backup only
+      // runs if the primary's brief never landed (Cloudflare cron skips
+      // are common on free tier — a single miss shouldn't kill the day).
+      //   EDT: 10 UTC = 6 AM (primary), 11 UTC = 7 AM (backup),
+      //        19 UTC = 3 PM (primary), 20 UTC = 4 PM (backup)
+      //   EST: 11 UTC = 6 AM (primary), 20 UTC = 3 PM (primary),
+      //        10/19 UTC = 5 AM/2 PM → skipped (before primary)
       const now = new Date();
-      const etHour = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false });
-      const h = parseInt(etHour, 10);
-      if (h !== 6 && h !== 15) {
-        console.log(`AI pipeline skipped — ET hour is ${h}, not 6 or 15`);
+      const h = parseInt(new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }), 10);
+
+      let slot = null;
+      if (h === 6) slot = 'morning-primary';
+      else if (h === 7) slot = 'morning-backup';
+      else if (h === 15) slot = 'afternoon-primary';
+      else if (h === 16) slot = 'afternoon-backup';
+      else {
+        console.log(`AI pipeline skipped — ET hour is ${h}, not a briefing slot`);
         return;
       }
+
+      const isAfternoon = slot.startsWith('afternoon');
+      const isBackup = slot.endsWith('backup');
 
       // Weekend schedule: Saturday = no briefs, Sunday = afternoon only
       const etDay = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' })).getDay();
@@ -136,12 +151,37 @@ export default {
         console.log('AI pipeline skipped — Saturday, no briefs');
         return;
       }
-      if (etDay === 0 && h === 6) {
+      if (etDay === 0 && !isAfternoon) {
         console.log('AI pipeline skipped — Sunday morning, afternoon only');
         return;
       }
 
-      const isAfternoon = h === 15;
+      // Backup: skip if today's brief for this period already exists.
+      if (isBackup) {
+        const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+        try {
+          const existing = await env.DB.prepare(
+            'SELECT generated_at FROM briefings WHERE date = ? ORDER BY generated_at DESC LIMIT 1'
+          ).bind(todayET).first();
+          if (existing?.generated_at) {
+            // generated_at is UTC. For afternoon backup, the existing brief
+            // must have been generated in the afternoon (ET hour >= 12) to
+            // count as "already done" — otherwise it's the morning brief.
+            const genUTC = new Date(existing.generated_at.includes('T') ? existing.generated_at : existing.generated_at.replace(' ', 'T') + 'Z');
+            const genEtHour = parseInt(genUTC.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }), 10);
+            const alreadyDone = slot === 'morning-backup' ? true : genEtHour >= 12;
+            if (alreadyDone) {
+              console.log(`AI pipeline ${slot} skipped — brief already exists for ${todayET} (generated ${existing.generated_at})`);
+              return;
+            }
+          }
+          console.log(`AI pipeline ${slot}: primary appears to have missed, running backup`);
+        } catch (e) {
+          console.error(`AI pipeline backup check failed (${e.message}) — running to be safe`);
+        }
+      }
+
+      console.log(`AI pipeline: running ${slot} (isAfternoon=${isAfternoon})`);
       ctx.waitUntil(
         runAIPipeline(env, { includeBriefing: true, isAfternoon })
           .catch(e => console.error('ai-pipeline cron error:', e.message))
