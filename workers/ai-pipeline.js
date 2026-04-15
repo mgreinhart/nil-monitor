@@ -943,3 +943,87 @@ export async function runAIPipeline(env, options = {}) {
     throw new Error(`Pipeline failed: ${errMsg}`);
   }
 }
+
+// ── Safety net: ensure today's brief exists ──────────────────────
+//
+// Called from EVERY cron tick (fetcher groups + the dedicated pipeline
+// cron). Independent of the scheduled briefing slots. If we're past
+// the expected briefing time for today's period (morning or afternoon)
+// and no brief exists yet, kick the pipeline. Uses the 'started' row
+// in pipeline_runs as a distributed lock so concurrent fetcher crons
+// don't all trigger the pipeline at once.
+//
+// This is the last line of defense. A single Cloudflare cron skip,
+// a single pipeline crash, an Anthropic API outage that resolves —
+// any of them get recovered on the next fetcher cron fire.
+export async function ensureTodaysBriefing(env, ctx) {
+  if (!env.ANTHROPIC_KEY) return;
+
+  const now = new Date();
+  const etParts = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const etHour = parseInt(now.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }), 10);
+  const etMinute = parseInt(now.toLocaleString('en-US', { timeZone: 'America/New_York', minute: 'numeric' }), 10);
+  const etDay = etParts.getDay(); // 0 = Sun, 6 = Sat
+  const todayET = now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+
+  // Saturday = no briefs
+  if (etDay === 6) return;
+
+  // Determine which period we're in. Morning window: 06:30–11:59 ET.
+  // Afternoon window: 15:30–22:59 ET. Sunday skips morning.
+  const totalMin = etHour * 60 + etMinute;
+  const morningStart = 6 * 60 + 30;  // 06:30
+  const afternoonStart = 15 * 60 + 30; // 15:30
+  const afternoonEnd = 23 * 60;        // 23:00
+
+  let isAfternoon;
+  if (totalMin >= afternoonStart && totalMin < afternoonEnd) {
+    isAfternoon = true;
+  } else if (totalMin >= morningStart && totalMin < afternoonStart) {
+    if (etDay === 0) return; // Sunday morning — no brief
+    isAfternoon = false;
+  } else {
+    return; // outside briefing windows
+  }
+
+  const db = env.DB;
+
+  // Does today's brief for this period already exist?
+  try {
+    const existing = await db.prepare(
+      'SELECT generated_at FROM briefings WHERE date = ? ORDER BY generated_at DESC LIMIT 1'
+    ).bind(todayET).first();
+    if (existing?.generated_at) {
+      const genDate = new Date(existing.generated_at.includes('T') ? existing.generated_at : existing.generated_at.replace(' ', 'T') + 'Z');
+      const genEtHour = parseInt(genDate.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }), 10);
+      const isMorningBrief = genEtHour < 12;
+      const isAfternoonBrief = genEtHour >= 12;
+      if (isAfternoon && isAfternoonBrief) return;   // afternoon already done
+      if (!isAfternoon && isMorningBrief) return;    // morning already done
+    }
+  } catch (e) {
+    console.error('ensureTodaysBriefing: brief check failed:', e.message);
+    return;
+  }
+
+  // Lock: if a pipeline run is in 'started' state from the last 30 min,
+  // another invocation is already working on it — don't stack.
+  try {
+    const running = await db.prepare(
+      `SELECT id FROM pipeline_runs WHERE status = 'started' AND ran_at >= datetime('now', '-30 minutes') LIMIT 1`
+    ).first();
+    if (running) {
+      console.log(`ensureTodaysBriefing: pipeline run #${running.id} already in progress, skipping`);
+      return;
+    }
+  } catch (e) {
+    console.error('ensureTodaysBriefing: lock check failed:', e.message);
+    return;
+  }
+
+  console.log(`ensureTodaysBriefing: ${isAfternoon ? 'afternoon' : 'morning'} brief missing at ${etHour}:${String(etMinute).padStart(2, '0')} ET — triggering pipeline`);
+  ctx.waitUntil(
+    runAIPipeline(env, { includeBriefing: true, isAfternoon })
+      .catch(e => console.error('ensureTodaysBriefing: pipeline error:', e.message))
+  );
+}

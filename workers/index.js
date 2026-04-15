@@ -35,7 +35,7 @@ import { fetchPublications } from './fetch-publications.js';
 import { fetchCSLT, fetchCSLTKeyDates } from './fetch-cslt.js';
 import { fetchPodcasts } from './fetch-podcasts.js';
 import { fetchCFBD } from './fetch-cfbd.js';
-import { runAIPipeline } from './ai-pipeline.js';
+import { runAIPipeline, ensureTodaysBriefing } from './ai-pipeline.js';
 
 // CPU budget: Cloudflare free tier allows 10ms CPU per invocation (not wall time).
 // We can't measure CPU directly, but we can cap wall time as a proxy.
@@ -201,6 +201,16 @@ export default {
       ctx.waitUntil(
         runWithBudget(fetchers, label, env)
           .catch(e => console.error(`Group ${label} unhandled error:`, e.message))
+      );
+
+      // Safety net: every fetcher cron checks whether today's brief is
+      // missing and triggers the pipeline if so. Independent of the
+      // dedicated pipeline cron slots — catches cases where both the
+      // primary and backup slots were skipped by Cloudflare, or where
+      // the pipeline failed and the brief never landed.
+      ctx.waitUntil(
+        ensureTodaysBriefing(env, ctx)
+          .catch(e => console.error('ensureTodaysBriefing error:', e.message))
       );
     }
   },
