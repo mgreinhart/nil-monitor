@@ -166,8 +166,14 @@ function getFetcherStatus(lastRunStr, cooldown, etHour, getCooldownFn) {
     }
   }
 
-  if (elapsed > cooldown * 4) return { status: 'red', label: adminTimestamp(lastRunStr) };
-  if (elapsed > cooldown * 2) return { status: 'amber', label: adminTimestamp(lastRunStr) };
+  // Free-tier Cloudflare cron routinely skips one cycle; a single miss is
+  // normal jitter, not a failure. Require multiple missed cycles before
+  // flagging, and only escalate to red after sustained absence.
+  //   green  : elapsed <= cooldown * 3   (up to 2 consecutive misses tolerated)
+  //   amber  : cooldown*3  < elapsed <= cooldown*6
+  //   red    : elapsed > cooldown * 6    (sustained outage)
+  if (elapsed > cooldown * 6) return { status: 'red', label: adminTimestamp(lastRunStr) };
+  if (elapsed > cooldown * 3) return { status: 'amber', label: adminTimestamp(lastRunStr) };
   return { status: 'green', label: adminTimestamp(lastRunStr) };
 }
 
@@ -247,13 +253,17 @@ async function buildAdminDashboard(env) {
     issues.push({ level: 'red', text: '0 headlines fetched in the last 24 hours' });
   }
 
-  // Flag pipeline runs that started but never completed (worker killed mid-flight)
-  for (const r of (recentPipelineRuns?.results || [])) {
-    if (r.status === 'started') {
-      issues.push({ level: 'red', text: `Pipeline run #${r.id} (${adminTimestamp(r.ran_at)}) is stuck in "started" — worker likely killed mid-run` });
-    } else if (r.status === 'failed') {
-      issues.push({ level: 'red', text: `Pipeline run #${r.id} (${adminTimestamp(r.ran_at)}) failed: ${(r.error_message || '').slice(0, 120)}` });
-    }
+  // Flag ongoing pipeline problems only. A failed run that's already been
+  // followed by a successful one is history — surfacing it as "critical"
+  // every dashboard load is noise. Only flag:
+  //   - the most recent run if it's stuck in 'started' (worker killed)
+  //   - the most recent run if it failed (no recovery yet)
+  //   - older failed runs are shown in the table below but don't raise issues.
+  const mostRecentRun = (recentPipelineRuns?.results || [])[0];
+  if (mostRecentRun?.status === 'started') {
+    issues.push({ level: 'red', text: `Pipeline run #${mostRecentRun.id} (${adminTimestamp(mostRecentRun.ran_at)}) is stuck in "started" — worker likely killed mid-run` });
+  } else if (mostRecentRun?.status === 'failed') {
+    issues.push({ level: 'red', text: `Most recent pipeline run #${mostRecentRun.id} (${adminTimestamp(mostRecentRun.ran_at)}) failed: ${(mostRecentRun.error_message || '').slice(0, 120)}` });
   }
 
   if (etHour >= 7 && (!latestBriefing || latestBriefing.date !== todayStr)) {
