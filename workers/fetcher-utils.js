@@ -504,6 +504,10 @@ const PREFLIGHT_NOISE_RE = new RegExp([
   // Texas ISD (Independent School District) personnel
   '\\bISD\\b.*(?:names?|hires?|appoints?|announces?|fires?)\\s+.*(?:coach|director|principal|superintendent)',
   '(?:names?|hires?|appoints?|announces?|fires?)\\s+.*\\bISD\\b.*(?:coach|director)',
+  // NHS (Niwot/Neville/any high school) personnel — ambiguous abbreviation,
+  // requires a high-school disambiguator in the title (National Honor Society,
+  // National Health Service, etc. should not be caught).
+  '(?=.*\\bNHS\\b)(?=.*(?:\\bhigh\\s+school\\b|\\bvarsity\\b|\\bprep\\b|\\b[1-6]A\\b|\\bHS\\s+(?:football|basketball|baseball|softball|volleyball|soccer|sports|athletics)\\b))(?=.*(?:names?|hires?|appoints?|announces?|fires?))(?=.*(?:coach|director|principal|athletic\\s+director)).+',
   // High school athletic classifications (1A-6A) in personnel/award contexts
   // Protects "Division 1A", "Group of 5 1A", etc. via negative lookbehind
   '(?<!division\\s)(?<!group\\s+of\\s+\\d\\s)\\b[1-6]A\\b\\s+(?:athletic director|coach|player|athlete)\\s+of\\s+(?:the\\s+)?year',
@@ -512,9 +516,15 @@ const PREFLIGHT_NOISE_RE = new RegExp([
 
 // ── Portal Shopping List / Strategy Noise Filter ───────────────────
 // Catches team-specific transfer portal speculation (shopping lists, strategy takes,
-// coach loses player to portal). Does NOT catch portal policy, rule changes,
-// window open/close, aggregate trends, or portal as a systemic topic.
-const PORTAL_NOISE_SAFE_RE = /policy|rule|legislation|lawmakers|NCAA\s+rule|open[s ]|close[s ]|changing|reshape|window|regulation|reform|aggregate|wave|landscape/i;
+// coach loses player to portal, deadline-day coverage). Does NOT catch portal policy,
+// rule changes, window open/close as a window event, aggregate trends,
+// or portal as a systemic topic.
+//
+// Note: removed standalone `open[s ]|close[s ]` from SAFE — those bypassed
+// legitimate noise patterns like "portal closes" deadline-day coverage.
+// "portal window closes" still passes via `window`. Added `\bera\b` to
+// protect analytical framings like "transfer portal era".
+const PORTAL_NOISE_SAFE_RE = /policy|rule|legislation|lawmakers|NCAA\s+rule|changing|reshape|window|regulation|reform|aggregate|wave|landscape|\bera\b/i;
 const PORTAL_NOISE_RE = new RegExp([
   // Team-specific portal shopping lists: "3 biggest transfer portal needs for BYU"
   // Also catches without leading number: "Transfer Portal Needs for the BYU Basketball Program"
@@ -527,6 +537,22 @@ const PORTAL_NOISE_RE = new RegExp([
   '(?:loses?|lost)\\s+.*?(?:to|in)\\s+(?:the\\s+)?(?:transfer portal|portal)',
   // "[Number] [team players] who could leave/enter portal" — allow multi-word team names
   '\\d+\\s+.{1,40}?\\s+(?:who could|expected to|set to|likely to)\\s+(?:leave|enter|hit|test)\\s+(?:in\\s+)?(?:the\\s+)?(?:transfer portal|portal)',
+  // Deadline-day / portal-closing coverage
+  '(?:transfer\\s+)?portal\\s+deadline\\s+day',
+  '\\b(?:transfer\\s+)?portal\\s+clos(?:es|ed)\\b',
+  // "Where [team] roster stands" / "Where [team] stands" — requires portal context
+  'where\\s+\\w+(?:[\\w\']*|\\s+\\w+){0,4}\\s+(?:roster\\s+)?stands?\\b.{1,80}(?:transfer\\s+portal|portal)',
+  // "What's next for [team] with transfer portal closed"
+  'what[\'’]?s\\s+next\\s+for\\s+\\w+(?:\\s+\\w+){0,4}.{1,60}(?:transfer\\s+portal|portal)\\s+clos',
+  // "Here are the [team] players [verb] in [period] transfer portal"
+  'here\\s+are\\s+the\\b.{1,80}players?\\b.{1,80}(?:transfer\\s+portal|portal)',
+  // "[team] is hosting [N] transfer portal players" / "on recruiting visits"
+  'hosting\\s+\\d+\\s+(?:transfer\\s+)?portal\\s+(?:players?|prospects?)',
+  'hosting\\s+(?:transfer\\s+)?portal\\s+(?:players?|prospects?|targets?).{0,40}(?:recruiting\\s+)?visits?',
+  '(?:transfer\\s+portal|portal)\\s+(?:players?|prospects?|targets?)\\s+on\\s+(?:recruiting\\s+)?visits?',
+  // "[player] announces transfer portal destination" / "puts his name in NCAA transfer portal"
+  'announces?\\s+(?:transfer\\s+)?portal\\s+(?:destination|landing\\s+spot|commitment)',
+  'puts?\\s+(?:his|her|their)\\s+name\\s+in\\s+(?:the\\s+)?(?:ncaa\\s+)?(?:transfer\\s+)?portal',
 ].join('|'), 'i');
 
 export function isPortalNoise(title) {

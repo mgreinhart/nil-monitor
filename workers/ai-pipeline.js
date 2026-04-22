@@ -512,6 +512,22 @@ Individual personnel hires, coaching hires, contract extensions, and AD appointm
 - A personnel move with direct regulatory or enforcement implications (e.g., new CSC enforcement director)
 A Senior Associate AD hire at a single school is not a briefing item. A pattern of 5+ schools creating the same new role in one cycle might be. One data point is not a pattern. Do not frame a single hire as a "systemic trend."
 
+PATTERN CLAIMS RULE:
+Never claim a single institution's action represents a broader pattern unless the briefing is specifically referencing 3+ named institutions in the same cycle taking the same action. Do NOT use phrases like "follows a pattern of," "reflects a broader shift toward," "signals a trend," "part of a growing movement toward," or "joins a wave of" based on a single example.
+
+Acceptable framing for a single data point:
+- "Syracuse is the latest to..." (only if at least one prior named example is cited in the body)
+- "Syracuse's move may signal..." (hedged -- not asserted as fact)
+- "Syracuse becomes the [N]th school to..." (only when the count is verifiable from the source data)
+
+Unacceptable framing for a single data point:
+- "follows a pattern of Power 4 schools shifting..."
+- "reflects a broader trend toward..."
+- "signals an industry-wide move to..."
+- "another in a growing wave of..."
+
+If 3+ named institutions appear in the source headlines taking the same action in the same cycle, pattern framing is allowed and each institution should be named in the body.
+
 HEARING DETECTION:
 If any headline mentions a congressional hearing, court hearing, or regulatory proceeding happening TODAY or within the next 72 hours, it MUST appear in the briefing with the date, committee/court, and witness names if available. Same-day hearings and proceedings are the HIGHEST priority — if it is happening right now or happened earlier today, it beats any hearing scheduled days out. ADs need to know what is unfolding today before what is coming later this week.
 
@@ -582,12 +598,14 @@ Return ONLY valid JSON, no other text.`;
 
   const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  // ── Anti-repetition: look at the last FOUR briefings. A story that's been
-  // featured two-plus cycles in a row is almost certainly stale by now. ──
+  // ── Anti-repetition: look at the last FIVE briefings. A story that's been
+  // featured two-plus cycles in a row is almost certainly stale by now.
+  // Extended from 4 to 5 to catch cyclical rhetoric (e.g. senators repeating
+  // positions across multiple briefing cycles without new procedural events). ──
   let antiRepetitionBlock = '';
   try {
     const { results: recentBriefings } = await db.prepare(
-      "SELECT content FROM briefings ORDER BY date DESC, generated_at DESC LIMIT 4"
+      "SELECT content FROM briefings ORDER BY date DESC, generated_at DESC LIMIT 5"
     ).all();
 
     const extractTopics = (content) => {
@@ -603,8 +621,8 @@ Return ONLY valid JSON, no other text.`;
 
     if (prevHeadlines.length > 0) {
       // A topic is "blocked" if it appeared in the most recent briefing AND in
-      // at least one of the three before it (i.e. featured 2+ times in the
-      // last 4 cycles). Word overlap threshold 0.4 as before.
+      // at least one of the four before it (i.e. featured 2+ times in the
+      // last 5 cycles). Word overlap threshold 0.4 as before.
       const olderCyclesLower = priorBriefings.slice(1).flat().map(h => h.toLowerCase());
       const repeatedTopics = prevHeadlines.filter(h => {
         const words = h.toLowerCase().split(/\s+/).filter(w => w.length > 4);
@@ -616,7 +634,7 @@ Return ONLY valid JSON, no other text.`;
       });
 
       const repeatedBlock = repeatedTopics.length > 0
-        ? `\nBLOCKED TOPICS (featured 2+ times in the last 4 briefings -- do NOT include under any circumstances unless a genuinely new discrete event has occurred since the most recent briefing: new court ruling, new vote, new dollar figure, new named party, new legal filing):\n${repeatedTopics.join('\n')}\nRepeating a story that has already been featured twice is ALWAYS wrong. The reader has seen this. Find something newer.\n`
+        ? `\nBLOCKED TOPICS (featured 2+ times in the last 5 briefings -- do NOT include under any circumstances unless a genuinely new discrete event has occurred since the most recent briefing: new court ruling, new vote, new dollar figure, new named party, new legal filing):\n${repeatedTopics.join('\n')}\nRepeating a story that has already been featured twice is ALWAYS wrong. The reader has seen this. Find something newer.\n`
         : '';
 
       antiRepetitionBlock = `
@@ -624,7 +642,18 @@ ANTI-REPETITION RULE: Here are the items from the most recent briefing:
 ${prevHeadlines.join('\n')}
 ${repeatedBlock}
 BRIEFING RECENCY DEDUP:
-Do not lead with or prominently feature a story that covers the same underlying development as the previous briefing unless there is a NEW discrete event -- a new filing, ruling, hearing, vote, official statement, or quantifiable development that did not exist in the prior cycle. A different outlet covering the same news is not a new development. If a story appeared in the previous briefing with no new court action, legislative vote, or official announcement since then, it should not appear again until something materially changes.
+Do not lead with or prominently feature a story that covers the same underlying development as the previous briefing unless there is a NEW discrete event -- a new filing, ruling, hearing, vote, official statement, or quantifiable development that did not exist in the prior cycle. A different outlet covering the same news is not a new development. If a story appeared in the previous briefing with no new court action, legislative vote, or official announcement since then, it should not appear again until something materially changes. This check applies across the last 5 briefings, not just the most recent one -- recurring rhetoric has a way of cycling through multiple briefings under different outlet bylines.
+
+POLITICAL COMMENTARY RECENCY RULE (strict):
+Recurring political commentary from the same senator, representative, governor, or pundit does NOT qualify as a new briefing item unless there is a specific new procedural development attached -- a bill markup, committee vote, amendment, scheduled hearing date, named floor-vote timing, or formal committee action. A politician repeating an existing position in a new interview, op-ed, podcast, floor speech, or press availability is NOT a briefing item, even if a new outlet picked it up.
+
+Red flags that a "Sen. X says Y" item is actually recurring commentary with no news value:
+- The item admits "no new procedural developments" or "timing has not been announced"
+- The senator/rep has stated the same position in a prior briefing already blocked above
+- The only new element is which outlet is carrying the quote
+- The headline is a warning, prediction, or characterization ("on the verge of collapse," "needs to act now," "will regret it") rather than a reported event
+
+If the only "news" is the politician's rhetoric, DO NOT include it. Look instead for stories where something actually HAPPENED: a vote was held, a bill was introduced, a hearing was scheduled with a date, a committee acted, a co-sponsor was added, an amendment was offered.
 
 Do NOT repeat any of the above items unless there is a MATERIAL UPDATE. A material update means:
 - A named official making a NEW statement (not restating a known position)
