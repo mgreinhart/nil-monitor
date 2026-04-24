@@ -621,14 +621,25 @@ export async function handleApi(request, env) {
     }
 
     // Headlines
+    // Default response excludes Off-Topic and Roster / Portal. Roster / Portal
+    // is hidden because individual-player transfer stories dominate the feed
+    // (~56% of recent headlines) even though the briefing excludes them.
+    // Pass includeCat=all to get everything, or cat=Roster / Portal to fetch
+    // them explicitly (the Portal category pill still works).
     if (path === '/api/headlines') {
       const cat = url.searchParams.get('cat');
+      const includeCat = url.searchParams.get('includeCat');
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '50') || 50, 200);
-      let query = "SELECT * FROM headlines WHERE (category IS NULL OR category != 'Off-Topic') AND (hidden IS NULL OR hidden != 1) ORDER BY published_at DESC LIMIT ?";
-      const params = [limit];
+      let query, params;
       if (cat && cat !== 'All') {
         query = "SELECT * FROM headlines WHERE category = ? AND (hidden IS NULL OR hidden != 1) ORDER BY published_at DESC LIMIT ?";
-        params.unshift(cat);
+        params = [cat, limit];
+      } else if (includeCat === 'all') {
+        query = "SELECT * FROM headlines WHERE (category IS NULL OR category != 'Off-Topic') AND (hidden IS NULL OR hidden != 1) ORDER BY published_at DESC LIMIT ?";
+        params = [limit];
+      } else {
+        query = "SELECT * FROM headlines WHERE (category IS NULL OR (category != 'Off-Topic' AND category != 'Roster / Portal')) AND (hidden IS NULL OR hidden != 1) ORDER BY published_at DESC LIMIT ?";
+        params = [limit];
       }
       const { results } = await env.DB.prepare(query).bind(...params).all();
       return json(results);
