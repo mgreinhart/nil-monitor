@@ -14,8 +14,11 @@ export function parseRSS(xml) {
       title: extractText(block, 'title'),
       link: extractText(block, 'link'),
       pubDate: extractText(block, 'pubDate'),
+      // Google News RSS: <source url="...">Outlet Name</source>
       sourceName: extractText(block, 'source'),
       sourceUrl: extractAttr(block, 'source', 'url'),
+      // Bing News RSS: <News:Source>Outlet Name</News:Source> (namespaced)
+      bingSource: extractText(block, 'News:Source'),
       description: extractText(block, 'description'),
     });
   }
