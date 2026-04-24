@@ -139,7 +139,7 @@ function isBriefingOverdueForDay(dow, daysOld, etHour, etMinute) {
   if (dow === 6) return false;              // Saturday — never expected
   if (daysOld > 0) return true;             // past days with brief expected → overdue if missing
   const totalMin = etHour * 60 + etMinute;
-  if (dow === 0) return totalMin >= 15 * 60 + 30;  // Sunday PM-only window
+  if (dow === 0) return totalMin >= 16 * 60 + 30;  // Sunday PM-only window (after afternoon-backup closes)
   return totalMin >= 11 * 60;                      // Mon-Fri after morning-backup closes
 }
 
