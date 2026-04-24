@@ -647,6 +647,48 @@ export async function handleApi(request, env) {
       return json(results);
     }
 
+    // Cases list view — minimal payload for the Courtroom panel.
+    // Full case detail (description, status_summary, court/judge/etc.) is
+    // lazy-loaded via /api/cases/:id when a card is expanded. Active cases
+    // only; sort matches /api/cases (soonest upcoming, then last_event DESC).
+    if (path === '/api/cases/summary') {
+      const { results } = await env.DB.prepare(
+        'SELECT id, name, case_group, last_event_date, upcoming_dates, is_active FROM cases WHERE is_active = 1'
+      ).all();
+      const now = new Date();
+      const summary = results.map(r => {
+        let soonest = null;
+        if (r.upcoming_dates) {
+          try {
+            const future = JSON.parse(r.upcoming_dates)
+              .filter(d => d.date && new Date(d.date) >= now)
+              .sort((a, b) => new Date(a.date) - new Date(b.date));
+            if (future.length > 0) soonest = { date: future[0].date, text: future[0].text || null };
+          } catch {}
+        }
+        return {
+          id: r.id,
+          name: r.name,
+          case_group: r.case_group,
+          last_event_date: r.last_event_date,
+          is_active: r.is_active,
+          soonest,
+        };
+      });
+      summary.sort((a, b) => {
+        if (a.soonest && b.soonest) return new Date(a.soonest.date) - new Date(b.soonest.date);
+        if (a.soonest) return -1;
+        if (b.soonest) return 1;
+        const aLast = a.last_event_date ? new Date(a.last_event_date) : null;
+        const bLast = b.last_event_date ? new Date(b.last_event_date) : null;
+        if (aLast && bLast) return bLast - aLast;
+        if (aLast) return -1;
+        if (bLast) return 1;
+        return 0;
+      });
+      return json(summary);
+    }
+
     if (path.match(/^\/api\/cases\/\d+$/)) {
       const id = path.split('/').pop();
       const row = await env.DB.prepare('SELECT * FROM cases WHERE id = ?').bind(id).first();

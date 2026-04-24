@@ -781,6 +781,10 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
   const [briefingGeneratedAt, setBriefingGeneratedAt] = useState(null);
   const [briefingDate, setBriefingDate] = useState(null);
   const [cases, setCases] = useState(null);
+  // Full case detail keyed by id, lazy-loaded when a case is expanded.
+  // The /api/cases/summary list omits description/court/judge/etc. to keep
+  // the page-load payload small; /api/cases/:id fills them in on demand.
+  const [caseDetails, setCaseDetails] = useState({});
   const [headlines, setHeadlines] = useState(null);
   const [keyDates, setKeyDates] = useState(null);
   const [peDeals, setPeDeals] = useState([]);
@@ -789,6 +793,16 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
     fetch("/api/headlines?limit=100").then(r => r.ok ? r.json() : null).then(d => {
       if (d) { setHeadlines(d); onRefresh?.(new Date()); }
     }).catch(() => {});
+  };
+
+  // Toggle case expand and lazy-load full detail on first open.
+  const handleExpandCase = (caseId, expandId) => {
+    setExpCase(prev => (prev === expandId ? null : expandId));
+    if (caseId != null && !caseDetails[caseId]) {
+      fetch(`/api/cases/${caseId}`).then(r => r.ok ? r.json() : null).then(d => {
+        if (d && !d.error) setCaseDetails(prev => ({ ...prev, [caseId]: d }));
+      }).catch(() => {});
+    }
   };
 
   useEffect(() => {
@@ -800,7 +814,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
         if (d.date) setBriefingDate(d.date);
       }
     }).catch(() => {});
-    fetch("/api/cases").then(r => r.ok ? r.json() : null).then(d => {
+    fetch("/api/cases/summary").then(r => r.ok ? r.json() : null).then(d => {
       if (d?.length) setCases(d);
     }).catch(() => {});
     fetch("/api/cslt-key-dates").then(r => r.ok ? r.json() : null).then(d => {
@@ -823,19 +837,16 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sixMonthsAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
 
-    const parsed = cases.map(c => {
-      let upcomingParsed = [], soonest = null;
-      if (c.upcoming_dates) {
-        try {
-          upcomingParsed = JSON.parse(c.upcoming_dates);
-          const future = upcomingParsed
-            .filter(d => d.date && new Date(d.date) >= now)
-            .sort((a, b) => new Date(a.date) - new Date(b.date));
-          soonest = future[0] || null;
-        } catch {}
-      }
-      return { ...c, upcomingParsed, soonest };
-    });
+    // Merge lazy-loaded full detail into each summary case. Fields like
+    // description, court, judge, case_number, etc. only arrive after a user
+    // expands a case card; until then the summary's id/name/case_group/
+    // last_event_date/soonest are enough for the list view.
+    const parsed = cases.map(c => ({
+      ...c,
+      ...(caseDetails[c.id] || {}),
+      // Prefer server-computed soonest (already filtered to future dates)
+      soonest: c.soonest ?? null,
+    }));
 
     // Deduplicate by case name — keep the row with most recent activity
     const deduped = new Map();
@@ -1143,11 +1154,13 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                   const expandId = `up-${c.id}`;
                   const isOpen = expCase === expandId;
                   const meta = [c.court, c.judge && `Judge ${c.judge}`, c.case_number, c.filed_date].filter(Boolean).join(" · ");
-                  const hasExpand = meta || c.description || c.last_event_text;
+                  // Detail is lazy-loaded; assume expandable until we know otherwise.
+                  const detailLoaded = caseDetails[c.id] != null;
+                  const hasExpand = !detailLoaded || meta || c.description || c.last_event_text;
                   return (
                     <div key={`up${i}`} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
                       <div
-                        onClick={hasExpand ? () => setExpCase(isOpen ? null : expandId) : undefined}
+                        onClick={hasExpand ? () => handleExpandCase(c.id, expandId) : undefined}
                         style={{
                           display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 4 : 6, padding: isMobile ? "10px 12px" : "6px 16px",
                           background: `${T.accent}06`,
@@ -1210,6 +1223,9 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                           opacity: isOpen ? 1 : 0, background: `${T.accent}04`,
                         }}>
                           <div style={{ padding: "4px 16px 8px 28px" }}>
+                            {!detailLoaded ? (
+                              <Mono style={{ fontSize: 12, color: T.textDim, display: "block" }}>Loading...</Mono>
+                            ) : <>
                             {meta && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 4, display: "block" }}>{meta}</Mono>}
                             {c.description && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textDim, lineHeight: 1.4, marginBottom: 4 }}>{c.description}</div>}
                             {c.last_event_text && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 4, display: "block" }}>Latest: {c.last_event_text}{c.last_event_date ? ` (${formatDate(c.last_event_date)})` : ""}</Mono>}
@@ -1218,6 +1234,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                                 <Mono style={{ fontSize: 12, fontWeight: 500, color: T.textDim }}>Case detail →</Mono>
                               </a>
                             )}
+                            </>}
                           </div>
                         </div>
                       )}
@@ -1234,6 +1251,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
               const group = (c.case_group || "").replace(/\s*\(.*?\)\s*/g, "").trim();
               return {
                 id: `cl-${c.id}`,
+                caseId: c.id,
                 sortTs: toTimestamp(c.last_event_date),
                 name: c.name,
                 detail: group,
@@ -1260,7 +1278,10 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                   </Mono>
                 </div>
                 {visible.map((item, i) => {
-                  const hasExpand = item.expandDetail && (item.expandDetail.meta || item.expandDetail.description || item.expandDetail.lastEvent);
+                  // Detail is lazy-loaded; assume expandable until we know otherwise.
+                  const detailLoaded = caseDetails[item.caseId] != null;
+                  const hasAnyDetail = item.expandDetail && (item.expandDetail.meta || item.expandDetail.description || item.expandDetail.lastEvent);
+                  const hasExpand = !detailLoaded || hasAnyDetail;
                   const isOpen = expCase === item.id;
                   const snippet = item.detail
                     ? (item.detail.length > 80 ? item.detail.slice(0, 80) + "..." : item.detail)
@@ -1268,7 +1289,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                   return (
                     <div key={item.id} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
                       <div
-                        onClick={hasExpand ? () => setExpCase(isOpen ? null : item.id) : undefined}
+                        onClick={hasExpand ? () => handleExpandCase(item.caseId, item.id) : undefined}
                         style={{
                           display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 4 : 6, padding: isMobile ? "10px 12px" : "6px 16px",
                           ...(hasExpand ? { cursor: "pointer" } : {}),
@@ -1313,6 +1334,9 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                           opacity: isOpen ? 1 : 0,
                         }}>
                           <div style={{ padding: "4px 16px 8px 28px" }}>
+                            {!detailLoaded ? (
+                              <Mono style={{ fontSize: 12, color: T.textDim, display: "block" }}>Loading...</Mono>
+                            ) : <>
                             {item.expandDetail.meta && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 4, display: "block" }}>{item.expandDetail.meta}</Mono>}
                             {item.expandDetail.description && <div style={{ fontFamily: T.sans, fontSize: 13, color: T.textDim, lineHeight: 1.4, marginBottom: 4 }}>{item.expandDetail.description}</div>}
                             {item.expandDetail.lastEvent && <Mono style={{ fontSize: 12, color: T.textDim, marginBottom: 4, display: "block" }}>Latest: {item.expandDetail.lastEvent}{item.expandDetail.lastEventDate ? ` (${formatDate(item.expandDetail.lastEventDate)})` : ""}</Mono>}
@@ -1321,6 +1345,7 @@ const MonitorPage = ({ onRefresh, isMobile }) => {
                                 <Mono style={{ fontSize: 12, fontWeight: 500, color: T.textDim }}>Case detail →</Mono>
                               </a>
                             )}
+                            </>}
                           </div>
                         </div>
                       )}
