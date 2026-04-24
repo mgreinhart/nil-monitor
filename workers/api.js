@@ -124,6 +124,25 @@ function getETHour() {
   return parseInt(new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' }));
 }
 
+function getETMinute() {
+  return parseInt(new Date().toLocaleString('en-US', { timeZone: 'America/New_York', minute: 'numeric' }));
+}
+
+// Day-of-week and time-of-day logic that mirrors ai-pipeline.js scheduling:
+//   Saturday: no briefing ever expected
+//   Sunday:   PM only, expected by ~15:30 ET (after the afternoon primary slot)
+//   Mon-Fri:  AM + PM; the morning-backup slot closes at ~11:00 ET, so any
+//             missing weekday morning brief past that window is overdue
+// Past days are always "overdue" if a briefing was expected (Mon-Fri + Sun)
+// and didn't land. Today is only overdue once its expected window has closed.
+function isBriefingOverdueForDay(dow, daysOld, etHour, etMinute) {
+  if (dow === 6) return false;              // Saturday — never expected
+  if (daysOld > 0) return true;             // past days with brief expected → overdue if missing
+  const totalMin = etHour * 60 + etMinute;
+  if (dow === 0) return totalMin >= 15 * 60 + 30;  // Sunday PM-only window
+  return totalMin >= 11 * 60;                      // Mon-Fri after morning-backup closes
+}
+
 /**
  * Get ET date strings for SQL queries. D1/SQLite has no timezone support,
  * so we compute ET dates in JS and pass them as bind parameters.
@@ -268,7 +287,15 @@ async function buildAdminDashboard(env) {
     issues.push({ level: 'red', text: `Most recent pipeline run #${mostRecentRun.id} (${adminTimestamp(mostRecentRun.ran_at)}) failed: ${(mostRecentRun.error_message || '').slice(0, 120)}` });
   }
 
-  if (etHour >= 7 && (!latestBriefing || latestBriefing.date !== todayStr)) {
+  // Red-flag today's briefing only after its scheduled window has closed.
+  // Saturday: never flagged (no brief scheduled). Sunday before 15:30 ET:
+  // still in the PM window. Mon-Fri before 11:00 ET: still in the morning
+  // primary/backup window. See isBriefingOverdueForDay.
+  const etMinute = getETMinute();
+  const todayDow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' })).getDay();
+  const todayBriefOverdue = isBriefingOverdueForDay(todayDow, 0, etHour, etMinute);
+  const todayBriefMissing = !latestBriefing || latestBriefing.date !== todayStr;
+  if (todayBriefOverdue && todayBriefMissing) {
     issues.push({ level: 'red', text: `No briefing generated today (last: ${latestBriefing?.date || 'none'})` });
   }
 
@@ -286,8 +313,9 @@ async function buildAdminDashboard(env) {
   const pipe = latestPipeline || {};
 
   // ── Briefing coverage (last 14 days) ──
-  // Expected: Mon–Fri + Sun. Saturday is not expected. Today is "pending"
-  // until the morning brief lands (before ~11 AM ET it's not yet a miss).
+  // Expected: Mon–Fri + Sun. Saturday is not expected. "Overdue" for today
+  // uses isBriefingOverdueForDay so we don't flag amber before the
+  // morning-backup (Mon-Fri) or afternoon-primary (Sun) window has closed.
   const DOW_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const presentBriefings = new Set((briefingCoverageRows?.results || []).map(r => r.date));
   const [y0, m0, d0] = todayET.split('-').map(Number);
@@ -298,13 +326,15 @@ async function buildAdminDashboard(env) {
     const dow = dt.getUTCDay();
     const expected = dow !== 6;
     const present = presentBriefings.has(dateStr);
-    coverage.push({ dateStr, dow, expected, present, daysOld: i });
+    const overdueIfMissing = isBriefingOverdueForDay(dow, i, etHour, etMinute);
+    coverage.push({ dateStr, dow, expected, present, daysOld: i, overdueIfMissing });
   }
   const expectedCount = coverage.filter(c => c.expected).length;
   const presentExpectedCount = coverage.filter(c => c.expected && c.present).length;
-  // Historical gaps (older than today, still in window) are the ones we care
-  // about alerting on. Today's pending-ness is not a miss.
-  const recentGaps = coverage.filter(c => c.expected && !c.present && c.daysOld > 0 && c.daysOld <= 7).length;
+  // Historical gaps (expected past days, missing). Today only counts once
+  // its window has closed. Keeps the summary figure honest during the
+  // morning-backup window on weekdays.
+  const recentGaps = coverage.filter(c => c.expected && !c.present && c.overdueIfMissing && c.daysOld <= 7).length;
 
   // ── Build HTML ──
   const statusDot = (s) => `<span class="dot ${s}"></span>`;
@@ -412,6 +442,9 @@ ${coverage.map(c => {
     dot = 'sleep'; label = '—';
   } else if (c.present) {
     dot = 'green'; label = 'present'; color = '#10b981';
+  } else if (c.daysOld === 0 && !c.overdueIfMissing) {
+    // Today, still within its scheduled window — not a miss yet.
+    dot = 'sleep'; label = c.dow === 0 ? 'expected (PM)' : 'expected';
   } else if (c.daysOld === 0) {
     dot = 'amber'; label = 'pending (today)'; color = '#f59e0b';
   } else if (c.daysOld <= 7) {
