@@ -985,20 +985,6 @@ export async function handleApi(request, env) {
           const del = await env.DB.prepare("DELETE FROM deadlines WHERE text LIKE '%Spring transfer portal window closes%'").run();
           log.push(`deleted ${del.meta?.changes || 0} stale deadline rows`);
         }
-        if (phase === 'fix-tags') {
-          const fixes = [
-            [92586, 'Business / Finance', 'important'],
-            [91548, 'Business / Finance', 'routine'],
-            [91861, 'Business / Finance', 'routine'],
-            [90605, 'Business / Finance', 'routine'],
-            [89666, 'Business / Finance', 'routine'],
-            [89504, 'Business / Finance', 'routine'],
-          ];
-          for (const [id, cat, sev] of fixes) {
-            await env.DB.prepare('UPDATE headlines SET category = ?, severity = ? WHERE id = ?').bind(cat, sev, id).run();
-            log.push(`fixed id ${id} → ${cat}`);
-          }
-        }
         if (phase === 'retag') {
           const cleared = await env.DB.prepare('UPDATE headlines SET category = NULL, severity = NULL, sub_category = NULL').run();
           log.push(`cleared tags: ${cleared.meta?.changes || '?'} rows`);
