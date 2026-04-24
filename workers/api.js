@@ -186,6 +186,7 @@ async function buildAdminDashboard(env) {
     fetcherRows, headlineTotal, headlinesToday, headlinesWeek, headlines24h,
     activeCases, casesWithDates, latestBriefing, csltStats, latestPipeline,
     untaggedHeadlines, curationHeadlines, hiddenWeekCount, recentErrors, recentPipelineRuns,
+    briefingCoverageRows,
   ] = await Promise.all([
     env.DB.prepare('SELECT fetcher_name, last_run, last_error, last_error_at FROM fetcher_runs').all()
       .catch(() => env.DB.prepare('SELECT fetcher_name, last_run FROM fetcher_runs').all()),
@@ -203,6 +204,7 @@ async function buildAdminDashboard(env) {
     env.DB.prepare("SELECT COUNT(*) as cnt FROM headlines WHERE hidden = 1 AND fetched_at >= ?").bind(daysAgo(7)).first().catch(() => ({ cnt: 0 })),
     env.DB.prepare("SELECT fetcher_name, error_message, occurred_at FROM fetcher_errors WHERE occurred_at >= datetime('now', '-24 hours') ORDER BY id DESC LIMIT 20").all().catch(() => ({ results: [] })),
     env.DB.prepare("SELECT id, ran_at, status, error_message, briefing_generated, headlines_tagged FROM pipeline_runs ORDER BY id DESC LIMIT 6").all().catch(() => ({ results: [] })),
+    env.DB.prepare("SELECT date FROM briefings WHERE date >= ? ORDER BY date").bind(daysAgo(14)).all().catch(() => ({ results: [] })),
   ]);
 
   // ── Fetcher status ──
@@ -282,6 +284,27 @@ async function buildAdminDashboard(env) {
 
   // ── Pipeline stats ──
   const pipe = latestPipeline || {};
+
+  // ── Briefing coverage (last 14 days) ──
+  // Expected: Mon–Fri + Sun. Saturday is not expected. Today is "pending"
+  // until the morning brief lands (before ~11 AM ET it's not yet a miss).
+  const DOW_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const presentBriefings = new Set((briefingCoverageRows?.results || []).map(r => r.date));
+  const [y0, m0, d0] = todayET.split('-').map(Number);
+  const coverage = [];
+  for (let i = 13; i >= 0; i--) {
+    const dt = new Date(Date.UTC(y0, m0 - 1, d0 - i, 12, 0, 0));
+    const dateStr = dt.toISOString().slice(0, 10);
+    const dow = dt.getUTCDay();
+    const expected = dow !== 6;
+    const present = presentBriefings.has(dateStr);
+    coverage.push({ dateStr, dow, expected, present, daysOld: i });
+  }
+  const expectedCount = coverage.filter(c => c.expected).length;
+  const presentExpectedCount = coverage.filter(c => c.expected && c.present).length;
+  // Historical gaps (older than today, still in window) are the ones we care
+  // about alerting on. Today's pending-ness is not a miss.
+  const recentGaps = coverage.filter(c => c.expected && !c.present && c.daysOld > 0 && c.daysOld <= 7).length;
 
   // ── Build HTML ──
   const statusDot = (s) => `<span class="dot ${s}"></span>`;
@@ -374,6 +397,33 @@ ${recentPipelineRuns.results.map(r => {
 }).join('')}
 </table>
 </div>` : ''}
+
+<div class="section">
+<h2>Briefing Coverage (14 days)</h2>
+<div style="font-size:11px;color:#94a3b8;margin-bottom:8px">
+  ${presentExpectedCount} of ${expectedCount} expected briefings present${recentGaps > 0 ? ` &middot; <span style="color:#ef4444">${recentGaps} recent gap${recentGaps === 1 ? '' : 's'} (last 7 days)</span>` : ''}
+</div>
+<table>
+<tr><th style="width:100px">Date</th><th style="width:60px">Day</th><th style="width:100px">Expected</th><th>Status</th></tr>
+${coverage.map(c => {
+  const dayLabel = DOW_LABELS[c.dow];
+  let dot, label, color = '#94a3b8';
+  if (!c.expected) {
+    dot = 'sleep'; label = '—';
+  } else if (c.present) {
+    dot = 'green'; label = 'present'; color = '#10b981';
+  } else if (c.daysOld === 0) {
+    dot = 'amber'; label = 'pending (today)'; color = '#f59e0b';
+  } else if (c.daysOld <= 7) {
+    dot = 'red'; label = 'MISSED'; color = '#ef4444';
+  } else {
+    dot = 'amber'; label = 'missed (historical)'; color = '#f59e0b';
+  }
+  const dateWeight = c.daysOld === 0 ? 'font-weight:600' : '';
+  return `<tr><td style="${dateWeight}">${c.dateStr}${c.daysOld === 0 ? ' <span style="color:#64748b;font-size:10px">today</span>' : ''}</td><td style="color:#64748b">${dayLabel}</td><td>${c.expected ? 'yes' : '<span style="color:#475569">no</span>'}</td><td>${statusDot(dot)} <span style="color:${color}">${label}</span></td></tr>`;
+}).join('')}
+</table>
+</div>
 
 <div class="section">
 <h2>Content Pulse</h2>
