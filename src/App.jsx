@@ -31,8 +31,8 @@ const T = {
   textDim: "#7c8698",
   border: "#edf0f4",
   borderLight: "#f0f2f6",
-  mono: "'Geist Mono', 'Fira Code', 'SF Mono', monospace",
-  sans: "'Geist Sans', 'Inter', system-ui, sans-serif",
+  mono: "'Geist Mono Variable', 'Geist Mono', 'Fira Code', 'SF Mono', monospace",
+  sans: "'Geist Variable', 'Geist Sans', 'Inter', system-ui, sans-serif",
   radius: 6,
 };
 
