@@ -148,7 +148,7 @@ export async function shouldRun(db, fetcherName, cooldownMinutes) {
 export async function recordRun(db, fetcherName) {
   await db.prepare(
     `INSERT INTO fetcher_runs (fetcher_name, last_run) VALUES (?, datetime('now'))
-     ON CONFLICT(fetcher_name) DO UPDATE SET last_run = datetime('now')`
+     ON CONFLICT(fetcher_name) DO UPDATE SET last_run = datetime('now'), last_error = NULL, last_error_at = NULL`
   ).bind(fetcherName).run();
 }
 
