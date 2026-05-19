@@ -165,6 +165,7 @@ CREATE TABLE IF NOT EXISTS pe_deals (
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pe_deals_natural ON pe_deals(investor, target);
 
 -- Portal snapshot (CFBD transfer portal aggregate data, one row per day)
 CREATE TABLE IF NOT EXISTS portal_snapshot (

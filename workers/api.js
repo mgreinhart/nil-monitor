@@ -1016,6 +1016,7 @@ export async function handleApi(request, env) {
             terms_summary TEXT, source_url TEXT,
             created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
           )`).run();
+          await env.DB.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_pe_deals_natural ON pe_deals(investor, target)`).run();
           const deals = [
             ['Otro Capital','University of Utah','Big 12','~$500M','2025-12','announced','Minority equity stake in new "Utah Brands & Entertainment LLC." University retains majority ownership. Exit clause after 5-7 years. First-ever PE deal with a college athletic department.','https://www.espn.com/college-sports/story/_/id/47267088/utah-private-equity-college-sports-otro-capital'],
             ['CAS (RedBird + Weatherford)','Big 12 Conference','Big 12','Up to $500M','2025-12','pending','No equity stake sold. $25M into "Big 12 Properties" entity. Each of 16 schools gets optional ~$30M credit line. Schools retain 100% ownership.','https://www.sportico.com/business/finance/2025/big-12-cas-redbird-private-equity-deal-500-million-1234879052/'],
@@ -1028,14 +1029,23 @@ export async function handleApi(request, env) {
             ['Clearlake / Charlesbank / Fortress','Learfield (~200 schools)','Multi','$150M equity + $600M debt reduction','2023-09','closed','Became majority owners of Learfield via equity injection and debt forgiveness. Learfield manages multimedia rights for ~200 schools.','https://www.learfield.com/2023/09/learfield-announces-closing-of-recapitalization-transaction-and-equity-investment-positioning-the-company-for-continued-growth/'],
             ['KKR','Arctos Partners (acquisition)','N/A','$1.4B + up to $550M','2026-01','announced','KKR acquiring Arctos ($15B AUM, pro sports stakes). Not in college athletics yet but Arctos reviewed FSU term sheets. Positions KKR/Arctos as potential entrant.','https://www.sportico.com/business/finance/2026/kkr-buys-arctos-price-sports-secondaries-1234883498/'],
           ];
-          let inserted = 0;
+          let written = 0;
           for (const d of deals) {
             try {
-              await env.DB.prepare('INSERT OR IGNORE INTO pe_deals (investor,target,conference,amount,announced_date,status,terms_summary,source_url) VALUES (?,?,?,?,?,?,?,?)').bind(...d).run();
-              inserted++;
+              await env.DB.prepare(`INSERT INTO pe_deals (investor,target,conference,amount,announced_date,status,terms_summary,source_url)
+                VALUES (?,?,?,?,?,?,?,?)
+                ON CONFLICT(investor, target) DO UPDATE SET
+                  conference = excluded.conference,
+                  amount = excluded.amount,
+                  announced_date = excluded.announced_date,
+                  status = excluded.status,
+                  terms_summary = excluded.terms_summary,
+                  source_url = excluded.source_url,
+                  updated_at = datetime('now')`).bind(...d).run();
+              written++;
             } catch {}
           }
-          log.push(`pe-deals: inserted ${inserted} deals`);
+          log.push(`pe-deals: upserted ${written} deals`);
         }
         if (phase === 'test-feeds') {
           const testUrls = [
