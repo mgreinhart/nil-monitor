@@ -395,12 +395,12 @@ These sections fetch real data from the API:
 | **Industry** | AthleticDirectorU, NACDA, D1.ticker, Front Office Sports |
 | **Follow** | NIL Monitor X List |
 
-### PE Tracker (10 deals seeded)
+### PE Tracker (11 deals seeded — last refresh 2026-05-19)
 
 | Investor | Target | Status |
 |----------|--------|--------|
 | Otro Capital | University of Utah | announced |
-| CAS (RedBird + Weatherford) | Big 12 Conference | pending |
+| CAS (RedBird + Weatherford) | Big 12 Conference | closed |
 | CVC Capital Partners | Big 12 Conference | dead (hidden) |
 | UC Investments | Big Ten Conference | on_hold |
 | Sixth Street | Florida State | dead (hidden) |
@@ -408,9 +408,12 @@ These sections fetch real data from the API:
 | Elevate / Velocity / Texas PSF | Multiple schools | announced |
 | TBD (BAGS Initiative) | Boise State | exploring |
 | Clearlake / Charlesbank / Fortress | Learfield (~200 schools) | closed |
-| KKR | Arctos Partners (acquisition) | announced |
+| KKR | Arctos Partners (acquisition) | closed |
+| TPG | Learfield (~200 schools) | pending |
 
-Dead deals are filtered from display. 7 visible on the frontend.
+Dead deals are filtered from display. 8 visible on the frontend.
+
+The `seed-pe` trigger phase upserts on `(investor, target)` (unique index `idx_pe_deals_natural`), so editing the deals array in `workers/api.js` and re-triggering `/api/trigger?phase=seed-pe` applies updates in-place.
 
 ### House Settlement Seed Data
 
