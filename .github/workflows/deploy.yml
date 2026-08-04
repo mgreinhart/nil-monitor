@@ -21,14 +21,28 @@ jobs:
 
       - run: npm ci
 
+      # Order matters: build + test BEFORE either deploy step. The Worker
+      # entry point imports fetcher-utils.js, which builds several large
+      # regexes at runtime (new RegExp([...].join('|'))) — esbuild can't
+      # validate those, so a syntax error there previously deployed clean
+      # and only threw once live, killing every cron tick and API request.
+      # `npm test` imports every worker module the same way the Worker
+      # runtime does and catches that class of failure here instead.
+      # Previously "Deploy Worker" ran before "Build frontend" — a broken
+      # frontend build left the new Worker live against the old frontend
+      # with no alert. Building and testing first means either failure
+      # stops the workflow before anything is deployed.
+      - name: Build frontend
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
       - name: Deploy Worker
         run: npx wrangler deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Build frontend
-        run: npm run build
 
       - name: Deploy Pages
         run: npx wrangler pages deploy dist --project-name nil-monitor

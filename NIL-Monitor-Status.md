@@ -2,12 +2,15 @@
 
 > Last audited: 2026-04-24 from source files (schema, cron, fetcher query counts, briefing rules, admin curation, pipeline reliability, fetcher resilience verified against actual code).
 >
-> **2026-08-04 — design audit added.** See `AUDIT-2026-08-04-design.md` for a design-quality
-> review (testing/feedback loops, naming consistency, module boundaries) plus three
-> prioritized refactors. It found no new product defects but one **critical** process gap:
-> the runtime-constructed regexes in `fetcher-utils.js` are not validated by the build, and
-> a syntax error there takes down the entire Worker — API included — with a green CI run.
-> Refactor #1 in that document (smoke test + CI gate) should precede all other work.
+> **2026-08-04 — design audit added, Refactor #1 shipped.** See `AUDIT-2026-08-04-design.md`
+> for the design-quality review (testing/feedback loops, naming consistency, module
+> boundaries) and three prioritized refactors. Refactor #1 — smoke-test harness + CI gate —
+> is now done: `npm test` runs 73 tests via `vitest`, wired into `deploy.yml` before either
+> deploy step. Verified live: deliberately broke `TITLE_RELEVANCE_RE` with the exact
+> unbalanced-group scenario the audit described, confirmed `wrangler deploy --dry-run` still
+> went green while `npm test` failed immediately with the file:line — then reverted. See the
+> audit doc's "Refactor #1 — done" section for detail. Next up: Refactor #2
+> (`shared/vocabulary.js`).
 >
 > **Note on staleness:** no commits between 2026-05-19 and 2026-08-04. Seed and curated data
 > have aged accordingly — see "Known Issues" below.
@@ -512,8 +515,8 @@ Cloudflare Web Analytics beacon added to `index.html`. Results visible at Cloudf
 - **FOS non-college content** — FOS is now in `BROAD_SOURCES` and relevance-gated, which cuts most pro-sports noise. Some still slips through and gets tagged Off-Topic by the AI pipeline.
 - **OpenDNS blocks `*.workers.dev`** — Local dev must use nilmonitor.com, not Workers.dev URL directly.
 - **Admin cooldown mirror is wrong for podcasts** — `FETCHER_CONFIG` in `workers/api.js:89-107` duplicates every fetcher's cooldown ("mirrors each fetcher's actual `getCooldown()` logic"). It has drifted: `fetch-podcasts.js:23` returns **120** min, the mirror says **360**. Consequence: if the podcast fetcher stalls, admin flags amber at 18h instead of 6h and red at 36h instead of 12h. Fix by deleting the mirror and importing each fetcher's `getCooldown` directly.
-- **No test suite, no CI gate** — `deploy.yml` runs `npm ci` → `wrangler deploy` → `npm run build` → Pages deploy. No lint/typecheck/smoke test. It also deploys the **Worker before building the frontend**, so a failed frontend build leaves the new Worker live against the old frontend.
-- **Runtime-constructed regexes are unvalidated by the build** — the six large noise/relevance regexes in `fetcher-utils.js` are built with `new RegExp([...].join('|'))`. esbuild can't check them, so a syntax error deploys green and then throws at module load, killing every cron **and** every API request (`workers/index.js` imports `fetcher-utils.js` at top level). See `AUDIT-2026-08-04-design.md` §3.1.
+- ~~No test suite, no CI gate~~ **Fixed 2026-08-04** — `npm test` (`vitest`, 73 tests in `workers/__tests__/`) now runs in CI before either deploy step; `deploy.yml` reordered to `build → test → deploy Worker → deploy Pages`. See `AUDIT-2026-08-04-design.md` "Refactor #1 — done". No lint/typecheck yet — only the smoke-test + fixture coverage described there.
+- **Runtime-constructed regexes are unvalidated by the build** — the six large noise/relevance regexes in `fetcher-utils.js` are built with `new RegExp([...].join('|'))`. esbuild can't check them, so `wrangler deploy --dry-run` stays green on a syntax error there (verified) — but `npm test` now catches it via `workers/__tests__/module-imports.test.js`, which imports `workers/index.js` the same way the Worker runtime does. Still worth care on any edit to those regexes: run `npm test` locally before pushing.
 - **`Mono` component renders sans-serif** — `App.jsx:103` sets `fontFamily: T.sans`. `T.mono` is defined (`App.jsx:34`) and used **zero** times. The design system section below describes monospace data/timestamps/labels; the site does not actually render them that way.
 - **`isWithinHour` checks 3 hours** (`App.jsx:273`, `10800000` ms) — drives the green "NEW" badge. Name is misleading.
 - **`InfoModal` data-source table is stale** — `App.jsx:1504-1527` claims Google News "94 targeted queries" (actual 88) and Bing "54" (actual 58), and still lists **CollegeAD**, which was removed. This is user-facing.
@@ -650,6 +653,8 @@ workers/
   fetch-cslt.js        — College Sports Litigation Tracker scraper (cases + key dates)
   fetch-podcasts.js    — 6 podcast RSS feeds (freshness check)
   fetch-cfbd.js        — CFBD transfer portal + preseason intel
+  __tests__/           — vitest suite (73 tests): module-import smoke test, classifier
+                          fixtures, insertHeadline integration test. Run via `npm test`.
 functions/
   api/[[path]].js      — Pages Function proxy (/api/* → Worker, with POST body forwarding)
   [[catchall]].js      — Pages Function proxy (SEO routes → Worker)
@@ -679,6 +684,8 @@ Priority order based on impact and readiness:
 8. **Refresh stale query-count comments and the `InfoModal` source table** — `wrangler.toml`, `workers/index.js`, fetcher headers, and `App.jsx:1504-1527` all cite outdated numbers. The InfoModal one is user-facing, so it matters more than the rest.
 
 > **Sequencing note (2026-08-04):** the three refactors in `AUDIT-2026-08-04-design.md`
-> should come before items 1–8 here. Refactor #1 (smoke test + CI gate, ~3h) is what makes
-> the rest safe to attempt without a test suite. Items 1–2 above remain the best
-> *feature* work once that's in place.
+> should come before items 1–8 here. Refactor #1 (smoke test + CI gate) is **done** — see
+> that doc. Refactor #2 (`shared/vocabulary.js`) is next; it's what makes renames like
+> `isWithinHour` (item 7 above) and the `Mono`/`T.mono` cleanup safe to do with confidence
+> rather than by inspection. Items 1–2 above remain the best *feature* work once that's in
+> place.

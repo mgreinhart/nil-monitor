@@ -320,6 +320,52 @@ Extract `selectBriefingPool()`, `buildBriefingPrompt()`, `resolveSources()`. Mov
 
 1. Read `NIL-Monitor-Status.md` for system state — it remains the source of truth for what's built.
 2. Read the resolution annotation at the top of `AUDIT-2026-04-24.md` before acting on anything in it.
-3. Begin **Refactor #1** above. Nothing in this document should be started ahead of it: it is the cheapest item, and it is what makes the other two safe to attempt.
+3. ~~Begin Refactor #1~~ **Done — see below.** Begin **Refactor #2** (`shared/vocabulary.js`).
 
 No code changes were made by this audit. Only the four documentation corrections listed in §6.
+
+---
+
+## ✅ Refactor #1 — done (2026-08-04, follow-up session)
+
+Smoke-test harness + CI gate shipped. `vitest` added as a dev dependency; `npm test` runs
+73 tests across three files in `workers/__tests__/`:
+
+- **`module-imports.test.js`** — uses `import.meta.glob` to dynamically import every file
+  under `workers/`, plus an explicit check of `workers/index.js` (the actual Worker entry
+  point, importing the same graph Cloudflare evaluates on isolate start). This is what
+  catches a `new RegExp([...].join('|'))` syntax error at test time instead of in production.
+- **`fetcher-utils.classifiers.test.js`** — 48 fixtures against `isGameNoise`,
+  `isProSportsNoise`, `isSpamTitle`, `isBlockedDomain`, `isPortalNoise`, `isTitleRelevant`,
+  `categorizeByKeyword`, `normalizeUrl`, `decodeEntities`. Each fixture was traced against
+  the actual regex source before being written, not guessed — all 48 passed on the first run.
+- **`insertHeadline.test.js`** — 8 tests against the full chain with a minimal in-memory
+  fake D1 (staleness guard, noise rejection, exact-title dedup, Jaccard fuzzy dedup,
+  cross-fetcher cache consistency).
+
+**Verified the harness actually catches the failure it was built for.** Deliberately
+introduced the exact scenario from §3.1 — an unbalanced group in `TITLE_RELEVANCE_RE`
+(`'(?:college|ncaa'` in place of `'\\bncaa\\b'`) — and confirmed:
+- `npm run build` (Vite/frontend): green, unaffected (doesn't touch `workers/`)
+- `npx wrangler deploy --dry-run` (the actual esbuild bundling step): **green** — "Total
+  Upload: 248.73 KiB", no error. This is the blind spot §3.1 described, confirmed live.
+- `npm test`: **fails immediately** with `SyntaxError: Invalid regular expression:
+  ... Unterminated group` pointing at `fetcher-utils.js:640:28` — the exact file and line.
+
+Change reverted after verification; suite back to 73/73 green.
+
+**`.github/workflows/deploy.yml` reordered** per §3.2: `build → test → deploy Worker →
+deploy Pages` (was `deploy Worker → build → deploy Pages`, meaning a broken frontend build
+previously left a new Worker live against an old frontend with no alert).
+
+**Not done, deliberately deferred to Refactor #3:** no `prompt_version` column, no
+briefing-prompt-assembly test, no per-source briefing-contribution logging. Those need
+`generateBriefing` split apart first (§4) to be testable in isolation — bolting fixture
+tests onto the current 430-line function would be fragile. Refactor #1 as scoped here is
+the classification/ingestion side only, which is what made the total-outage bug possible.
+
+**Also noted, not fixed:** `npm audit` reports 12 vulnerabilities (2 low, 10 high), all in
+transitive dev tooling (`wrangler`'s `esbuild`/`miniflare`/`undici` chain, plus
+`vite`'s `rollup`/`postcss`). None are in runtime dependencies shipped to the browser or
+Worker. Not touched here — `npm audit fix` could bump `wrangler` or `vite` majors, which is
+a decision on its own, not a side effect of adding a test runner.
