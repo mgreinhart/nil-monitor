@@ -1,6 +1,16 @@
 # NIL Monitor — Project Status
 
 > Last audited: 2026-04-24 from source files (schema, cron, fetcher query counts, briefing rules, admin curation, pipeline reliability, fetcher resilience verified against actual code).
+>
+> **2026-08-04 — design audit added.** See `AUDIT-2026-08-04-design.md` for a design-quality
+> review (testing/feedback loops, naming consistency, module boundaries) plus three
+> prioritized refactors. It found no new product defects but one **critical** process gap:
+> the runtime-constructed regexes in `fetcher-utils.js` are not validated by the build, and
+> a syntax error there takes down the entire Worker — API included — with a green CI run.
+> Refactor #1 in that document (smoke test + CI gate) should precede all other work.
+>
+> **Note on staleness:** no commits between 2026-05-19 and 2026-08-04. Seed and curated data
+> have aged accordingly — see "Known Issues" below.
 
 ## Architecture
 
@@ -329,8 +339,7 @@ All SEO pages share `seoPage()` template with identical CSS, nav bar (Dashboard,
 | `all` | Run both fetch + ai sequentially |
 | `retag` | Clear all headline tags + re-run AI pipeline |
 | `fix-briefing-date` | Delete future-dated briefings (UTC/ET mismatch artifact) |
-| `fix-tags` | Fix 6 hardcoded mistagged headlines → Business / Finance |
-| `seed-pe` | Create pe_deals + insert 10 deals |
+| `seed-pe` | Create pe_deals + upsert 11 deals |
 | `test-feeds` | Test 5 RSS feed URLs and report status |
 | `delete-stale-deadline` | Delete stale "Spring transfer portal window closes" rows |
 
@@ -502,9 +511,14 @@ Cloudflare Web Analytics beacon added to `index.html`. Results visible at Cloudf
 - **Knight-Newhouse link** — `knightnewhousedata.org` returns 403 to automated requests (bot blocking). Works in browsers.
 - **FOS non-college content** — FOS is now in `BROAD_SOURCES` and relevance-gated, which cuts most pro-sports noise. Some still slips through and gets tagged Off-Topic by the AI pipeline.
 - **OpenDNS blocks `*.workers.dev`** — Local dev must use nilmonitor.com, not Workers.dev URL directly.
-- **`fix-tags` trigger phase** — Hardcoded IDs for a one-time fix of 6 mistagged headlines. Harmless but should be removed in cleanup.
-- **Podcast cooldown comment stale** — `fetch-podcasts.js` header says "every 6 hours" but `getCooldown()` returns 120 (2 hours). Code is correct, comment is wrong.
+- **Admin cooldown mirror is wrong for podcasts** — `FETCHER_CONFIG` in `workers/api.js:89-107` duplicates every fetcher's cooldown ("mirrors each fetcher's actual `getCooldown()` logic"). It has drifted: `fetch-podcasts.js:23` returns **120** min, the mirror says **360**. Consequence: if the podcast fetcher stalls, admin flags amber at 18h instead of 6h and red at 36h instead of 12h. Fix by deleting the mirror and importing each fetcher's `getCooldown` directly.
+- **No test suite, no CI gate** — `deploy.yml` runs `npm ci` → `wrangler deploy` → `npm run build` → Pages deploy. No lint/typecheck/smoke test. It also deploys the **Worker before building the frontend**, so a failed frontend build leaves the new Worker live against the old frontend.
+- **Runtime-constructed regexes are unvalidated by the build** — the six large noise/relevance regexes in `fetcher-utils.js` are built with `new RegExp([...].join('|'))`. esbuild can't check them, so a syntax error deploys green and then throws at module load, killing every cron **and** every API request (`workers/index.js` imports `fetcher-utils.js` at top level). See `AUDIT-2026-08-04-design.md` §3.1.
+- **`Mono` component renders sans-serif** — `App.jsx:103` sets `fontFamily: T.sans`. `T.mono` is defined (`App.jsx:34`) and used **zero** times. The design system section below describes monospace data/timestamps/labels; the site does not actually render them that way.
+- **`isWithinHour` checks 3 hours** (`App.jsx:273`, `10800000` ms) — drives the green "NEW" badge. Name is misleading.
+- **`InfoModal` data-source table is stale** — `App.jsx:1504-1527` claims Google News "94 targeted queries" (actual 88) and Bing "54" (actual 58), and still lists **CollegeAD**, which was removed. This is user-facing.
 - **Query-count comments stale** — `wrangler.toml`, `workers/index.js`, and individual fetcher files cite older query counts (76, 49, 57, etc.). Actual arrays are 88/58/18/3/23. Comments should be refreshed in a future cleanup.
+- **Seed/curated data has aged** (no commits since 2026-05-19) — `house_settlement` still reads `phase: Final Approval Pending` / `hearing_date: 2026-03-12` / `back_damages_distributed: $0`; `nil-state-data.json` is Troutman Pepper Feb 2026; PE Tracker last refreshed 2026-05-19. All three render with the same visual weight as live data.
 
 ### GDELT / Google Trends — Removed
 
@@ -661,6 +675,10 @@ Priority order based on impact and readiness:
 4. **Peer Intelligence** — AD compensation, budget comparisons, conference revenue. Requires research + new data source.
 5. **LegiScan fetcher** — Blocked on API key. Would populate `bills` table and bring State map to life.
 6. **CourtListener re-integration** — Build CSLT-to-CL docket ID mapping so filing-level data supplements CSLT case summaries.
-7. **Clean up dead code** — Remove `MOCK.kpis`, `MOCK.timeline`, `MOCK.xFeed`, orphaned `XListEmbed`, stale `courtroomOpen` toggle, misleading `isWithinHour` name.
-8. **Refresh stale query-count comments** — `wrangler.toml`, `workers/index.js`, fetcher file headers cite outdated numbers. Low priority but annoying.
-9. **Remove `fix-tags` trigger phase** — One-time hardcoded fix that's long since run.
+7. **Clean up dead code** — Remove `MOCK.kpis`, `MOCK.timeline`, `MOCK.xFeed`, orphaned `XListEmbed`, stale `courtroomOpen` toggle, misleading `isWithinHour` name, unused `T.mono` token (or start using it), dead `gdelt_volume` table and `pipeline_runs.deadlines_created` column.
+8. **Refresh stale query-count comments and the `InfoModal` source table** — `wrangler.toml`, `workers/index.js`, fetcher headers, and `App.jsx:1504-1527` all cite outdated numbers. The InfoModal one is user-facing, so it matters more than the rest.
+
+> **Sequencing note (2026-08-04):** the three refactors in `AUDIT-2026-08-04-design.md`
+> should come before items 1–8 here. Refactor #1 (smoke test + CI gate, ~3h) is what makes
+> the rest safe to attempt without a test suite. Items 1–2 above remain the best
+> *feature* work once that's in place.
