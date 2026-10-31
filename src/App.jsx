@@ -695,8 +695,12 @@ const PortalPulse = ({ isMobile }) => {
   // ── PRESEASON MODE ──
   if (mode === "preseason" && preseason) {
     const retProd = preseason.returning_production || {};
-    const topRet = retProd.top || [];
-    const bottomRet = retProd.bottom || [];
+    // Hide until every row has a school and a plausible percentage — rows
+    // written before the fetch-cfbd.js fix have no school and values like 37330.
+    const retValid = [...(retProd.top || []), ...(retProd.bottom || [])]
+      .every(r => r.school && Math.abs(r.ppa_returning_pct) <= 200);
+    const topRet = retValid ? retProd.top || [] : [];
+    const bottomRet = retValid ? retProd.bottom || [] : [];
     const recruiting = preseason.recruiting_rankings || [];
 
     return (
