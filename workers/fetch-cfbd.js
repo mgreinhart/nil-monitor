@@ -197,21 +197,20 @@ async function runPreseasonIntel(env) {
   try {
     const returning = await cfbdFetch(env, `/player/returning?year=${CURRENT_YEAR}`);
     if (Array.isArray(returning) && returning.length > 0) {
-      // Sort by totalPPA descending
+      // Sort by percentPPA (fraction of last season's PPA returning, 0–1).
+      // totalPPA is a raw PPA sum, not a percentage — rendering it as one
+      // produced values like "37330%". CFBD names the school field `team`.
       const sorted = returning
-        .filter(r => r.totalPPA !== null && r.totalPPA !== undefined)
-        .sort((a, b) => (b.totalPPA || 0) - (a.totalPPA || 0));
+        .filter(r => typeof r.percentPPA === 'number' && r.team)
+        .sort((a, b) => b.percentPPA - a.percentPPA);
 
-      const top5 = sorted.slice(0, 5).map(r => ({
-        school: r.school,
+      const toRow = r => ({
+        school: r.team,
         conference: r.conference || '',
-        ppa_returning_pct: Math.round((r.totalPPA || 0) * 100),
-      }));
-      const bottom5 = sorted.slice(-5).reverse().map(r => ({
-        school: r.school,
-        conference: r.conference || '',
-        ppa_returning_pct: Math.round((r.totalPPA || 0) * 100),
-      }));
+        ppa_returning_pct: Math.round(r.percentPPA * 100),
+      });
+      const top5 = sorted.slice(0, 5).map(toRow);
+      const bottom5 = sorted.slice(-5).reverse().map(toRow);
 
       returningProd = { top: top5, bottom: bottom5 };
     }
